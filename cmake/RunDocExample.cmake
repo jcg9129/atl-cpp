@@ -9,10 +9,11 @@ execute_process(COMMAND "${EXECUTABLE}" OUTPUT_FILE "${ACTUAL}"
 if(NOT result EQUAL 0)
     message(FATAL_ERROR "Example failed (${result}): ${errors}")
 endif()
-execute_process(COMMAND "${CMAKE_COMMAND}" -E compare_files "${ACTUAL}" "${EXPECTED}"
+# Windows writes stdout in text mode (CRLF); everything but line endings must match exactly.
+execute_process(COMMAND "${CMAKE_COMMAND}" -E compare_files --ignore-eol "${ACTUAL}" "${EXPECTED}"
     RESULT_VARIABLE result)
 if(NOT result EQUAL 0)
     file(READ "${EXPECTED}" expected)
     file(READ "${ACTUAL}" actual)
-    message(FATAL_ERROR "Example stdout differs byte-for-byte.\nExpected:\n${expected}\nActual:\n${actual}")
+    message(FATAL_ERROR "Example stdout differs (line endings ignored).\nExpected:\n${expected}\nActual:\n${actual}")
 endif()

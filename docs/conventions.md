@@ -138,7 +138,8 @@ stdout in the matching `.out` file (including its final newline). Include only
 public library headers. Use Doxygen `\include page/example.cpp` or `\snippet`
 in the guide so the displayed code is the tested file. The normal test build
 globs these sources. Each `docs/example/...` CTest test builds its executable,
-runs it, and compares stdout byte for byte against `.out`; a nonzero exit or
+runs it, and compares stdout with `.out` exactly except for line endings (Windows
+writes CRLF); a nonzero exit or
 a mismatch fails. Run `ctest --preset gcc -R '^docs/'` after configuring GCC.
 
 Every public header outside a `detail/` directory must be referenced by at
