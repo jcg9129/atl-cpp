@@ -136,7 +136,6 @@ TEST_CASE("hash: no crafted pair collides under every seed", "[hash]") {
 		REQUIRE(atl::hash<std::string>{}(a) != atl::hash<std::string>{}(b));
 	}
 
-#if ATL_HAS_INT128
 	// Hashing a 128-bit key as f(low + seed) ^ g(high) would give keys whose
 	// g(high) agree in their low bits one home slot under every seed. These
 	// high halves all have g(high) == j << 32.
@@ -160,7 +159,6 @@ TEST_CASE("hash: no crafted pair collides under every seed", "[hash]") {
 		auto const distinct = std::size_t(std::ranges::unique(slots).begin() - slots.begin());
 		REQUIRE(distinct > 1900); // 2000 random draws from 2^20 slots barely repeat
 	}
-#endif
 }
 
 TEST_CASE("hash: a packed pair of small integers is injective", "[hash]") {

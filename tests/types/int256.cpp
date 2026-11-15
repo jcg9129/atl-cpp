@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <random>
 
-#if ATL_HAS_INT128
 using atl::int128;
 using atl::uint64;
 using atl::detail::compare_products;
@@ -106,9 +105,3 @@ TEST_CASE("int256: products at the int128 extremes", "[int256]") {
 	REQUIRE(atl::detail::compare_products(min, min, max, max) == 1);
 	REQUIRE(atl::detail::compare_products(min, 1, max, -1) == -1);
 }
-
-#else
-TEST_CASE("int256: unavailable without native int128", "[types]") {
-	STATIC_REQUIRE(ATL_HAS_INT128 == 0);
-}
-#endif

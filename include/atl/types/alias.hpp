@@ -3,12 +3,13 @@
 /**
  * @file
  * @brief Fixed-width names for the built-in arithmetic types (`int8` .. `uint64`,
- *        `int128`/`uint128` when `ATL_HAS_INT128`, and `float32`/`float64`).
+ *        native or portable `int128`/`uint128`, and `float32`/`float64`).
  *        There is no `float128`: `long double` is 80-bit x87, binary128 or plain
  *        `double` depending on the target, so no alias could promise the width.
  */
 
 #include <atl/config.hpp>
+#include <atl/types/int128.hpp>
 #include <cstdint>
 
 namespace atl {
@@ -31,10 +32,15 @@ namespace atl {
 	using uint64 = std::uint64_t;
 
 #if ATL_HAS_INT128
-	/** @brief Exactly 128-bit signed integer type. Available only when `ATL_HAS_INT128` is 1. */
+	/** @brief Exactly 128-bit signed integer type. */
 	using int128 = __int128_t;
-	/** @brief Exactly 128-bit unsigned integer type. Available only when `ATL_HAS_INT128` is 1. */
+	/** @brief Exactly 128-bit unsigned integer type. */
 	using uint128 = __uint128_t;
+#else
+	/** @brief Exactly 128-bit signed integer with portable two-word storage. */
+	using int128 = detail::software_int128;
+	/** @brief Exactly 128-bit unsigned integer with portable two-word storage. */
+	using uint128 = detail::software_uint128;
 #endif
 
 	/** @brief Native `float`; precision and representation follow the target ABI. */

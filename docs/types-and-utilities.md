@@ -1,8 +1,8 @@
 # Types and utilities
 
 The foundations the rest of `atl` is built on: fixed-width integer aliases, concepts and
-traits that treat `__int128` as a first-class integer, a few algebra helpers, and the
-feature-detection macros that make optional features (128-bit integers, `std::to_chars`,
+traits that treat native and software 128-bit types as first-class integers, a few algebra helpers, and the
+feature-detection macros that make optional features (`std::to_chars`,
 …) degrade gracefully. Almost everything here lives in `namespace atl` (traits sit in
 `namespace atl::traits`).
 
@@ -30,7 +30,7 @@ Fixed-width names for the built-in arithmetic types, from `<atl/types/alias.hpp>
 |---|---|
 | `atl::int8` / `int16` / `int32` / `int64` | `std::int8_t` … `std::int64_t` |
 | `atl::uint8` / `uint16` / `uint32` / `uint64` | `std::uint8_t` … `std::uint64_t` |
-| `atl::int128` / `atl::uint128` | `__int128_t` / `__uint128_t` — **only when `ATL_HAS_INT128`** |
+| `atl::int128` / `atl::uint128` | Native `__int128_t` / `__uint128_t` or portable software classes; see [128-bit integers](int128.md) |
 | `atl::float32` / `float64` | `float` / `double` |
 
 There is deliberately no `float128`: `long double` is 80-bit x87 on x86,
@@ -43,7 +43,7 @@ recognise the 128-bit types and deliberately exclude `bool` and the character ty
 
 | concept | satisfied by |
 |---|---|
-| `atl::integral<T>` | any built-in integer, including `int128`/`uint128` |
+| `atl::integral<T>` | any supported integer, including native or software `int128`/`uint128` |
 | `atl::signed_integral<T>` | any signed integer, including `int128` |
 | `atl::unsigned_integral<T>` | any unsigned integer, including `uint128` |
 | `atl::modular_integer<Z>` | a modular integer type: `Z::mod()`, `value()`, construction from `int64`/`uint64`, `+ - * /` and their compound forms, negation, `inverse()`, `power(uint64)`; `mod_int` and `dynamic_mod_int` model it |
@@ -118,11 +118,11 @@ From `<atl/types/traits/widen_mul.hpp>`: a type wide enough to hold the product 
 
 | trait | result |
 |---|---|
-| `widen_mul_type<T>` / `widen_mul_type_t<T>` | `int8→int16`, `int16→int32`, `int32→int64`, `int64→int128`*, the unsigned analogues, and any other `T` mapped to itself |
+| `widen_mul_type<T>` / `widen_mul_type_t<T>` | `int8→int16`, `int16→int32`, `int32→int64`, `int64→int128`, the unsigned analogues, and any other `T` mapped to itself |
 | `has_widen_mul_v<T>` | whether `widen_mul_type_t<T>` is strictly wider than `T`, i.e. holds every product exactly; branch on this, never on `sizeof` |
 
-*`int64`/`uint64` widen to 128-bit only when `ATL_HAS_INT128`. When nothing wider
-exists (`int128` itself, `int64` without `__int128`, non-integers) the trait returns `T`,
+`int64`/`uint64` always widen to native or software 128-bit types. When nothing wider
+exists (`int128` itself, non-integers) the trait returns `T`,
 which does NOT hold the product: test `has_widen_mul_v<T>` and take a fallback path.
 
 ## `atl::forward_like`
@@ -177,9 +177,10 @@ From `<atl/config.hpp>` (which also pulls in `<version>` for the `__cpp_lib_*` m
 
 | macro | meaning |
 |---|---|
-| `ATL_HAS_INT128` | `1` when a native `__int128` is available (`__SIZEOF_INT128__` and neither `ATL_NO_INT128` nor `ATL_FORCE_FALLBACKS`), else `0`. Gates the `int128`/`uint128` aliases and their traits |
-| `ATL_FORCE_FALLBACKS` | define it to use every portable fallback: no native int128, the `forward_like` cast, no-op prefetch, and value decomposition for wide floats |
-| `ATL_NO_INT128` | define it to force the no-128-bit path for testing on a capable compiler |
+| `ATL_HAS_INT128` | `1` when a native `__int128` is available (`__SIZEOF_INT128__` and neither `ATL_NO_INT128` nor `ATL_FORCE_FALLBACKS`), else `0`. Selects native vs software aliases; both provide the same atl traits |
+| `ATL_FORCE_FALLBACKS` | define it to use every portable fallback: software int128 and portable word primitives, the `forward_like` cast, no-op prefetch, and value decomposition for wide floats |
+| `ATL_PORTABLE_WIDE_ARITHMETIC` | define it to force portable word primitives at runtime, independently of the aliases |
+| `ATL_NO_INT128` | define it to select software 128-bit aliases; must match across translation units |
 | `ATL_NO_STD_FORWARD_LIKE` | define it to force the `atl::forward_like` fallback (see above) |
 
 ## Hash customization and seed lifetime

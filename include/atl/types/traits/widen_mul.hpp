@@ -7,9 +7,8 @@
 namespace atl::traits {
 	namespace detail {
 		/**
-		 * @brief The built-in integer of exactly @p Bytes bytes and the given
-		 *        signedness, as `type`; no member when the target has none
-		 *        (16 bytes without `__int128`).
+		 * @brief The integer of exactly @p Bytes bytes and the given
+		 *        signedness, as `type`; 16-byte types may use software storage.
 		 */
 		template<std::size_t Bytes, bool IsSigned>
 		struct integer_of_size {};
@@ -43,7 +42,7 @@ namespace atl::traits {
 		struct integer_of_size<8, false> {
 			using type = uint64;
 		};
-#if ATL_HAS_INT128
+
 		template<>
 		struct integer_of_size<16, true> {
 			using type = int128;
@@ -53,36 +52,34 @@ namespace atl::traits {
 		struct integer_of_size<16, false> {
 			using type = uint128;
 		};
-#endif
 
-		/** @brief Whether a built-in integer twice as wide as @p T exists. */
+		/** @brief Whether an integer twice as wide as @p T exists. */
 		template<typename T>
 		concept has_double_width = std::is_integral_v<T> && !std::is_same_v<T, bool>
 								&& requires { typename integer_of_size<2 * sizeof(T), std::is_signed_v<T>>::type; };
 	}
 
 	/**
-	 * @brief The type to multiply two values of type @p T in: the built-in
+	 * @brief The type to multiply two values of type @p T in: the
 	 *        integer of twice the width and the same signedness, which holds
 	 *        every product exactly.
 	 *
 	 * Chosen by SIZE and signedness, not by spelling, so every 8-byte integer
 	 * widens to the 128-bit type — `long` and `long long` alike, on LP64 and
-	 * LLP64. When no wider built-in exists (`int128` itself, a 64-bit type on
-	 * a target without `__int128`, or any non-integer type) `type` is @p T
+	 * LLP64. When no wider type exists (`int128` itself or any non-integer type) `type` is @p T
 	 * itself, so the product is NOT guaranteed to fit: callers test
 	 * `atl::traits::has_widen_mul_v<T>` and take a fallback path (see mul_mod_unchecked /
 	 * static_modulus::mul). cv-qualifiers are ignored.
 	 */
 	template<typename T>
 	struct widen_mul_type {
-		/** @brief Unchanged source type when no wider built-in integer is available. */
+		/** @brief Unchanged source type when no wider integer is available. */
 		using type = T;
 	};
 
 	/**
 	 * @brief Select the integer of twice the source width and matching signedness.
-	 * @tparam T An integer with an available double-width built-in type.
+	 * @tparam T An integer with an available double-width type.
 	 */
 	template<detail::has_double_width T>
 	struct widen_mul_type<T> {

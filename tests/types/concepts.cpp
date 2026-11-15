@@ -21,7 +21,6 @@ TEST_CASE("Test concept atl::integral", "[types/concepts]") {
 
 	// int128 — std's classification of __int128 is implementation-defined, so we
 	// assert only atl's normalized behavior: it always counts as integral.
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::integral<atl::int128>);
 	STATIC_CHECK(atl::integral<atl::int128 const>);
 	STATIC_CHECK(atl::integral<atl::int128 const volatile>);
@@ -31,10 +30,8 @@ TEST_CASE("Test concept atl::integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::integral<atl::int128 const *>);
 	STATIC_CHECK(!std::integral<atl::int128 const volatile *>);
 	STATIC_CHECK(!atl::integral<atl::int128 const volatile *>);
-#endif
 
 	// uint128 — see the int128 note above.
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::integral<atl::uint128>);
 	STATIC_CHECK(atl::integral<atl::uint128 const>);
 	STATIC_CHECK(atl::integral<atl::uint128 const volatile>);
@@ -44,7 +41,6 @@ TEST_CASE("Test concept atl::integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::integral<atl::uint128 const *>);
 	STATIC_CHECK(!std::integral<atl::uint128 const volatile *>);
 	STATIC_CHECK(!atl::integral<atl::uint128 const volatile *>);
-#endif
 }
 
 TEST_CASE("Test concept atl::signed_integral", "[types/concepts]") {
@@ -65,7 +61,6 @@ TEST_CASE("Test concept atl::signed_integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::signed_integral<decltype("")>);
 
 	// int128
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::signed_integral<atl::int128>);
 	STATIC_CHECK(atl::signed_integral<atl::int128 const>);
 	STATIC_CHECK(atl::signed_integral<atl::int128 const volatile>);
@@ -75,10 +70,8 @@ TEST_CASE("Test concept atl::signed_integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::signed_integral<atl::int128 const *>);
 	STATIC_CHECK(!std::signed_integral<atl::int128 const volatile *>);
 	STATIC_CHECK(!atl::signed_integral<atl::int128 const volatile *>);
-#endif
 
 	// uint128
-#if ATL_HAS_INT128
 	STATIC_CHECK(!std::signed_integral<atl::uint128>);
 	STATIC_CHECK(!atl::signed_integral<atl::uint128>);
 	STATIC_CHECK(!std::signed_integral<atl::uint128 const>);
@@ -91,7 +84,6 @@ TEST_CASE("Test concept atl::signed_integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::signed_integral<atl::uint128 const *>);
 	STATIC_CHECK(!std::signed_integral<atl::uint128 const volatile *>);
 	STATIC_CHECK(!atl::signed_integral<atl::uint128 const volatile *>);
-#endif
 }
 
 TEST_CASE("Test concept atl::unsigned_integral", "[types/concepts]") {
@@ -111,7 +103,6 @@ TEST_CASE("Test concept atl::unsigned_integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::unsigned_integral<decltype("")>);
 
 	// int128
-#if ATL_HAS_INT128
 	STATIC_CHECK(!std::unsigned_integral<atl::int128>);
 	STATIC_CHECK(!atl::unsigned_integral<atl::int128>);
 	STATIC_CHECK(!std::unsigned_integral<atl::int128 const>);
@@ -124,10 +115,8 @@ TEST_CASE("Test concept atl::unsigned_integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::unsigned_integral<atl::int128 const *>);
 	STATIC_CHECK(!std::unsigned_integral<atl::int128 const volatile *>);
 	STATIC_CHECK(!atl::unsigned_integral<atl::int128 const volatile *>);
-#endif
 
 	// uint128
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::unsigned_integral<atl::uint128>);
 	STATIC_CHECK(atl::unsigned_integral<atl::uint128 const>);
 	STATIC_CHECK(atl::unsigned_integral<atl::uint128 const volatile>);
@@ -137,5 +126,4 @@ TEST_CASE("Test concept atl::unsigned_integral", "[types/concepts]") {
 	STATIC_CHECK(!atl::unsigned_integral<atl::uint128 const *>);
 	STATIC_CHECK(!std::unsigned_integral<atl::uint128 const volatile *>);
 	STATIC_CHECK(!atl::unsigned_integral<atl::uint128 const volatile *>);
-#endif
 }

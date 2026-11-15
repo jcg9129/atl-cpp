@@ -12,3 +12,5 @@ components and their pages arrive.
 
 See [Library conventions](conventions.md) for contribution rules, including
 where to put guide prose, executable examples and API comments.
+
+- [128-bit integers](int128.md): native aliases, portable software integers and formatting.

@@ -3,10 +3,6 @@
 #include <atl/types/alias.hpp>
 #include <cstddef>
 
-// Needs a native 128-bit integer: on a target without one (ATL_HAS_INT128 == 0,
-// see atl/config.hpp) this header provides nothing.
-#if ATL_HAS_INT128
-
 namespace atl::detail {
 	/**
 	 * @brief Minimal signed 256-bit accumulator for EXACT sign decisions on
@@ -115,5 +111,3 @@ namespace atl::detail {
 		return (int256::product(a, b) - int256::product(c, d)).sign();
 	}
 }
-
-#endif // ATL_HAS_INT128

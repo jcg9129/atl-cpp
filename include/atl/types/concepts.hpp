@@ -7,7 +7,7 @@
 
 namespace atl {
 	/**
-	 * @brief Satisfied by any built-in integer type, including 128-bit integers.
+	 * @brief Satisfied by built-in integer types and atl's software 128-bit integers.
 	 *
 	 * Unlike `std::integral`, this recognizes `atl::int128` / `atl::uint128`, and it
 	 * deliberately excludes `bool` and the character types (`char`, `wchar_t`,

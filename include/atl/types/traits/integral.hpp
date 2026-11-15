@@ -8,17 +8,13 @@
 namespace atl::traits {
 	/**
 	 * @brief Whether @p T is a (possibly cv-qualified) signed integer type:
-	 *        `signed char` .. `long long`, and `int128` when `ATL_HAS_INT128`.
+	 *        `signed char` .. `long long`, and `int128` and the concrete software type.
 	 *        Plain `char`, `bool` and references are not.
 	 */
 	template<typename T>
 	struct is_signed_integral
-		: public is_one_of<std::remove_cv_t<T>, signed char, signed short, signed int, signed long, signed long long
-#if ATL_HAS_INT128
-						   ,
-						   int128
-#endif
-						   > {
+		: public is_one_of<std::remove_cv_t<T>, signed char, signed short, signed int, signed long, signed long long,
+						   int128, atl::detail::software_int128> {
 	};
 
 	/** @brief Shorthand for `is_signed_integral<T>::value`. */
@@ -27,17 +23,12 @@ namespace atl::traits {
 
 	/**
 	 * @brief Whether @p T is a (possibly cv-qualified) unsigned integer type:
-	 *        `unsigned char` .. `unsigned long long`, and `uint128` when
-	 *        `ATL_HAS_INT128`. `bool`, the character types and references are not.
+	 *        `unsigned char` .. `unsigned long long`, and `uint128` (native or software). `bool`, the character types and references are not.
 	 */
 	template<typename T>
 	struct is_unsigned_integral
-		: public is_one_of<std::remove_cv_t<T>, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long
-#if ATL_HAS_INT128
-						   ,
-						   uint128
-#endif
-						   > {
+		: public is_one_of<std::remove_cv_t<T>, unsigned char, unsigned short, unsigned int, unsigned long, unsigned long long,
+						   uint128, atl::detail::software_uint128> {
 	};
 
 	/** @brief Shorthand for `is_unsigned_integral<T>::value`. */
@@ -50,7 +41,7 @@ namespace atl::traits {
 	 *
 	 * Unlike std::is_integral this deliberately excludes bool and the character
 	 * types (char, wchar_t, char8_t/char16_t/char32_t), which do not model
-	 * numbers here, and it includes the 128-bit types (when `ATL_HAS_INT128`)
+	 * numbers here, and it includes the 128-bit types
 	 * in every language mode.
 	 */
 	template<typename T>
@@ -105,16 +96,15 @@ namespace atl::traits {
 		requires(std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> && sizeof(T) <= sizeof(unsigned long long))
 	struct make_signed<T> : std::make_signed<T> {};
 
-#if ATL_HAS_INT128
 	/**
 	 * @brief Map `uint128` to `int128`, preserving cv-qualifiers.
 	 * @tparam T A possibly cv-qualified `uint128`.
 	 */
 	template<typename T>
-		requires std::is_same_v<std::remove_cv_t<T>, uint128>
+		requires(std::is_same_v<std::remove_cv_t<T>, uint128> || std::is_same_v<std::remove_cv_t<T>, atl::detail::software_uint128>)
 	struct make_signed<T> {
 		/** @brief The signed counterpart with the source cv-qualifiers. */
-		using type = detail::copy_cv_t<T, int128>;
+		using type = detail::copy_cv_t<T, std::conditional_t<std::is_same_v<std::remove_cv_t<T>, atl::detail::software_uint128>, atl::detail::software_int128, int128>>;
 	};
 
 	/**
@@ -122,12 +112,11 @@ namespace atl::traits {
 	 * @tparam T A possibly cv-qualified `int128`.
 	 */
 	template<typename T>
-		requires std::is_same_v<std::remove_cv_t<T>, int128>
+		requires(std::is_same_v<std::remove_cv_t<T>, int128> || std::is_same_v<std::remove_cv_t<T>, atl::detail::software_int128>)
 	struct make_signed<T> {
 		/** @brief The signed counterpart with the source cv-qualifiers. */
 		using type = T;
 	};
-#endif
 
 	/** @brief Shorthand for `make_signed<T>::type`. */
 	template<typename T>
@@ -149,16 +138,15 @@ namespace atl::traits {
 		requires(std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> && sizeof(T) <= sizeof(unsigned long long))
 	struct make_unsigned<T> : std::make_unsigned<T> {};
 
-#if ATL_HAS_INT128
 	/**
 	 * @brief Map `int128` to `uint128`, preserving cv-qualifiers.
 	 * @tparam T A possibly cv-qualified `int128`.
 	 */
 	template<typename T>
-		requires std::is_same_v<std::remove_cv_t<T>, int128>
+		requires(std::is_same_v<std::remove_cv_t<T>, int128> || std::is_same_v<std::remove_cv_t<T>, atl::detail::software_int128>)
 	struct make_unsigned<T> {
 		/** @brief The unsigned counterpart with the source cv-qualifiers. */
-		using type = detail::copy_cv_t<T, uint128>;
+		using type = detail::copy_cv_t<T, std::conditional_t<std::is_same_v<std::remove_cv_t<T>, atl::detail::software_int128>, atl::detail::software_uint128, uint128>>;
 	};
 
 	/**
@@ -166,12 +154,11 @@ namespace atl::traits {
 	 * @tparam T A possibly cv-qualified `uint128`.
 	 */
 	template<typename T>
-		requires std::is_same_v<std::remove_cv_t<T>, uint128>
+		requires(std::is_same_v<std::remove_cv_t<T>, uint128> || std::is_same_v<std::remove_cv_t<T>, atl::detail::software_uint128>)
 	struct make_unsigned<T> {
 		/** @brief The unsigned counterpart with the source cv-qualifiers. */
 		using type = T;
 	};
-#endif
 
 	/** @brief Shorthand for `make_unsigned<T>::type`. */
 	template<typename T>
