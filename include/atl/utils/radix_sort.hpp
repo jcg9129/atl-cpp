@@ -37,7 +37,14 @@ namespace atl::detail {
 		std::size_t const n = keys.size();
 		if (n == 0) return;
 		atl_assert(n <= std::numeric_limits<uint32>::max());
-		constexpr Key mask = Key((uint32(1) << DigitBits) - 1);
+		// A digit as wide as the key keeps every bit; spelled with if constexpr so no
+		// truncating cast is instantiated for narrow keys.
+		constexpr Key mask = [] {
+			if constexpr (DigitBits >= int(sizeof(Key)) * 8)
+				return std::numeric_limits<Key>::max();
+			else
+				return Key((uint32(1) << DigitBits) - 1);
+		}();
 		std::vector<keyed_position<Key>> scratch(n);
 		std::vector<uint32> count(std::size_t(1) << DigitBits);
 		for (int shift = 0; shift < int(sizeof(Key)) * 8; shift += DigitBits) {

@@ -296,8 +296,9 @@ namespace {
 TEST_CASE("hash: custom composite calls", "[hash]") {
 	using packed = std::pair<unsigned short const, unsigned short const>;
 	using buffer = std::array<unsigned short const, 2>;
-	REQUIRE(atl::hash<packed>{}({1, 2}) == atl::hash<packed>{}({1, 2}));
-	REQUIRE(atl::hash<buffer>{}({1, 2}) == atl::hash<buffer>{}({1, 2}));
+	unsigned short const one = 1, two = 2; // typed, so no int -> unsigned short conversion inside std::pair
+	REQUIRE(atl::hash<packed>{}({one, two}) == atl::hash<packed>{}({one, two}));
+	REQUIRE(atl::hash<buffer>{}({one, two}) == atl::hash<buffer>{}({one, two}));
 	int value = 17;
 	REQUIRE(atl::hash<std::tuple<int &>>{}(std::tie(value)) == atl::hash<std::tuple<int>>{}({value}));
 	REQUIRE(atl::hash<std::pair<bool const, int>>{}({true, 1}) == atl::hash<std::pair<bool, int>>{}({true, 1}));
