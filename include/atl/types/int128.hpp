@@ -2,6 +2,7 @@
 
 #include <atl/config.hpp>
 #include <atl/types/detail/wide_arithmetic.hpp>
+#include <atl/types/traits/is_one_of.hpp>
 #include <atl/utils/assert.hpp>
 #include <bit>
 #include <compare>
@@ -13,19 +14,26 @@
 #include <type_traits>
 
 namespace atl::detail {
+	// Every operand concept here is one atomic constraint over a type-list trait, never a disjunction of concepts.
+	// C++20 gives `==`, `!=`, `<`, `<=>` ... reversed and rewritten candidates from the same operator templates,
+	// and choosing between them orders the templates by constraint subsumption, which normalizes the constraints to
+	// disjunctive normal form. With `std::same_as` disjunctions over ~20 types per operand that form had millions
+	// of clauses: Clang 22 needed over 180 s for one `software_int128 <=> software_int128` (-fsyntax-only) and
+	// never finished the test, and MSVC ran out of heap. Atomic constraints normalize to a single clause.
+
+	/** @brief Whether a type is a built-in integer operand, including native extended integers when enabled. */
+	template<typename Integer>
+	inline constexpr bool is_builtin_integer = atl::traits::is_one_of_v<Integer, bool, char, signed char, unsigned char, wchar_t, char8_t, char16_t, char32_t,
+																		short, unsigned short, int, unsigned int, long, unsigned long, long long, unsigned long long
+#if defined(__SIZEOF_INT128__)
+																		,
+																		__int128_t, __uint128_t
+#endif
+																		>;
+
 	/** @brief Built-in integer operands, including native extended integers when enabled. */
 	template<typename Integer>
-	concept builtin_integer = std::same_as<Integer, bool> || std::same_as<Integer, char>
-						   || std::same_as<Integer, signed char> || std::same_as<Integer, unsigned char>
-						   || std::same_as<Integer, wchar_t> || std::same_as<Integer, char8_t> || std::same_as<Integer, char16_t> || std::same_as<Integer, char32_t>
-						   || std::same_as<Integer, short> || std::same_as<Integer, unsigned short>
-						   || std::same_as<Integer, int> || std::same_as<Integer, unsigned int>
-						   || std::same_as<Integer, long> || std::same_as<Integer, unsigned long>
-						   || std::same_as<Integer, long long> || std::same_as<Integer, unsigned long long>
-#if defined(__SIZEOF_INT128__)
-						   || std::same_as<Integer, __int128_t> || std::same_as<Integer, __uint128_t>
-#endif
-		;
+	concept builtin_integer = is_builtin_integer<Integer>;
 
 	/** @brief Unsigned ordering of two limb patterns. */
 	[[nodiscard]] constexpr std::strong_ordering compare_words(word_pair left, word_pair right) {
@@ -240,17 +248,29 @@ namespace atl::detail {
 	/** @brief Structural signed two's-complement 128-bit integer with wrapping arithmetic. */
 	struct software_int128;
 
+	/** @brief Whether a type is either concrete software integer class. */
+	template<typename Integer>
+	inline constexpr bool is_software_integer = atl::traits::is_one_of_v<Integer, software_uint128, software_int128>;
+
 	/** @brief Either concrete software integer class. */
 	template<typename Integer>
-	concept software_integer = std::same_as<Integer, software_uint128> || std::same_as<Integer, software_int128>;
+	concept software_integer = is_software_integer<Integer>;
+
+	/** @brief Whether a type is an operand accepted by software integer operators. */
+	template<typename Integer>
+	inline constexpr bool is_integer_operand = is_builtin_integer<Integer> || is_software_integer<Integer>;
 
 	/** @brief An operand accepted by software integer operators. */
 	template<typename Integer>
-	concept integer_operand = builtin_integer<Integer> || software_integer<Integer>;
+	concept integer_operand = is_integer_operand<Integer>;
+
+	/** @brief Whether software integer operators participate for a pair. */
+	template<typename Left, typename Right>
+	inline constexpr bool is_software_integer_pair = is_integer_operand<Left> && is_integer_operand<Right> && (is_software_integer<Left> || is_software_integer<Right>);
 
 	/** @brief A pair for which software integer operators participate. */
 	template<typename Left, typename Right>
-	concept software_integer_pair = integer_operand<Left> && integer_operand<Right> && (software_integer<Left> || software_integer<Right>);
+	concept software_integer_pair = is_software_integer_pair<Left, Right>;
 
 	/** @brief Unsigned structural 128-bit integer; default initialization leaves the limbs uninitialized. */
 	struct software_uint128 {
@@ -463,7 +483,7 @@ namespace atl::detail {
 	constexpr software_int128::software_int128(software_uint128 value) : low(value.low), high(value.high) {}
 
 	/** @brief Whether an operand contributes unsigned rank 128 to the usual arithmetic conversions. */
-	template<integer_operand Integer>
+	template<typename Integer>
 	inline constexpr bool is_unsigned_128 = std::same_as<Integer, software_uint128>
 #if defined(__SIZEOF_INT128__)
 										 || std::same_as<Integer, __uint128_t>
@@ -616,13 +636,16 @@ namespace atl::detail {
 		requires software_integer_pair<Left, Right>
 	[[nodiscard]] constexpr bool operator>=(Left left, Right right) { return compare_operands(left, right) >= 0; }
 
+	/** @brief Whether a pair has a three-way comparison: no bool and no narrowing signed-to-unsigned conversion. */
+	template<typename Left, typename Right>
+	inline constexpr bool is_three_way_integer_pair = is_software_integer_pair<Left, Right> && !std::same_as<Left, bool> && !std::same_as<Right, bool>
+												   && (!(is_unsigned_128<Left> || is_unsigned_128<Right>)
+													   || ((is_unsigned_128<Left> || (is_builtin_integer<Left> && !std::numeric_limits<Left>::is_signed))
+														   && (is_unsigned_128<Right> || (is_builtin_integer<Right> && !std::numeric_limits<Right>::is_signed))));
+
 	/** @brief A three-way comparison without bool or narrowing signed-to-unsigned conversions. */
 	template<typename Left, typename Right>
-	concept three_way_integer_pair = software_integer_pair<Left, Right>
-								  && (!std::same_as<Left, bool>) && (!std::same_as<Right, bool>)
-								  && (!(is_unsigned_128<Left> || is_unsigned_128<Right>)
-									  || ((is_unsigned_128<Left> || (builtin_integer<Left> && !std::numeric_limits<Left>::is_signed))
-										  && (is_unsigned_128<Right> || (builtin_integer<Right> && !std::numeric_limits<Right>::is_signed))));
+	concept three_way_integer_pair = is_three_way_integer_pair<Left, Right>;
 
 	/** @brief Three-way comparison where the built-in equivalent is well formed. */
 	template<integer_operand Left, integer_operand Right>
@@ -831,10 +854,25 @@ namespace atl::detail {
 		static constexpr bool has_quiet_NaN = false; // NOLINT(readability-identifier-naming) -- required numeric_limits member spelling.
 		/** @brief No signaling NaN representation. */
 		static constexpr bool has_signaling_NaN = false; // NOLINT(readability-identifier-naming) -- required numeric_limits member spelling.
+
+		// C++23 deprecates the denormal members (MSVC STL4042 as C4996, libc++ as -Wdeprecated-declarations), but
+		// generic code still reads them, so the specialization keeps them and silences only these declarations.
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		/** @brief No denormal representation. */
 		static constexpr std::float_denorm_style has_denorm = std::denorm_absent;
 		/** @brief Denormal loss is not applicable. */
 		static constexpr bool has_denorm_loss = false;
+#if defined(_MSC_VER) && !defined(__clang__)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 		/** @brief This is not an IEC 559 floating type. */
 		static constexpr bool is_iec559 = false;
 		/** @brief The representable interval is bounded. */

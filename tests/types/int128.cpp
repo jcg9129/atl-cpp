@@ -16,24 +16,6 @@
 #include <type_traits>
 #include "../expect_abort.hpp"
 
-// The test wrappers only drive and compare calls; leave the included arithmetic
-// definitions optimized while avoiding repeated optimization of Catch assertions.
-#if defined(__clang__)
-#pragma clang optimize off
-#endif
-
-// Keep arithmetic optimization in the library callees: repeatedly optimizing
-// the large assertion wrappers costs minutes in Clang without adding coverage.
-#if defined(__clang__)
-#define ATL_INT128_TEST_HELPER __attribute__((noinline, optnone))
-#elif defined(_MSC_VER)
-#define ATL_INT128_TEST_HELPER __declspec(noinline)
-#elif defined(__GNUC__)
-#define ATL_INT128_TEST_HELPER __attribute__((noinline))
-#else
-#define ATL_INT128_TEST_HELPER
-#endif
-
 namespace {
 	using unsigned_integer = atl::detail::software_uint128;
 	using signed_integer = atl::detail::software_int128;
@@ -131,7 +113,7 @@ namespace {
 
 	// Small exact values give the same oracle on targets without a native wide integer.
 	template<builtin_integer Integer>
-	ATL_INT128_TEST_HELPER void check_portable_builtin() {
+	void check_portable_builtin() {
 		Integer const small = Integer(1);
 		unsigned_integer const u{42};
 		signed_integer const s{-42};
@@ -188,7 +170,7 @@ namespace {
 	/** @brief Test every mixed arithmetic and comparison operator and its result type. */
 	template<integer_operand Left, integer_operand Right>
 		requires software_integer_pair<Left, Right>
-	ATL_INT128_TEST_HELPER void check_pair(Left left, Right right) {
+	void check_pair(Left left, Right right) {
 		using Common = decltype(native(left) + native(right));
 		using Expected = std::conditional_t<std::same_as<Common, __uint128_t>, unsigned_integer, signed_integer>;
 		static_assert(std::same_as<decltype(left + right), Expected>);
@@ -244,7 +226,7 @@ namespace {
 	/** @brief Check promoted left result types and both shift assignments for each supported operand pair. */
 	template<integer_operand Left, integer_operand Right>
 		requires software_integer_pair<Left, Right>
-	ATL_INT128_TEST_HELPER void check_shift_pair(Left left, Right right) {
+	void check_shift_pair(Left left, Right right) {
 		using Expected = decltype(+native(left));
 		using Result = std::conditional_t<software_integer<Left>, Left, Expected>;
 		static_assert(std::same_as<decltype(left << right), Result>);
@@ -269,7 +251,7 @@ namespace {
 
 	/** @brief Check mixed operands and conversions for one built-in spelling. */
 	template<builtin_integer Integer>
-	ATL_INT128_TEST_HELPER void check_builtin() {
+	void check_builtin() {
 		for (auto const bits : edges) {
 			check_shift_pair(bits, Integer(3));
 			check_shift_pair(signed_integer(bits), Integer(3));
@@ -295,7 +277,7 @@ namespace {
 
 	/** @brief Check floating conversions at random patterns and rounding boundaries. */
 	template<std::floating_point Floating>
-	ATL_INT128_TEST_HELPER void check_floating() {
+	void check_floating() {
 		std::mt19937_64 random(1781);
 		for (int iteration = 0; iteration < 2000; ++iteration) {
 			unsigned_integer const value{random(), random()};
@@ -748,9 +730,3 @@ TEST_CASE("software integer preconditions", "[int128]") {
 	REQUIRE(atl_test::aborts([] { (void)signed_integer(0x1p127); }));
 	REQUIRE(atl_test::aborts([] { (void)signed_integer(-0x1.0000000000001p127); }));
 }
-
-#undef ATL_INT128_TEST_HELPER
-
-#if defined(__clang__)
-#pragma clang optimize on
-#endif
