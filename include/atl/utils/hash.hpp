@@ -32,6 +32,14 @@ namespace atl {
 			return x ^ (x >> 31);
 		}
 
+		// Entropy failure is fatal during static initialization; make that policy explicit.
+		inline uint64 initial_hash_seed() noexcept {
+			uint64 s = uint64(std::chrono::steady_clock::now().time_since_epoch().count());
+			std::random_device rd;
+			s ^= (uint64(rd()) << 32) ^ rd();
+			return splitmix64(s);
+		}
+
 		/**
 		 * @brief The per-process hash seed, drawn once (clock + random_device,
 		 *        mixed) so hashing is unpredictable, which defeats anti-hash
@@ -46,12 +54,7 @@ namespace atl {
 		 * initialiser runs. Hence the rule on set_hash_seed and on tables built
 		 * during static initialisation.
 		 */
-		inline uint64 hash_seed_value = [] {
-			uint64 s = uint64(std::chrono::steady_clock::now().time_since_epoch().count());
-			std::random_device rd;
-			s ^= (uint64(rd()) << 32) ^ rd();
-			return splitmix64(s);
-		}();
+		inline uint64 hash_seed_value = initial_hash_seed();
 
 		inline uint64 hash_seed() noexcept { return hash_seed_value; }
 
@@ -142,7 +145,8 @@ namespace atl {
 		 */
 		template<detail::hashable_integer T>
 		constexpr std::size_t operator()(T x) const noexcept {
-			return std::size_t(x);
+			// A 32-bit size_t keeps the low bits intentionally: the table consumes low bits.
+			return static_cast<std::size_t>(x);
 		}
 	};
 
@@ -207,9 +211,9 @@ namespace atl {
 				// chained, not xor-combined: the high half must pass through
 				// the seeded state, or keys could be built whose hashes agree
 				// in their low bits under every seed
-				return detail::splitmix64(uint64(u >> 64) ^ detail::splitmix64(uint64(u) + detail::hash_seed()));
+				return static_cast<std::size_t>(detail::splitmix64(uint64(u >> 64) ^ detail::splitmix64(uint64(u) + detail::hash_seed())));
 			} else {
-				return detail::splitmix64(uint64(x) + detail::hash_seed());
+				return static_cast<std::size_t>(detail::splitmix64(uint64(x) + detail::hash_seed()));
 			}
 		}
 	};
@@ -297,17 +301,17 @@ namespace atl {
 		 */
 		std::size_t operator()(T x) const noexcept {
 			T const v = x == T(0) ? T(0) : x;
-			if (std::isnan(v)) return std::size_t(detail::splitmix64(detail::hash_seed() ^ 0x7ff8000000000000ULL));
+			if (std::isnan(v)) return static_cast<std::size_t>(detail::splitmix64(detail::hash_seed() ^ 0x7ff8000000000000ULL));
 			if constexpr (sizeof(T) <= 8) {
 				uint64 bits = 0;
 				std::memcpy(&bits, &v, sizeof(T));
-				return std::size_t(detail::splitmix64(bits + detail::hash_seed()));
+				return static_cast<std::size_t>(detail::splitmix64(bits + detail::hash_seed()));
 			} else if constexpr (detail::uses_float_value_fallback<T>) {
-				return std::size_t(detail::hash_float_value(v, detail::hash_seed()));
+				return static_cast<std::size_t>(detail::hash_float_value(v, detail::hash_seed()));
 			} else if constexpr (detail::has_x87_value_bytes<T>) {
-				return std::size_t(detail::hash_bytes(&v, 10, detail::hash_seed()));
+				return static_cast<std::size_t>(detail::hash_bytes(&v, 10, detail::hash_seed()));
 			} else {
-				return std::size_t(detail::hash_bytes(&v, 16, detail::hash_seed()));
+				return static_cast<std::size_t>(detail::hash_bytes(&v, 16, detail::hash_seed()));
 			}
 		}
 	};
@@ -333,7 +337,7 @@ namespace atl {
 		 * @complexity O(s.size()).
 		 */
 		std::size_t operator()(std::string_view s) const noexcept {
-			return detail::hash_bytes(s.data(), s.size(), detail::hash_seed());
+			return static_cast<std::size_t>(detail::hash_bytes(s.data(), s.size(), detail::hash_seed()));
 		}
 	};
 
@@ -362,7 +366,7 @@ namespace atl {
 		 * @complexity O(1).
 		 */
 		std::size_t operator()(T *p) const noexcept {
-			return detail::splitmix64(uint64(reinterpret_cast<std::uintptr_t>(p)) + detail::hash_seed());
+			return static_cast<std::size_t>(detail::splitmix64(uint64(reinterpret_cast<std::uintptr_t>(p)) + detail::hash_seed()));
 		}
 	};
 
@@ -406,9 +410,9 @@ namespace atl {
 				using UA = std::make_unsigned_t<A>;
 				using UB = std::make_unsigned_t<B>;
 				uint64 const packed = (uint64(UA(p.first)) << (8 * sizeof(B))) | uint64(UB(p.second));
-				return detail::splitmix64(packed + detail::hash_seed());
+				return static_cast<std::size_t>(detail::splitmix64(packed + detail::hash_seed()));
 			} else {
-				return detail::hash_combine(hash<A>{}(p.first), hash<B>{}(p.second));
+				return static_cast<std::size_t>(detail::hash_combine(hash<A>{}(p.first), hash<B>{}(p.second)));
 			}
 		}
 	};
@@ -427,7 +431,7 @@ namespace atl {
 			uint64 h = detail::hash_seed();
 			std::apply([&](auto const &...xs) { ((h = detail::hash_combine(h, hash<std::decay_t<decltype(xs)>>{}(xs))), ...); },
 					   t);
-			return std::size_t(h);
+			return static_cast<std::size_t>(h);
 		}
 	};
 
@@ -447,11 +451,11 @@ namespace atl {
 		 */
 		std::size_t operator()(std::vector<T> const &v) const noexcept {
 			if constexpr (detail::byte_hashable<T>) {
-				return detail::hash_bytes(v.data(), v.size() * sizeof(T), detail::hash_seed());
+				return static_cast<std::size_t>(detail::hash_bytes(v.data(), v.size() * sizeof(T), detail::hash_seed()));
 			} else {
 				uint64 h = detail::hash_seed() ^ (v.size() * 0x9ddfea08eb382d69ULL);
 				for (T const &e : v) h = detail::hash_combine(h, hash<T>{}(e));
-				return std::size_t(h);
+				return static_cast<std::size_t>(h);
 			}
 		}
 	};
@@ -468,11 +472,11 @@ namespace atl {
 		 */
 		std::size_t operator()(std::array<T, N> const &a) const noexcept {
 			if constexpr (detail::byte_hashable<T>) {
-				return detail::hash_bytes(a.data(), N * sizeof(T), detail::hash_seed());
+				return static_cast<std::size_t>(detail::hash_bytes(a.data(), N * sizeof(T), detail::hash_seed()));
 			} else {
 				uint64 h = detail::hash_seed() ^ (N * 0x9ddfea08eb382d69ULL);
 				for (T const &e : a) h = detail::hash_combine(h, hash<T>{}(e));
-				return std::size_t(h);
+				return static_cast<std::size_t>(h);
 			}
 		}
 	};

@@ -37,16 +37,24 @@ namespace atl::detail {
 		std::size_t const n = keys.size();
 		if (n == 0) return;
 		atl_assert(n <= std::numeric_limits<uint32>::max());
-		constexpr Key mask = Key((uint32(1) << DigitBits) - 1);
+		// A digit as wide as the key keeps every bit; spelled with if constexpr so no
+		// truncating cast is instantiated for narrow keys.
+		constexpr Key mask = [] {
+			if constexpr (DigitBits >= int(sizeof(Key)) * 8)
+				return std::numeric_limits<Key>::max();
+			else
+				return Key((uint32(1) << DigitBits) - 1);
+		}();
 		std::vector<keyed_position<Key>> scratch(n);
 		std::vector<uint32> count(std::size_t(1) << DigitBits);
 		for (int shift = 0; shift < int(sizeof(Key)) * 8; shift += DigitBits) {
-			std::ranges::fill(count, 0);
-			for (auto const &k : keys) ++count[(k.key >> shift) & mask];
-			if (count[(keys[0].key >> shift) & mask] == n) continue;
+			std::ranges::fill(count, uint32(0));
+			// Each masked digit is at most 16 bits, even when Key is wider than size_t.
+			for (auto const &k : keys) ++count[static_cast<std::size_t>((k.key >> shift) & mask)];
+			if (count[static_cast<std::size_t>((keys[0].key >> shift) & mask)] == n) continue;
 			uint32 total = 0;
 			for (auto &c : count) total += std::exchange(c, total);
-			for (auto const &k : keys) scratch[count[(k.key >> shift) & mask]++] = k;
+			for (auto const &k : keys) scratch[count[static_cast<std::size_t>((k.key >> shift) & mask)]++] = k;
 			keys.swap(scratch);
 		}
 	}

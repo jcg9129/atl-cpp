@@ -33,18 +33,18 @@ static_assert(!atl::counting_sortable<std::vector<atl::int128> &>); // offsets a
 TEST_CASE("counting_sort: stable, matches std::stable_sort by projected key", "[utils]") {
 	auto seed = GENERATE(take(40, random(uint64(0), std::numeric_limits<uint64>::max())));
 	std::mt19937_64 rng(seed);
-	std::size_t const n = rng() % 300;
+	std::size_t const n = static_cast<std::size_t>(rng() % 300);
 	int const base = int(rng() % 400) - 200; // signed keys, incl. negative
 	int const span = 1 + int(rng() % 120);
 	std::vector<item> v(n);
-	for (std::size_t i = 0; i < n; ++i) v[i] = {base + int(rng() % span), int(i)};
+	for (std::size_t i = 0; i < n; ++i) v[i] = {base + int(rng() % uint64(span)), int(i)};
 
 	std::vector<item> want = v;
 	std::ranges::stable_sort(want, {}, &item::key);
 
 	SECTION("argsort idiom: sorting an index range gives the stable permutation") {
 		std::vector<uint32> p(n);
-		std::ranges::iota(p, 0u);
+		std::iota(p.begin(), p.end(), 0u); // Xcode 16.4 lacks ranges::iota.
 		counting_sort(p, [&](uint32 i) { return v[i].key; });
 		for (std::size_t k = 0; k < n; ++k) REQUIRE(v[p[k]] == want[k]);
 		// the permutation is a bijection of [0, n)
@@ -123,7 +123,7 @@ TEST_CASE("counting_sort: extreme key magnitudes with a small span", "[utils]") 
 TEST_CASE("bucket_by_key: offsets and stable order against a direct bucketing", "[utils]") {
 	auto seed = GENERATE(take(30, random(uint64(0), std::numeric_limits<uint64>::max())));
 	std::mt19937_64 rng(seed);
-	std::size_t const n = rng() % 400, buckets = 1 + rng() % 50;
+	std::size_t const n = static_cast<std::size_t>(rng() % 400), buckets = 1 + static_cast<std::size_t>(rng() % 50);
 	std::vector<uint32> keys(n);
 	for (auto &k : keys) k = uint32(rng() % buckets);
 	std::vector<uint32> offsets(buckets + 1), order(n);

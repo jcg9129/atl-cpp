@@ -74,7 +74,7 @@ jobs:
       - name: Configure
         run: cmake --preset '${{ matrix.preset }}' -DENABLE_CCACHE=ON
       - name: Build
-        run: cmake --build --preset '${{ matrix.preset }}' --parallel "$JOBS" 2>&1 | tee "build/${{ matrix.preset }}/build.log"
+        run: cmake --build --preset '${{ matrix.preset }}' --parallel "$JOBS" -- -k 0 2>&1 | tee "build/${{ matrix.preset }}/build.log"
       - name: Test
         if: matrix.preset != 'no-int128'
         env:
@@ -82,7 +82,7 @@ jobs:
         run: ctest --preset '${{ matrix.preset }}'
       - name: Self-contained headers and ODR
         if: matrix.preset == 'gcc' || matrix.preset == 'clang'
-        run: cmake --build 'build/${{ matrix.preset }}' --target headers headers-odr --parallel "$JOBS" 2>&1 | tee "build/${{ matrix.preset }}/headers.log"
+        run: cmake --build 'build/${{ matrix.preset }}' --target headers headers-odr --parallel "$JOBS" -- -k 0 2>&1 | tee "build/${{ matrix.preset }}/headers.log"
       - name: Run no-int128 smoke check
         if: matrix.preset == 'no-int128'
         run: ./build/no-int128/no-int128-check
@@ -121,7 +121,7 @@ jobs:
       - name: Configure benchmark-only build
         run: cmake --preset benchmarks -DENABLE_CCACHE=ON
       - name: Build benchmark targets
-        run: cmake --build --preset benchmarks --parallel "$JOBS" 2>&1 | tee "build/benchmarks/build.log"
+        run: cmake --build --preset benchmarks --parallel "$JOBS" -- -k 0 2>&1 | tee "build/benchmarks/build.log"
       - name: Upload failure logs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -155,7 +155,7 @@ jobs:
           restore-keys: |
             ccache-${{ runner.os }}-${{ runner.arch }}-appleclang-17-xcode-16.4-Release-libcxx-
       - run: cmake --preset appleclang -DENABLE_CCACHE=ON
-      - run: cmake --build --preset appleclang --parallel "$JOBS" 2>&1 | tee "build/appleclang/build.log"
+      - run: cmake --build --preset appleclang --parallel "$JOBS" -- -k 0 2>&1 | tee "build/appleclang/build.log"
       - run: ctest --preset appleclang
       - run: bash scripts/install-check.sh appleclang 2>&1 | tee "build/appleclang/install.log"
       - name: Upload failure logs
@@ -190,7 +190,7 @@ jobs:
           restore-keys: |
             ccache-${{ runner.os }}-x86-gcc-15-Release-
       - run: cmake --preset linux32 -DENABLE_CCACHE=ON -DBUILD_TESTS="$FULL_TESTS"
-      - run: cmake --build --preset linux32 --parallel "$JOBS" 2>&1 | tee "build/linux32/build.log"
+      - run: cmake --build --preset linux32 --parallel "$JOBS" -- -k 0 2>&1 | tee "build/linux32/build.log"
       - name: Assert architecture macros and run smoke checks
         run: |
           ./build/linux32/architecture-check
@@ -238,7 +238,7 @@ jobs:
           toolset: '14.44'
       # Windows builds do not cache: no ccache is installed on these runners.
       - run: cmake --preset 'msvc-${{ matrix.arch }}' -DBUILD_TESTS="$FULL_TESTS"
-      - run: cmake --build --preset 'msvc-${{ matrix.arch }}' --parallel "$JOBS" 2>&1 | tee "build/msvc-${{ matrix.arch }}/build.log"
+      - run: cmake --build --preset 'msvc-${{ matrix.arch }}' --parallel "$JOBS" -- -k 0 2>&1 | tee "build/msvc-${{ matrix.arch }}/build.log"
       - name: Assert architecture macros and run smoke checks
         run: |
           './build/msvc-${{ matrix.arch }}/architecture-check.exe'

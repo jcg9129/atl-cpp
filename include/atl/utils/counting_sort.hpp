@@ -72,7 +72,8 @@ namespace atl {
 			atl_assert(uint64(n) <= uint64(uint32(-1)));
 			std::ranges::fill(offsets, uint32(0));
 			for (std::size_t i = 0; i < n; ++i) {
-				std::size_t const b = key(i);
+				// Valid bucket keys fit size_t, including on 32-bit targets.
+				std::size_t const b = static_cast<std::size_t>(key(i));
 				atl_assert(b < bucket_count);
 				++offsets[b];
 			}
@@ -82,7 +83,7 @@ namespace atl {
 				offsets[b] = end;
 			}
 			offsets[bucket_count] = uint32(n);
-			for (std::size_t i = n; i-- > 0;) order[--offsets[key(i)]] = uint32(i);
+			for (std::size_t i = n; i-- > 0;) order[--offsets[static_cast<std::size_t>(key(i))]] = uint32(i);
 		}
 
 		/**
@@ -105,7 +106,7 @@ namespace atl {
 		template<typename R, typename Proj>
 			requires counting_sortable<R, Proj>
 		std::size_t counting_permutation(R &&r, Proj &proj, counting_sort_scratch &s) {
-			std::size_t const n = std::ranges::size(r);
+			std::size_t const n = static_cast<std::size_t>(std::ranges::size(r));
 			atl_assert(uint64(n) <= uint64(uint32(-1))); // the scratch holds uint32 indices
 			s.perm.resize(n);
 			if (n == 0) return 0;
@@ -148,8 +149,9 @@ namespace atl {
 	 * To argsort — obtain a stable permutation, or sort parallel arrays — sort an
 	 * index range by an indexing projection:
 	 * @code
+	 *   #include <numeric>
 	 *   std::vector<uint32> idx(n);
-	 *   std::ranges::iota(idx, 0u);
+	 *   std::iota(idx.begin(), idx.end(), 0u); // Xcode 16.4 lacks ranges::iota.
 	 *   atl::counting_sort(idx, [&](uint32 i) { return key[i]; });
 	 * @endcode
 	 *

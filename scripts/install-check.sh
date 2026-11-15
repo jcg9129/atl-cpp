@@ -14,5 +14,5 @@ flags=$(sed -n 's/^CMAKE_CXX_FLAGS:STRING=//p' "build/$preset/CMakeCache.txt")
 cmake -S tests/consumer -B "$scratch/consumer" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER="$compiler" \
     -DCMAKE_CXX_FLAGS="$flags" -DCMAKE_PREFIX_PATH="$scratch/install"
-cmake --build "$scratch/consumer" --parallel "${JOBS:-2}"
+cmake --build "$scratch/consumer" --parallel "${JOBS:-2}" -- -k 0
 ctest --test-dir "$scratch/consumer" --output-on-failure --no-tests=error

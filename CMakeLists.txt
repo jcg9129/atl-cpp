@@ -162,7 +162,10 @@ target_include_directories(atl_experimental
 # Catch2 is shared by all tests and benchmarks, including benchmark-only builds.
 if(BUILD_TESTS OR BUILD_BENCHMARKS)
     add_library(atl_catch2 STATIC "${PROJECT_SOURCE_DIR}/external/catch2/catch.cpp")
-    target_include_directories(atl_catch2 PUBLIC "${PROJECT_SOURCE_DIR}/external")
+    target_include_directories(atl_catch2 SYSTEM PUBLIC "${PROJECT_SOURCE_DIR}/external")
+    # Vendored Catch2's Optional<T> is padded under x86 alignment (C4324, informational); the
+    # warning fires in our test translation units, which /WX would turn into an error.
+    target_compile_options(atl_catch2 PUBLIC $<$<CXX_COMPILER_ID:MSVC>:/wd4324>)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL OR BUILD_TESTS OR BUILD_BENCHMARKS)
