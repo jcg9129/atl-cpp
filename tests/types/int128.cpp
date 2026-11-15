@@ -114,33 +114,33 @@ namespace {
 	// Small exact values give the same oracle on targets without a native wide integer.
 	template<builtin_integer Integer>
 	void check_portable_builtin() {
-		Integer const small = Integer(1);
+		Integer const narrow = Integer(1);
 		unsigned_integer const u{42};
 		signed_integer const s{-42};
-		static_assert(std::same_as<decltype(u + small), unsigned_integer>);
-		static_assert(std::same_as<decltype(s + small), signed_integer>);
-		REQUIRE(u + small == 43);
-		REQUIRE(small + s == -41);
-		REQUIRE(u - small == 41);
-		REQUIRE(small - s == 43);
-		REQUIRE(u * small == 42);
-		REQUIRE(small * s == -42);
-		REQUIRE(u / small == 42);
-		REQUIRE(small / s == 0);
-		REQUIRE(s % small == 0);
-		REQUIRE(small % u == 1);
-		REQUIRE((u & small) == 0);
-		REQUIRE((small | u) == 43);
-		REQUIRE((s ^ small) == -41);
-		REQUIRE(u > small);
-		REQUIRE(small > s);
-		REQUIRE(u != small);
-		REQUIRE((u << small) == 84);
-		REQUIRE((s >> small) == -21);
-		REQUIRE((small << unsigned_integer{2}) == 4);
-		REQUIRE((small >> signed_integer{1}) == 0);
-		REQUIRE(Integer(unsigned_integer(small)) == small);
-		REQUIRE(Integer(signed_integer(small)) == small);
+		static_assert(std::same_as<decltype(u + narrow), unsigned_integer>);
+		static_assert(std::same_as<decltype(s + narrow), signed_integer>);
+		REQUIRE(u + narrow == 43);
+		REQUIRE(narrow + s == -41);
+		REQUIRE(u - narrow == 41);
+		REQUIRE(narrow - s == 43);
+		REQUIRE(u * narrow == 42);
+		REQUIRE(narrow * s == -42);
+		REQUIRE(u / narrow == 42);
+		REQUIRE(narrow / s == 0);
+		REQUIRE(s % narrow == 0);
+		REQUIRE(narrow % u == 1);
+		REQUIRE((u & narrow) == 0);
+		REQUIRE((narrow | u) == 43);
+		REQUIRE((s ^ narrow) == -41);
+		REQUIRE(u > narrow);
+		REQUIRE(narrow > s);
+		REQUIRE(u != narrow);
+		REQUIRE((u << narrow) == 84);
+		REQUIRE((s >> narrow) == -21);
+		REQUIRE((narrow << unsigned_integer{2}) == 4);
+		REQUIRE((narrow >> signed_integer{1}) == 0);
+		REQUIRE(Integer(unsigned_integer(narrow)) == narrow);
+		REQUIRE(Integer(signed_integer(narrow)) == narrow);
 	}
 
 	/** @brief Edge patterns covering both limb boundaries and signed extrema. */
@@ -283,9 +283,9 @@ namespace {
 			unsigned_integer const value{random(), random()};
 			REQUIRE(Floating(value) == Floating(native(value)));
 			REQUIRE(Floating(signed_integer(value)) == Floating(native(signed_integer(value))));
-			Floating const small = Floating(std::int64_t(random())) / Floating(128);
-			matches(signed_integer(small), __int128_t(small));
-			matches(unsigned_integer(std::fabs(small)), __uint128_t(std::fabs(small)));
+			Floating const narrow = Floating(std::int64_t(random())) / Floating(128);
+			matches(signed_integer(narrow), __int128_t(narrow));
+			matches(unsigned_integer(std::fabs(narrow)), __uint128_t(std::fabs(narrow)));
 		}
 		for (int bit = 1; bit < 128; ++bit) {
 			auto const power = unsigned_integer{1} << bit;

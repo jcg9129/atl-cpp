@@ -14,6 +14,10 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+// Keeps rpcndr.h and friends out: they define macros such as `small` that break ordinary test code.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <crtdbg.h>
 #include <windows.h>
 #else
