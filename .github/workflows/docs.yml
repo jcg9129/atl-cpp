@@ -1,0 +1,80 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fetch verified documentation tools
+        run: bash scripts/fetch-doc-tools.sh "$RUNNER_TEMP/atl-doc-tools"
+      - name: Configure
+        run: >-
+          cmake --preset docs
+          -DDOXYGEN_EXECUTABLE="$RUNNER_TEMP/atl-doc-tools/doxygen/bin/doxygen"
+          -DATL_DOXYGEN_AWESOME_DIR="$RUNNER_TEMP/atl-doc-tools/theme"
+          -DENABLE_CCACHE=OFF
+          -DCMAKE_CXX_COMPILER=g++
+      - name: Build site (any warning fails)
+        run: cmake --build --preset docs --parallel 1
+      - name: Upload site
+        if: success() || github.event_name == 'pull_request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atl-site
+          path: build/docs/docs/html
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload documentation diagnostics and coverage map
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atl-docs-diagnostics
+          path: |
+            build/docs/docs/warnings.log
+            build/docs/docs/coverage.md
+          retention-days: 7
+
+  deploy:
+    needs: docs
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: atl-site
+          path: site
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

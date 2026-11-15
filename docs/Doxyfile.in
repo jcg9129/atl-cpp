@@ -1,0 +1,60 @@
+PROJECT_NAME           = atl
+PROJECT_NUMBER         = @PROJECT_VERSION@
+OUTPUT_DIRECTORY       = "@atl_docs_dir@"
+INPUT                  = @ATL_DOXYGEN_INPUT@
+USE_MDFILE_AS_MAINPAGE  = "@PROJECT_SOURCE_DIR@/README.md"
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.md
+EXAMPLE_PATH           = "@PROJECT_SOURCE_DIR@/docs/examples"
+EXAMPLE_RECURSIVE      = YES
+STRIP_FROM_PATH        = "@PROJECT_SOURCE_DIR@"
+STRIP_FROM_INC_PATH    = "@PROJECT_SOURCE_DIR@/include"
+FULL_PATH_NAMES        = YES
+MARKDOWN_SUPPORT       = YES
+MARKDOWN_ID_STYLE      = GITHUB
+IMPLICIT_DIR_DOCS      = NO
+TOC_INCLUDE_HEADINGS   = 2
+AUTOLINK_SUPPORT       = YES
+
+# EXTRACT_ALL would disable undocumented-entity warnings. Keep it off.
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+INTERNAL_DOCS          = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+EXCLUDE_PATTERNS       = */detail/*
+EXCLUDE_SYMBOLS        = atl::detail atl::detail::* *::detail *::detail::*
+SHOW_FILES             = YES
+SHOW_NAMESPACES        = YES
+SOURCE_BROWSER         = NO
+INLINE_SOURCES         = NO
+VERBATIM_HEADERS       = NO
+EXTRACT_LOCAL_CLASSES  = NO
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = ATL_HAS_INT128=1 __SIZEOF_INT128__=16
+ALIASES                = "complexity=\par Complexity:^^"
+
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = YES
+WARN_NO_PARAMDOC       = NO
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+WARN_LOGFILE           = "@atl_docs_dir@/warnings.log"
+QUIET                  = YES
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = html
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = YES
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = LIGHT
+HTML_HEADER            = "@ATL_DOXYGEN_HEADER@"
+HTML_EXTRA_STYLESHEET  = @ATL_DOXYGEN_STYLES@
+HTML_EXTRA_FILES       = @ATL_DOXYGEN_FILES@
+HAVE_DOT               = NO
+NUM_PROC_THREADS       = 1

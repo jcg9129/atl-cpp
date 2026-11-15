@@ -1,0 +1,82 @@
+# atl coding-standard enforcement.
+#
+# Naming: standard-library style (all snake_case) — see STYLE.md.
+# Two checks are treated as errors: `readability-identifier-naming` (snake_case)
+# and `modernize-use-ranges` (prefer std::ranges algorithms over iterator-pair
+# std:: calls). The rest of the bugprone/performance/modernize families are
+# advisory.
+
+Checks: >
+  -*,
+  readability-identifier-naming,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  -bugprone-easily-swappable-parameters,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -misc-definitions-in-headers,
+  -modernize-avoid-c-style-cast,
+  -modernize-use-std-print,
+  -modernize-use-designated-initializers,
+  -modernize-avoid-c-arrays,
+  -modernize-use-auto,
+  -performance-enum-size
+
+# Deliberately disabled (house-style conflicts, not oversights):
+#  - avoid-c-style-cast: functional value casts (`uint32(x)`, `float64(v)`)
+#    are the library's conversion idiom.
+#  - use-std-print: atl::io is the output layer by design (std::print is
+#    slower and absent on older toolchains).
+#  - use-designated-initializers: positional aggregate init (`point{x, y}`)
+#    is the geometry/value idiom.
+#  - avoid-c-arrays: fixed-size scratch buffers (expansion arithmetic, SIMD
+#    lane fallbacks) are deliberate.
+#  - use-auto: explicit types on cast-initializations are preferred.
+#  - performance-enum-size: containment/winding/side & friends are int-backed
+#    on purpose — their values follow the orientation sign convention.
+
+# Naming and use-ranges are blocking; other quality checks surface as warnings.
+WarningsAsErrors: 'readability-identifier-naming,modernize-use-ranges'
+
+# Only diagnose our own headers, not <system> or vendored Catch2.
+HeaderFilterRegex: '(^|[/\\])include[/\\]atl[/\\]'
+
+CheckOptions:
+  # --- Types, namespaces, concepts: snake_case ---
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.ClassCase: lower_case
+  readability-identifier-naming.StructCase: lower_case
+  readability-identifier-naming.UnionCase: lower_case
+  readability-identifier-naming.EnumCase: lower_case
+  readability-identifier-naming.ConceptCase: lower_case
+
+  # --- Functions: snake_case ---
+  readability-identifier-naming.FunctionCase: lower_case
+
+  # --- Variables / parameters: snake_case ---
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.GlobalConstantCase: lower_case
+  readability-identifier-naming.StaticConstantCase: lower_case
+  readability-identifier-naming.ConstexprVariableCase: lower_case
+  readability-identifier-naming.EnumConstantCase: lower_case
+
+  # --- Members: snake_case, private/protected get a trailing underscore ---
+  readability-identifier-naming.PublicMemberCase: lower_case
+  readability-identifier-naming.ClassMemberCase: lower_case
+  readability-identifier-naming.ClassMemberSuffix: '_'
+  readability-identifier-naming.PrivateMemberCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: '_'
+  readability-identifier-naming.ProtectedMemberCase: lower_case
+  readability-identifier-naming.ProtectedMemberSuffix: '_'
+
+  # --- Template parameters keep short CamelCase names (T, U, Mod, Callback) ---
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
+  readability-identifier-naming.ValueTemplateParameterCase: CamelCase
+  readability-identifier-naming.TemplateTemplateParameterCase: CamelCase
+
+  # NOTE: type aliases (`using`) are intentionally *not* enforced. They span two
+  # deliberate idioms: std-mirroring traits (`make_signed_t`, `is_integral_v`)
+  # and short template-like locals (`using S = ...`). Macros are also unenforced
+  # (`atl_assert` vs the `ATL_ASSERT` feature guard).

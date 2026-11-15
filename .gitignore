@@ -1,0 +1,11 @@
+.clangd
+
+# macOS
+.DS_Store
+*.DS_Store
+
+*.o
+build/
+.vscode/
+.cache/
+core

@@ -1,0 +1,311 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_MAXSIZE: 500M
+  JOBS: 2
+
+jobs:
+  linux:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            preset: gcc
+            toolchain: gcc-15
+            config: Release
+          - runner: ubuntu-24.04
+            preset: clang
+            toolchain: clang-22-gcc-15
+            config: Release
+          - runner: ubuntu-24.04
+            preset: sanitizers
+            toolchain: gcc-15
+            config: Debug-asan-ubsan
+          - runner: ubuntu-24.04
+            preset: fallbacks
+            toolchain: gcc-15
+            config: Release-fallbacks
+          - runner: ubuntu-24.04
+            preset: no-int128
+            toolchain: gcc-15
+            config: Release-no-int128
+          # Linux ARM64: the full suite with both compilers.
+          - runner: ubuntu-24.04-arm
+            preset: gcc
+            toolchain: gcc-15
+            config: Release
+          - runner: ubuntu-24.04-arm
+            preset: clang
+            toolchain: clang-22-gcc-15
+            config: Release
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install compiler majors
+        run: bash scripts/ci-install-linux.sh '${{ matrix.preset }}'
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ matrix.toolchain }}-${{ matrix.config }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ matrix.toolchain }}-${{ matrix.config }}-
+      - name: Configure
+        run: cmake --preset '${{ matrix.preset }}' -DENABLE_CCACHE=ON
+      - name: Build
+        run: cmake --build --preset '${{ matrix.preset }}' --parallel "$JOBS" 2>&1 | tee "build/${{ matrix.preset }}/build.log"
+      - name: Test
+        if: matrix.preset != 'no-int128'
+        env:
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: ctest --preset '${{ matrix.preset }}'
+      - name: Self-contained headers and ODR
+        if: matrix.preset == 'gcc' || matrix.preset == 'clang'
+        run: cmake --build 'build/${{ matrix.preset }}' --target headers headers-odr --parallel "$JOBS" 2>&1 | tee "build/${{ matrix.preset }}/headers.log"
+      - name: Run no-int128 smoke check
+        if: matrix.preset == 'no-int128'
+        run: ./build/no-int128/no-int128-check
+      - name: Installed package consumer
+        if: matrix.preset == 'gcc' || matrix.preset == 'clang'
+        run: bash scripts/install-check.sh '${{ matrix.preset }}' 2>&1 | tee "build/${{ matrix.preset }}/install.log"
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-${{ runner.arch }}-${{ matrix.preset }}
+          path: |
+            build/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/**/Testing/Temporary/**
+            build/**/*.log
+          retention-days: 5
+  benchmarks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install compiler major
+        run: bash scripts/ci-install-linux.sh gcc
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-gcc-15-Release-benchmarks-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ runner.arch }}-gcc-15-Release-benchmarks-
+      # Shared runners only compile benchmarks; measurements belong on dedicated hosts.
+      - name: Configure benchmark-only build
+        run: cmake --preset benchmarks -DENABLE_CCACHE=ON
+      - name: Build benchmark targets
+        run: cmake --build --preset benchmarks --parallel "$JOBS" 2>&1 | tee "build/benchmarks/build.log"
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: benchmarks
+          path: |
+            build/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/**/Testing/Temporary/**
+            build/**/*.log
+          retention-days: 5
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install build tools
+        run: brew install ccache ninja
+      - name: Confirm AppleClang 17 (Xcode 16.4)
+        run: /usr/bin/clang++ --version | grep -E '^Apple clang version 17\.'
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-appleclang-17-xcode-16.4-Release-libcxx-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ runner.arch }}-appleclang-17-xcode-16.4-Release-libcxx-
+      - run: cmake --preset appleclang -DENABLE_CCACHE=ON
+      - run: cmake --build --preset appleclang --parallel "$JOBS" 2>&1 | tee "build/appleclang/build.log"
+      - run: ctest --preset appleclang
+      - run: bash scripts/install-check.sh appleclang 2>&1 | tee "build/appleclang/install.log"
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos
+          path: |
+            build/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/**/Testing/Temporary/**
+            build/**/*.log
+          retention-days: 5
+  linux32:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      # The full suite runs here like everywhere else; every published test must pass on every target.
+      FULL_TESTS: 'ON'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install GCC 15 multilib
+        run: bash scripts/ci-install-linux.sh linux32
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-x86-gcc-15-Release-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ runner.os }}-x86-gcc-15-Release-
+      - run: cmake --preset linux32 -DENABLE_CCACHE=ON -DBUILD_TESTS="$FULL_TESTS"
+      - run: cmake --build --preset linux32 --parallel "$JOBS" 2>&1 | tee "build/linux32/build.log"
+      - name: Assert architecture macros and run smoke checks
+        run: |
+          ./build/linux32/architecture-check
+          ./build/linux32/no-int128-check
+          ./build/linux32/headers-odr
+      - run: bash scripts/install-check.sh linux32 2>&1 | tee "build/linux32/install.log"
+      - if: env.FULL_TESTS == 'ON'
+        run: ctest --preset linux32
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux32
+          path: |
+            build/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/**/Testing/Temporary/**
+            build/**/*.log
+          retention-days: 5
+  msvc:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2025
+          - arch: x86
+            runner: windows-2025
+          - arch: arm64
+            runner: windows-11-arm
+    env:
+      # The full suite runs here like everywhere else; every published test must pass on every target.
+      FULL_TESTS: 'ON'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: '14.44'
+      # Windows builds do not cache: no ccache is installed on these runners.
+      - run: cmake --preset 'msvc-${{ matrix.arch }}' -DBUILD_TESTS="$FULL_TESTS"
+      - run: cmake --build --preset 'msvc-${{ matrix.arch }}' --parallel "$JOBS" 2>&1 | tee "build/msvc-${{ matrix.arch }}/build.log"
+      - name: Assert architecture macros and run smoke checks
+        run: |
+          './build/msvc-${{ matrix.arch }}/architecture-check.exe'
+          './build/msvc-${{ matrix.arch }}/no-int128-check.exe'
+          './build/msvc-${{ matrix.arch }}/headers-odr.exe'
+      - run: bash scripts/install-check.sh 'msvc-${{ matrix.arch }}' 2>&1 | tee "build/msvc-${{ matrix.arch }}/install.log"
+      - if: env.FULL_TESTS == 'ON'
+        run: ctest --preset 'msvc-${{ matrix.arch }}'
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: msvc-${{ matrix.arch }}
+          path: |
+            build/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/**/Testing/Temporary/**
+            build/**/*.log
+          retention-days: 5
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install LLVM 22 tools and GCC 15 standard library
+        run: bash scripts/ci-install-linux.sh tools
+      - name: Create log directory
+        run: mkdir -p build/logs
+      - run: make fmt 2>&1 | tee build/logs/format.log
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: format
+          path: |
+            build/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/**/Testing/Temporary/**
+            build/**/*.log
+          retention-days: 5
+  tidy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install LLVM 22 tools and GCC 15 standard library
+        run: bash scripts/ci-install-linux.sh tools
+      - name: Create log directory
+        run: mkdir -p build/logs
+      - run: make tidy 2>&1 | tee build/logs/tidy.log
+      - name: Prove naming violations fail (relative and absolute header paths)
+        run: make tidy-proof 2>&1 | tee build/logs/tidy-proof.log
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tidy
+          path: |
+            build/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/**/Testing/Temporary/**
+            build/**/*.log
+          retention-days: 5

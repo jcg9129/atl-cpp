@@ -1,0 +1,6 @@
+# Tests, examples, and benchmarks use pragmatic / math-idiomatic naming
+# (e.g. `N`, `A`, `Point`). Naming is enforced only on the library (include/atl);
+# here we inherit the quality checks but do not gate on identifier naming.
+InheritParentConfig: true
+Checks: '-readability-identifier-naming'
+WarningsAsErrors: ''

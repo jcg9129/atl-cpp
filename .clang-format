@@ -1,0 +1,34 @@
+BasedOnStyle: LLVM
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: true
+IndentCaseLabels: false
+ColumnLimit: 0                   # No column limit
+AccessModifierOffset: -4
+NamespaceIndentation: All
+FixNamespaceComments: false
+SpaceAfterTemplateKeyword: false
+AllowShortLoopsOnASingleLine: true
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: false
+  AtStartOfFile: false
+# Blank line between definition blocks. Also restores visual separation in the
+# comment-stripped amalgamated file, which no longer has doc comments to space
+# things out.
+SeparateDefinitionBlocks: Always
+IncludeCategories:
+  - Regex:           '^<atl/.*>'
+    Priority:        1
+  - Regex:           '^<.*>'
+    Priority:        2
+  - Regex:           '^".*"'
+    Priority:        3
+BreakBeforeBinaryOperators: NonAssignment
+AlignOperands: AlignAfterOperator
+# East const: `const` / `volatile` sit to the right of the type they qualify
+# (`T const&`, not `const T&`). Declaration specifiers (static, inline,
+# constexpr, friend) stay leading; trailing member-function const is unaffected.
+QualifierAlignment: Right

@@ -1,0 +1,319 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTS": "ON",
+        "BUILD_BENCHMARKS": "OFF",
+        "ENABLE_ASAN": "OFF",
+        "ENABLE_UBSAN": "OFF",
+        "ENABLE_PORTABLE_FALLBACKS": "OFF",
+        "ENABLE_NO_INT128": "OFF"
+      }
+    },
+    {
+      "name": "gcc",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++-15"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "clang",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++-22"
+      },
+      "toolchainFile": "${sourceDir}/cmake/clang.cmake",
+      "inherits": "base"
+    },
+    {
+      "name": "appleclang",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+        "CMAKE_CXX_FLAGS": "-stdlib=libc++"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "sanitizers",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "g++-15",
+        "ENABLE_ASAN": "ON",
+        "ENABLE_UBSAN": "ON",
+        "CMAKE_CXX_FLAGS_DEBUG": "-O1 -g -fno-omit-frame-pointer -fno-sanitize-recover=all"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "fallbacks",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++-15",
+        "ENABLE_PORTABLE_FALLBACKS": "ON"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "no-int128",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++-15",
+        "BUILD_TESTS": "OFF",
+        "ENABLE_NO_INT128": "ON"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "benchmarks",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++-15",
+        "BUILD_TESTS": "OFF",
+        "BUILD_BENCHMARKS": "ON"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "linux32",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++-15",
+        "BUILD_TESTS": "OFF",
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_EXE_LINKER_FLAGS": "-m32",
+        "ATL_EXPECT_ARCH": "x86"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "msvc-x64",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "BUILD_TESTS": "OFF",
+        "ATL_EXPECT_ARCH": "x64",
+        "CMAKE_CXX_FLAGS_INIT": "/std:c++latest"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "msvc-x86",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "BUILD_TESTS": "OFF",
+        "ATL_EXPECT_ARCH": "x86",
+        "CMAKE_CXX_FLAGS_INIT": "/std:c++latest"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "msvc-arm64",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "BUILD_TESTS": "OFF",
+        "ATL_EXPECT_ARCH": "arm64",
+        "CMAKE_CXX_FLAGS_INIT": "/std:c++latest"
+      },
+      "inherits": "base"
+    },
+    {
+      "name": "docs",
+      "inherits": "gcc",
+      "cacheVariables": {
+        "ATL_BUILD_DOCS": "ON",
+        "BUILD_TESTS": "OFF",
+        "BUILD_BENCHMARKS": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "gcc",
+      "configurePreset": "gcc"
+    },
+    {
+      "name": "clang",
+      "configurePreset": "clang"
+    },
+    {
+      "name": "appleclang",
+      "configurePreset": "appleclang"
+    },
+    {
+      "name": "sanitizers",
+      "configurePreset": "sanitizers"
+    },
+    {
+      "name": "fallbacks",
+      "configurePreset": "fallbacks"
+    },
+    {
+      "name": "no-int128",
+      "configurePreset": "no-int128",
+      "targets": [
+        "headers-no-int128",
+        "no-int128-check"
+      ]
+    },
+    {
+      "name": "benchmarks",
+      "configurePreset": "benchmarks",
+      "targets": [
+        "benchmarks"
+      ]
+    },
+    {
+      "name": "linux32",
+      "configurePreset": "linux32",
+      "targets": [
+        "portability"
+      ]
+    },
+    {
+      "name": "msvc-x64",
+      "configurePreset": "msvc-x64",
+      "targets": [
+        "portability"
+      ]
+    },
+    {
+      "name": "msvc-x86",
+      "configurePreset": "msvc-x86",
+      "targets": [
+        "portability"
+      ]
+    },
+    {
+      "name": "msvc-arm64",
+      "configurePreset": "msvc-arm64",
+      "targets": [
+        "portability"
+      ]
+    },
+    {
+      "name": "docs",
+      "configurePreset": "docs",
+      "targets": [
+        "atl_docs"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "gcc",
+      "configurePreset": "gcc",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "clang",
+      "configurePreset": "clang",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "appleclang",
+      "configurePreset": "appleclang",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "sanitizers",
+      "configurePreset": "sanitizers",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "fallbacks",
+      "configurePreset": "fallbacks",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "no-int128",
+      "configurePreset": "no-int128",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "benchmarks",
+      "configurePreset": "benchmarks",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "linux32",
+      "configurePreset": "linux32",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x64",
+      "configurePreset": "msvc-x64",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-x86",
+      "configurePreset": "msvc-x86",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "msvc-arm64",
+      "configurePreset": "msvc-arm64",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}
