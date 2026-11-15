@@ -21,4 +21,8 @@ curl --fail --location --retry 3 \
 mkdir -- "$tools_dir/doxygen" "$tools_dir/theme"
 tar -xzf "$tools_dir/doxygen.tar.gz" -C "$tools_dir/doxygen" --strip-components=1
 tar -xzf "$tools_dir/theme.tar.gz" -C "$tools_dir/theme" --strip-components=1
-[[ $("$tools_dir/doxygen/bin/doxygen" --version) == 1.15.0 ]]
+actual_version=$("$tools_dir/doxygen/bin/doxygen" --version)
+if [[ ${actual_version%%[[:space:]]*} != 1.15.0 ]]; then
+    printf 'Expected Doxygen 1.15.0; got: %s\n' "$actual_version" >&2
+    exit 1
+fi

@@ -49,8 +49,9 @@ sort an index range by an indexing projection, which gives the same stable
 permutation as an owned `vector` you can keep and apply anywhere:
 
 ```cpp
+#include <numeric>
 std::vector<uint32> idx(n);
-std::ranges::iota(idx, 0u);
+std::iota(idx.begin(), idx.end(), 0u); // Xcode 16.4 lacks ranges::iota.
 atl::counting_sort(idx, [&](uint32 i){ return key[i]; });   // idx = stable order
 // reorder any parallel array: for (uint32 i : idx) out.push_back(payload[i]);
 ```

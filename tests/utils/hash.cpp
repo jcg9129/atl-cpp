@@ -170,7 +170,7 @@ TEST_CASE("hash: a packed pair of small integers is injective", "[hash]") {
 	std::ranges::sort(seen);
 	REQUIRE(std::ranges::adjacent_find(seen) == seen.end());
 	using small = std::pair<atl::int8, atl::uint16>;
-	REQUIRE(atl::hash<small>{}({-1, 0}) != atl::hash<small>{}({0, 0xffff}));
+	REQUIRE(atl::hash<small>{}({atl::int8(-1), atl::uint16(0)}) != atl::hash<small>{}({atl::int8(0), atl::uint16(0xffff)}));
 	REQUIRE(atl::hash<std::pair<bool, bool>>{}({true, false}) != atl::hash<std::pair<bool, bool>>{}({false, true}));
 }
 

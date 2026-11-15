@@ -19,12 +19,12 @@ configure:
 	cmake --preset $(PRESET)
 
 test: configure
-	cmake --build --preset $(PRESET) --parallel $(JOBS)
+	cmake --build --preset $(PRESET) --parallel $(JOBS) -- -k 0
 	ctest --preset $(PRESET)
 
 docs:
 	cmake --preset docs -DATL_DOXYGEN_AWESOME_DIR="$(ATL_DOXYGEN_AWESOME_DIR)"
-	cmake --build --preset docs --parallel 1
+	cmake --build --preset docs --parallel 1 -- -k 0
 
 sanitize:
 	UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $(MAKE) test PRESET=sanitizers
@@ -33,7 +33,7 @@ fmt fmt-fix tidy tidy-proof:
 	@bash scripts/style.sh $@
 
 headers: configure
-	cmake --build build/$(PRESET) --target headers headers-odr --parallel $(JOBS)
+	cmake --build build/$(PRESET) --target headers headers-odr --parallel $(JOBS) -- -k 0
 
 install-check: configure
 	@bash scripts/install-check.sh $(PRESET)
