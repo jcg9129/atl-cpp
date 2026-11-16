@@ -26,18 +26,18 @@ namespace {
 	concept accepts_stamped_word = requires { typename atl::stamped_xor_basis<Word>; };
 
 	template<typename Word>
-	concept accepts_echelon_word = requires { typename ex::echelon_xor_basis<Word>; };
+	concept accepts_echelon_jump_word = requires { typename ex::xor_basis_by_echelon_jump<Word>; };
 
 	template<typename Word>
-	concept accepts_scanning_word = requires { typename ex::scanning_xor_basis<Word>; };
+	concept accepts_echelon_scan_word = requires { typename ex::xor_basis_by_echelon_scan<Word>; };
 
 	template<typename Word>
 	concept accepts_all_basis_words = accepts_basis_word<Word> && accepts_stamped_word<Word>
-								   && accepts_echelon_word<Word> && accepts_scanning_word<Word>;
+								   && accepts_echelon_jump_word<Word> && accepts_echelon_scan_word<Word>;
 
 	template<typename Word>
 	concept rejects_all_basis_words = !accepts_basis_word<Word> && !accepts_stamped_word<Word>
-								   && !accepts_echelon_word<Word> && !accepts_scanning_word<Word>;
+								   && !accepts_echelon_jump_word<Word> && !accepts_echelon_scan_word<Word>;
 
 	static_assert(accepts_all_basis_words<uint32>);
 	static_assert(accepts_all_basis_words<atl::uint128>);
@@ -129,13 +129,13 @@ namespace {
 			REQUIRE(basis.contains(start) == std::ranges::binary_search(span, start));
 			auto const below = std::size_t(std::ranges::lower_bound(span, start) - span.begin());
 			REQUIRE(basis.count_below(start) == Word(below));
-			REQUIRE(ex::greedy_count_below(basis, start) == Word(below));
+			REQUIRE(ex::count_below_by_greedy_descent(basis, start) == Word(below));
 		}
 		REQUIRE(basis.count_below(0) == 0);
 		REQUIRE(basis.count_below((std::numeric_limits<Word>::max)()) == Word(span.size() - (span.back() == (std::numeric_limits<Word>::max)())));
 
-		ex::echelon_xor_basis<Word> echelon;
-		ex::scanning_xor_basis<Word> scanning;
+		ex::xor_basis_by_echelon_jump<Word> echelon;
+		ex::xor_basis_by_echelon_scan<Word> scanning;
 		for (Word const w : words) {
 			bool const grew = echelon.insert(w);
 			REQUIRE(scanning.insert(w) == grew);

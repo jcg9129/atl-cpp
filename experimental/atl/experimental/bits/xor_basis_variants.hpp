@@ -8,18 +8,18 @@
 
 /**
  * @file
- * @brief GF(2) basis contenders that lost the race to the shipped reduced
+ * @brief GF(2) basis contenders that lost the race to the library's reduced
  *        row echelon `atl::xor_basis` (atl/bits/xor_basis.hpp).
  *
- * Shared contract, the shipped class's core: `insert` (returns whether the
+ * Shared contract, the library class's core: `insert` (returns whether the
  * rank grew), `contains`, `max_xor(start)`, `rank`, and `reduced()` handing
- * back the equivalent shipped basis for the order queries. Both keep the
+ * back the equivalent library basis for the order queries. Both keep the
  * textbook plain echelon form (slot b holds some vector with top bit b), so
  * every insert and query is a dependent chain: each XOR decides which slot
  * the next step reads.
  *
  * The certifying oracle is the subset-XOR closure in tests/bits/xor_basis.cpp
- * (`brute_span`); `echelon_xor_basis` is the readable textbook reference.
+ * (`brute_span`); `xor_basis_by_echelon_jump` is the readable textbook reference.
  */
 namespace atl::experimental {
 	/**
@@ -28,7 +28,7 @@ namespace atl::experimental {
 	 *
 	 * LOST the race (benchmarks/bits/xor_basis.cpp, measured
 	 * 2026-10-15, x86-64 Xeon 8358, 1e6 operations, asserts off, ms, plain -O2 /
-	 * -march=native): insert on random full-rank uint64 140 / 129 vs shipped
+	 * -march=native): insert on random full-rank uint64 140 / 129 vs the library
 	 * 33.6 / 23.8; uint32 rank 20 of 30 bits 48.9 / 42.1 vs 14.3 / 12.2;
 	 * max_xor on full-rank uint64 267 / 268 vs 33.6 / 22.5; contains 129 /
 	 * 121 vs 32.9 / 22.4. Every step's XOR decides the slot the next step
@@ -40,7 +40,7 @@ namespace atl::experimental {
 	 */
 	template<unsigned_integral Word>
 		requires std::same_as<Word, std::remove_cv_t<Word>>
-	class echelon_xor_basis {
+	class xor_basis_by_echelon_jump {
 	public:
 		/** @brief The vector width in bits. */
 		static constexpr std::size_t bits = atl::detail::word_bits<Word>;
@@ -116,7 +116,7 @@ namespace atl::experimental {
 	 * @brief Plain echelon basis with the classic elimination loop: test every
 	 *        bit from the top, whether or not it is set.
 	 *
-	 * LOST the race, behind `echelon_xor_basis` too (benchmarks/bits/xor_basis.cpp,
+	 * LOST the race, behind `xor_basis_by_echelon_jump` too (benchmarks/bits/xor_basis.cpp,
 	 * 2026-10-15, x86-64 Xeon 8358, 1e6 operations, asserts off): insert on
 	 * random full-rank uint64 287 / 279 ms, contains 267 / 267 ms (plain
 	 * -O2 / -march=native). Scanning tests unset bits as well as set bits;
@@ -127,7 +127,7 @@ namespace atl::experimental {
 	 */
 	template<unsigned_integral Word>
 		requires std::same_as<Word, std::remove_cv_t<Word>>
-	class scanning_xor_basis {
+	class xor_basis_by_echelon_scan {
 	public:
 		/** @brief The vector width in bits. */
 		static constexpr std::size_t bits = atl::detail::word_bits<Word>;
@@ -201,7 +201,7 @@ namespace atl::experimental {
 	 *        from the top: k gains bit i when the value with the chosen high
 	 *        part of k and bit i set, low part zero, is still below bound.
 	 *
-	 * LOST to the shipped pivot-pattern count (benchmarks/bits/xor_basis.cpp,
+	 * lost to the library's pivot-pattern count (benchmarks/bits/xor_basis.cpp,
 	 * 2026-10-15, x86-64 Xeon 8358, asserts off, 1e6 queries at
 	 * rank 50): 208 / 130 ms vs 107 / 48.2 ms, plain -O2 / -march=native.
 	 * Each step's comparison waits for the previous step's value.
@@ -213,7 +213,7 @@ namespace atl::experimental {
 	 */
 	template<unsigned_integral Word>
 		requires std::same_as<Word, std::remove_cv_t<Word>>
-	constexpr Word greedy_count_below(atl::xor_basis<Word> const &basis, Word bound) noexcept {
+	constexpr Word count_below_by_greedy_descent(atl::xor_basis<Word> const &basis, Word bound) noexcept {
 		if (bound == 0) return 0;
 		Word k = 0, value = 0, rest = basis.pivot_mask();
 		for (std::size_t i = basis.rank(); i-- > 0;) {

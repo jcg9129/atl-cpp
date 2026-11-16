@@ -50,14 +50,14 @@ sentinel and its successor is zero.
 successor. All add the lowest set bit and then shift the rest of the moved run
 back down; they differ in how they find that shift. The library counts the
 trailing zeros of `x` before the addition, so the count runs in parallel with
-it. "Count after add" counts them on the moved run, after the addition. "Shift
-loop after add" normalises the moved run one bit at a time. Each step of the
+it. "By run ctz" counts them on the carried run, after the addition. "By shift
+loop" shifts the carried run down one bit at a time. Each step of the
 benchmark depends on the previous one, so it measures per-step latency.
 
 Xeon Platinum 8280, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
 Minimum of 3 runs, milliseconds per full enumeration:
 
-| shape | flags | library (count before add) | count after add | shift loop after add |
+| shape | flags | library | by run ctz | by shift loop |
 |---|---|---:|---:|---:|
 | C(28,14) | `-O2` | 113 | 161 | 112 |
 | C(28,14) | `-O2 -march=native` | 90.5 | 118 | 92.0 |

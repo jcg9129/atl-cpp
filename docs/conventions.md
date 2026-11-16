@@ -105,9 +105,13 @@ Document new conventions here alongside their technical rationale.
   what is raced, the one thing each contender does differently, what the loop
   measures (per-step latency or throughput, and the shapes), and the result
   with its CPU, compiler, flags and date. The full table goes on the guide page.
-  Name each contender for what it does (`next_ctz_after_add`, `library_next`),
-  never for its history (`before`, `shipped`, `legacy`) or an internal variable,
-  and give it a doc comment; benchmark labels follow the same rule.
+  Name each contender, in benchmarks and in `experimental/`, as
+  `<function>_by_<method>`: what it computes (the library function it races)
+  and the one thing it does differently, e.g. `next_bits_combination_by_run_ctz`,
+  `xor_basis_by_echelon_scan`. Never name one for its history (`before`,
+  `shipped`, `legacy`), its timing in an algorithm (`after_add`) or an internal
+  variable. Each gets a doc comment saying what it does differently; benchmark
+  labels use the same words.
 - Compare every contender on every shape in the same run so the conclusion
   can be reproduced.
 - Measure on x86-64 before choosing an x86 optimization. Results from aarch64

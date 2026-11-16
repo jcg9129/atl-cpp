@@ -133,7 +133,7 @@ choice:
 |---|---|
 | library `kth_smallest` (branch-free select) | 57.7 / 40.2 |
 | library `count_below` (pivot pattern) | 107 / 48.2 |
-| `count_below` by greedy descent (`greedy_count_below`) | 208 / 130 |
+| `count_below` by greedy descent (`count_below_by_greedy_descent`) | 208 / 130 |
 
 The greedy descent is 1.9x slower with `-O2` and 2.7x slower with
 `-march=native`. The plain flag set has no hardware popcount instruction.
