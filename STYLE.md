@@ -77,6 +77,8 @@ so a fallback compiles when a target toolchain lacks it — see
 
 In `types/` and `utils/`, the feature guards are exactly:
 
+- Word primitive runtime fast paths: native int128 or MSVC architecture intrinsics,
+  disabled by `ATL_PORTABLE_WIDE_ARITHMETIC` or `ATL_FORCE_FALLBACKS`.
 - `ATL_HAS_INT128`: `__SIZEOF_INT128__`, disabled by `ATL_NO_INT128` or
   `ATL_FORCE_FALLBACKS` (`config.hpp`).
 - `__cpp_lib_forward_like`, disabled by `ATL_NO_STD_FORWARD_LIKE` or
@@ -120,18 +122,22 @@ Rules:
 
 ### 128-bit integers
 
-`__int128` is a GCC/Clang extension (available on GCC/Clang 64-bit targets, absent on MSVC and
-many 32-bit targets). `config.hpp` exposes `ATL_HAS_INT128`; when it is 0 the
-`int128`/`uint128` aliases and their traits are not defined, and the two
-operations that need a 128-bit intermediate use software fallbacks:
-`mul_mod_binary` (double-and-add) and `binomial`'s gcd-reduced form.
+`__int128` is a GCC/Clang extension available on many 64-bit targets. When
+`ATL_HAS_INT128` is 0, `int128`/`uint128` alias portable software classes. Traits,
+64-bit widening and all published types and utilities remain available. The
+concrete software classes are always defined for differential testing; see
+[128-bit integers](docs/int128.md) for their semantics and class limitations.
 
-The software paths are compiled unconditionally so they can be unit-tested
-against the native path on any compiler (`tests/nt/binomial.cpp`,
-`tests/nt/modular.cpp`). Define `ATL_NO_INT128` to force the no-128-bit
-configuration; the CI `no-int128` job compiles every header separately and runs the
-fallbacks that way. Preserve both branches when generating a portable
-single-translation-unit amalgamation.
+`ATL_NO_INT128` selects software aliases. `ATL_PORTABLE_WIDE_ARITHMETIC` selects
+portable word primitives independently of the aliases. `ATL_FORCE_FALLBACKS`
+selects both, including on MSVC. Configuration switches must match across
+translation units (inline definitions and, for alias selection, ABI).
+Constant evaluation always uses portable primitive bodies;
+runtime intrinsics are guarded by compiler and architecture (MSVC x64, ARM64,
+or portable x86). The platform-only `<intrin.h>` include is necessarily guarded
+at file scope; preserve that guard during amalgamation. Preserve both branches
+of the portable implementation. The `no-int128` and `fallbacks` presets run the
+full suite, including software/native differential tests where native integers exist.
 
 ### `atl::io` tuning knobs
 

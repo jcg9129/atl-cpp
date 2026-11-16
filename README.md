@@ -62,6 +62,11 @@ by default. Set
 `ATL_BENCH_FLAGS="-march=native"` for machine-specific measurements; each flag
 set gets its own build tree. No timings are recorded on shared CI runners.
 
+`atl::int128` and `atl::uint128` are always available: native integers where
+supported, portable software classes otherwise. `ATL_NO_INT128` selects software
+aliases; `ATL_FORCE_FALLBACKS` also forces portable word arithmetic. Keep these
+switches consistent across translation units. See [128-bit integers](docs/int128.md).
+
 ### Code style
 
 -   Use C++23 and standard headers and functions.

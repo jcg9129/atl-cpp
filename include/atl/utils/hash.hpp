@@ -172,7 +172,7 @@ namespace atl {
 	 *
 	 * @par Integer keys
 	 * Standard integer types (including `bool` and character types) and atl's
-	 * optional 128-bit integers are supported. Keys up to 64 bits use one seeded
+	 * 128-bit integers are supported. Keys up to 64 bits use one seeded
 	 * splitmix64 round; wider keys chain the low and high halves through the
 	 * seeded state. The result is reduced to `std::size_t` on narrower targets.
 	 *
@@ -205,8 +205,7 @@ namespace atl {
 		 */
 		std::size_t operator()(T x) const noexcept {
 			if constexpr (sizeof(T) > 8) {
-				// spelled via make_unsigned_t so the branch stays dependent: builds
-				// without a 128-bit type must not name uint128 at all
+				// Convert the bit pattern before shifting so signed keys use a logical shift.
 				auto const u = traits::make_unsigned_t<T>(x);
 				// chained, not xor-combined: the high half must pass through
 				// the seeded state, or keys could be built whose hashes agree

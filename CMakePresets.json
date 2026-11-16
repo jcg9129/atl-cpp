@@ -67,7 +67,6 @@
       "name": "no-int128",
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "g++-15",
-        "BUILD_TESTS": "OFF",
         "ENABLE_NO_INT128": "ON"
       },
       "inherits": "base"
@@ -157,6 +156,7 @@
       "name": "no-int128",
       "configurePreset": "no-int128",
       "targets": [
+        "all",
         "headers-no-int128",
         "no-int128-check"
       ]

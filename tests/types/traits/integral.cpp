@@ -21,9 +21,7 @@ namespace {
 	static_assert(!has_make_signed<int &> && !has_make_unsigned<int &>);
 	static_assert(std::is_same_v<atl::traits::make_signed_t<unsigned const volatile>, int const volatile>);
 	static_assert(std::is_same_v<atl::traits::make_unsigned_t<int const volatile>, unsigned const volatile>);
-#if ATL_HAS_INT128
 	static_assert(has_make_signed<atl::uint128> && has_make_unsigned<atl::int128>);
-#endif
 
 }
 
@@ -46,7 +44,6 @@ TEST_CASE("Test trait atl::traits::is_integral", "[types/traits]") {
 	// int128 — std::is_integral for __int128 is implementation-defined (false
 	// under a strict -std=c++NN on some toolchains, true on others), so we assert
 	// only atl's normalized behavior: it always counts as integral.
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::traits::is_integral_v<atl::int128>);
 	STATIC_CHECK(atl::traits::is_integral_v<atl::int128 const>);
 	STATIC_CHECK(atl::traits::is_integral_v<atl::int128 const volatile>);
@@ -56,10 +53,8 @@ TEST_CASE("Test trait atl::traits::is_integral", "[types/traits]") {
 	STATIC_CHECK(!atl::traits::is_integral_v<atl::int128 const *>);
 	STATIC_CHECK(!std::is_integral_v<atl::int128 const volatile *>);
 	STATIC_CHECK(!atl::traits::is_integral_v<atl::int128 const volatile *>);
-#endif
 
 	// uint128 — see the int128 note above.
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::traits::is_integral_v<atl::uint128>);
 	STATIC_CHECK(atl::traits::is_integral_v<atl::uint128 const>);
 	STATIC_CHECK(atl::traits::is_integral_v<atl::uint128 const volatile>);
@@ -69,7 +64,6 @@ TEST_CASE("Test trait atl::traits::is_integral", "[types/traits]") {
 	STATIC_CHECK(!atl::traits::is_integral_v<atl::uint128 const *>);
 	STATIC_CHECK(!std::is_integral_v<atl::uint128 const volatile *>);
 	STATIC_CHECK(!atl::traits::is_integral_v<atl::uint128 const volatile *>);
-#endif
 }
 
 TEST_CASE("Test trait atl::traits::is_signed_integral", "[types/traits]") {
@@ -93,24 +87,20 @@ TEST_CASE("Test trait atl::traits::is_signed_integral", "[types/traits]") {
 	static_assert(!atl::traits::is_signed_integral_v<std::is_fundamental<int>>);
 
 	// int128
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::traits::is_signed_integral_v<atl::int128>);
 	STATIC_CHECK(atl::traits::is_signed_integral_v<atl::int128 const>);
 	STATIC_CHECK(atl::traits::is_signed_integral_v<atl::int128 const volatile>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::int128 *>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::int128 const *>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::int128 const volatile *>);
-#endif
 
 	// uint128
-#if ATL_HAS_INT128
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::uint128>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::uint128 const>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::uint128 const volatile>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::uint128 *>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::uint128 const *>);
 	STATIC_CHECK(!atl::traits::is_signed_integral_v<atl::uint128 const volatile *>);
-#endif
 }
 
 TEST_CASE("Test trait atl::traits::is_unsigned_integral", "[types/traits]") {
@@ -134,24 +124,20 @@ TEST_CASE("Test trait atl::traits::is_unsigned_integral", "[types/traits]") {
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<std::is_fundamental<int>>);
 
 	// int128
-#if ATL_HAS_INT128
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::int128>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::int128 const>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::int128 const volatile>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::int128 *>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::int128 const *>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::int128 const volatile *>);
-#endif
 
 	// uint128
-#if ATL_HAS_INT128
 	STATIC_CHECK(atl::traits::is_unsigned_integral_v<atl::uint128>);
 	STATIC_CHECK(atl::traits::is_unsigned_integral_v<atl::uint128 const>);
 	STATIC_CHECK(atl::traits::is_unsigned_integral_v<atl::uint128 const volatile>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::uint128 *>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::uint128 const *>);
 	STATIC_CHECK(!atl::traits::is_unsigned_integral_v<atl::uint128 const volatile *>);
-#endif
 }
 
 TEST_CASE("Test trait atl::traits::make_unsigned", "[types/traits]") {
@@ -168,18 +154,14 @@ TEST_CASE("Test trait atl::traits::make_unsigned", "[types/traits]") {
 	STATIC_CHECK(!has_make_unsigned<E>); // enums are rejected on purpose
 
 	// int128: std::make_unsigned need not accept it in a strict -std=c++NN mode
-#if ATL_HAS_INT128
 	STATIC_CHECK(std::is_same_v<atl::traits::make_unsigned_t<atl::int128>, atl::uint128>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_unsigned_t<atl::int128 const>, atl::uint128 const>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_unsigned_t<atl::int128 const volatile>, atl::uint128 const volatile>);
-#endif
 
 	// uint128
-#if ATL_HAS_INT128
 	STATIC_CHECK(std::is_same_v<atl::traits::make_unsigned_t<atl::uint128>, atl::uint128>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_unsigned_t<atl::uint128 const>, atl::uint128 const>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_unsigned_t<atl::uint128 const volatile>, atl::uint128 const volatile>);
-#endif
 }
 
 TEST_CASE("Test trait atl::traits::make_signed", "[types/traits]") {
@@ -196,16 +178,12 @@ TEST_CASE("Test trait atl::traits::make_signed", "[types/traits]") {
 	STATIC_CHECK(!has_make_signed<E>); // enums are rejected on purpose
 
 	// uint128
-#if ATL_HAS_INT128
 	STATIC_CHECK(std::is_same_v<atl::traits::make_signed_t<atl::uint128>, atl::int128>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_signed_t<atl::uint128 const>, atl::int128 const>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_signed_t<atl::uint128 const volatile>, atl::int128 const volatile>);
-#endif
 
 	// int128
-#if ATL_HAS_INT128
 	STATIC_CHECK(std::is_same_v<atl::traits::make_signed_t<atl::int128>, atl::int128>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_signed_t<atl::int128 const>, atl::int128 const>);
 	STATIC_CHECK(std::is_same_v<atl::traits::make_signed_t<atl::int128 const volatile>, atl::int128 const volatile>);
-#endif
 }

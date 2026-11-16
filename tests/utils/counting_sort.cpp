@@ -26,9 +26,7 @@ namespace {
 static_assert(atl::counting_sortable<std::vector<int> &>);
 static_assert(!atl::counting_sortable<std::vector<int> const &>); // cannot permute in place
 static_assert(!atl::counting_sortable<std::vector<double> &>);
-#if ATL_HAS_INT128
 static_assert(!atl::counting_sortable<std::vector<atl::int128> &>); // offsets are uint64
-#endif
 
 TEST_CASE("counting_sort: stable, matches std::stable_sort by projected key", "[utils]") {
 	auto seed = GENERATE(take(40, random(uint64(0), std::numeric_limits<uint64>::max())));

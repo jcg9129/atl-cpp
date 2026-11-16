@@ -1,5 +1,7 @@
+#include <atl/types/alias.hpp>
 #include <atl/types/forward_like.hpp>
 #include <catch2/catch.hpp>
+#include <concepts>
 #include <type_traits>
 #include <utility>
 
@@ -9,6 +11,8 @@
 // branches of the shim (define ATL_NO_STD_FORWARD_LIKE to force the fallback).
 #ifdef ATL_FORCE_FALLBACKS
 static_assert(ATL_HAS_INT128 == 0);
+static_assert(std::same_as<atl::int128, atl::detail::software_int128>);
+static_assert(std::same_as<atl::uint128, atl::detail::software_uint128>);
 static_assert(atl::detail::uses_forward_like_fallback);
 #endif
 

@@ -28,12 +28,10 @@ namespace {
 		using record = atl::detail::keyed_position<Key>;
 		constexpr Key top = Key(1) << (std::numeric_limits<Key>::digits - 1);
 		std::vector<record> values{{top, 0}, {1, 1}, {0, 2}, {top, 3}, {1, 4}, {std::numeric_limits<Key>::max(), 5}};
-#if ATL_HAS_INT128
 		if constexpr (sizeof(Key) > 8) {
 			values.push_back({(Key(1) << 65) | 1, 6});
 			values.push_back({(Key(1) << 64) | 1, 7});
 		}
-#endif
 		auto expected = values;
 		std::ranges::stable_sort(expected, {}, &record::key);
 		atl::detail::radix_sort<7>(values);
@@ -55,10 +53,8 @@ namespace {
 TEST_CASE("radix sort: full-width keys and stable positions", "[utils]") {
 	check_sort<atl::uint8>();
 	check_sort<atl::uint64>();
-#if ATL_HAS_INT128
 	static_assert(has_record<atl::uint128> && can_sort<7, atl::uint128>);
 	check_sort<atl::uint128>();
-#endif
 	std::vector<atl::detail::keyed_position<unsigned char>> bytes{{255, 0}, {0, 1}};
 	atl::detail::radix_sort<16>(bytes);
 	REQUIRE(bytes[0].key == 0);
