@@ -232,10 +232,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
-        with:
-          arch: ${{ matrix.arch }}
-          toolset: '14.44'
+      - name: Set up the MSVC environment
+        shell: pwsh
+        run: ./scripts/ci-msvc-env.ps1 -Arch '${{ matrix.arch }}' -Toolset '14.44'
       # Windows builds do not cache: no ccache is installed on these runners.
       - run: cmake --preset 'msvc-${{ matrix.arch }}' -DBUILD_TESTS="$FULL_TESTS"
       - run: cmake --build --preset 'msvc-${{ matrix.arch }}' --parallel "$JOBS" -- -k 0 2>&1 | tee "build/msvc-${{ matrix.arch }}/build.log"
