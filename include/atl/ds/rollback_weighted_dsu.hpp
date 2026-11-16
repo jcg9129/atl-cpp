@@ -23,7 +23,7 @@ namespace atl {
 	 * reads are const and O(log n) group operations, and `time` / `undo` /
 	 * `rollback` work exactly as there. Undoing a merge resets the child root's
 	 * weight to the identity (a root's weight is always the identity), so the log
-	 * holds the same 12-byte @ref detail::dsu_undo entries as @ref rollback_dsu.
+	 * holds the same 12-byte `detail::dsu_undo` entries as @ref rollback_dsu.
 	 * Typical use: offline dynamic bipartiteness over Z/2.
 	 *
 	 * @pre Documented-only: `op` is associative with two-sided identity `identity`;
@@ -222,7 +222,7 @@ namespace atl {
 		 * @param b Destination element index.
 		 * @param w Relative potential, multiplied on the right.
 		 * @pre Both indices are less than `elements()` (asserted).
-		 * @return @ref unite_outcome::merged if it joined two sets (only these are
+		 * @return `unite_outcome`::merged if it joined two sets (only these are
 		 *         recorded, so only these are undone by @ref undo); otherwise whether
 		 *         it agrees with what the set already implies.
 		 * @complexity O(log n)

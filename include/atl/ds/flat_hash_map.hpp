@@ -265,7 +265,7 @@ namespace atl {
 		[[nodiscard]] constexpr bool contains(Key const &key) const { return table_.contains(key); }
 
 		/**
-		 * @brief Heterogeneous @ref contains, @ref count, @ref find and @ref erase: look up
+		 * @brief Heterogeneous @ref contains, @ref count, @ref find and `erase`: look up
 		 *        by any @p K without first building a `Key` (no `std::string` temporary
 		 *        for a `string_view` or literal). They exist only when `Hash` and `Eq` both
 		 *        declare `is_transparent` and accept @p K (`atl::hash<std::string>` with

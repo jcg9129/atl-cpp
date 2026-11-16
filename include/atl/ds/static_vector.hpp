@@ -78,7 +78,7 @@ namespace atl {
 		/**
 		 * @brief A vector holding the elements of @p values, in order. Elements are
 		 *        moved out only of an owning rvalue range (see
-		 *        @ref detail::forward_element), copied otherwise.
+		 *        `detail::forward_element`), copied otherwise.
 		 * @pre the range has at most `Capacity` elements
 		 * @complexity O(Capacity)
 		 */

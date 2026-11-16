@@ -53,7 +53,7 @@ namespace atl {
 		}
 
 		/**
-		 * @brief The smallest input that @ref atl::compress radix-sorts instead of comparison-sorting.
+		 * @brief The smallest input that `atl`::compress radix-sorts instead of comparison-sorting.
 		 *
 		 * Radix passes cost 2^11 counters each whatever the input size. Measurements using
 		 * benchmarks/ds/coordinate_compression.cpp on Xeon Platinum 8168 show radix winning at every measured size from 1024: radix/comparison ms are 0.019/0.026
@@ -167,7 +167,7 @@ namespace atl {
 		 *        in the std::ranges algorithms); duplicates are dropped. Elements
 		 *        are moved out only of an owning rvalue range — never through a
 		 *        borrowed range or a view such as `std::span(v)` or
-		 *        `v | views::filter(...)` (see @ref detail::forward_element).
+		 *        `v | views::filter(...)` (see `detail::forward_element`).
 		 * @tparam R Input range; forwarded projected elements must support static_cast<T> (explicit conversions are accepted).
 		 * @tparam Proj Projection callable on each forwarded element.
 		 * @param values Coordinates to collect.

@@ -16,18 +16,18 @@
 
 /**
  * @file
- * @brief @ref atl::time_divide_and_conquer, the offline-deletion engine: items
+ * @brief `atl`::time_divide_and_conquer, the offline-deletion engine: items
  *        alive on time intervals are inserted into a structure that only
  *        supports insertion (plus undo, or cheap copies), and a callback sees
  *        the structure holding exactly the live items at each chosen time.
- *        @ref atl::lifetimes_of turns an add / remove / query event log into
+ *        `atl`::lifetimes_of turns an add / remove / query event log into
  *        those intervals.
  */
 
 namespace atl {
 	/**
 	 * @brief The half-open time interval `[begin, end)` on which one item is
-	 *        alive, as @ref lifetimes_of returns it. Empty when `begin == end`.
+	 *        alive, as @ref atl::lifetimes_of returns it. Empty when `begin == end`.
 	 */
 	struct item_lifetime {
 		uint32 begin; ///< @brief The first time the item is alive.
@@ -37,7 +37,7 @@ namespace atl {
 		constexpr bool operator==(item_lifetime const &) const = default;
 	};
 
-	/** @brief What one @ref item_event does. */
+	/** @brief What one @ref atl::item_event does. */
 	enum class event_kind : uint8 {
 		add,	///< a new copy of the key comes alive
 		remove, ///< the oldest live copy of the key dies
@@ -45,18 +45,18 @@ namespace atl {
 	};
 
 	/**
-	 * @brief One entry of an event log for @ref lifetimes_of: add a copy of
+	 * @brief One entry of an event log for `lifetimes_of`: add a copy of
 	 *        `key`, remove the oldest live copy of `key`, or a query.
 	 *
-	 * A query's key is ignored by @ref lifetimes_of; it can carry the query's
+	 * A query's key is ignored by @ref atl::lifetimes_of; it can carry the query's
 	 * own data (the vertex pair a connectivity query asks about, say), read back
 	 * as `events[t].key` in the visit callback.
 	 *
-	 * @tparam Key Anything hashable by @ref atl::hash and equality comparable:
+	 * @tparam Key Anything hashable by `atl`::hash and equality comparable:
 	 *             an integer, a vertex pair `std::pair<uint32, uint32>`,
-	 *             a string, a tuple; specialize @ref atl::hash for an own type.
+	 *             a string, a tuple; specialize `atl`::hash for an own type.
 	 *             Left unconstrained here (a plain record); @ref item_event_range,
-	 *             what @ref lifetimes_of accepts, enforces it.
+	 *             what @ref atl::lifetimes_of accepts, enforces it.
 	 */
 	template<typename Key>
 	struct item_event {
@@ -65,7 +65,7 @@ namespace atl {
 	};
 
 	/**
-	 * @brief Restore mode for @ref time_divide_and_conquer: mutate the structure in
+	 * @brief Restore mode for `time_divide_and_conquer`: mutate the structure in
 	 *        place and undo on the way back up. `save(s)` returns a token of any
 	 *        type, `restore(s, token)` returns `s` to the state `save` saw. Both are
 	 *        called through `std::invoke`, so member pointers work:
@@ -80,28 +80,28 @@ namespace atl {
 		[[no_unique_address]] Restore restore; ///< @brief The undo to a token.
 	};
 
-	/** @brief Tag type of @ref by_copy. */
+	/** @brief Tag type of @ref atl::by_copy. */
 	struct by_copy_t {
 		/** @brief Construct the explicit copy-mode tag. */
 		explicit by_copy_t() = default;
 	};
 
 	/**
-	 * @brief Restore mode for @ref time_divide_and_conquer: copy the structure at
+	 * @brief Restore mode for `time_divide_and_conquer`: copy the structure at
 	 *        every tree node that has items, insert into the copy, drop it on the
 	 *        way back up. For copyable structures without undo (an xor basis, a
 	 *        knapsack array) and for persistent ones, whose copies are O(1).
 	 */
 	inline constexpr by_copy_t by_copy{};
 
-	/** @brief The default visit predicate of @ref time_divide_and_conquer: every time. */
+	/** @brief The default visit predicate of `time_divide_and_conquer`: every time. */
 	struct every_time {
 		/** @brief Always true. */
 		constexpr bool operator()(uint32) const noexcept { return true; }
 	};
 
 	namespace detail {
-		/** @brief An element of a lifetime range with `begin` / `end` members, as @ref item_lifetime. */
+		/** @brief An element of a lifetime range with `begin` / `end` members, as @ref atl::item_lifetime. */
 		template<typename Element>
 		concept member_lifetime = requires(Element const &e) {
 			{ e.begin } -> std::convertible_to<std::size_t>;
@@ -162,9 +162,9 @@ namespace atl {
 	}
 
 	/**
-	 * @brief A range of item lifetimes for @ref time_divide_and_conquer: a sized
+	 * @brief A range of item lifetimes for `time_divide_and_conquer`: a sized
 	 *        forward range (it is read twice) whose elements are `[begin, end)`
-	 *        intervals, as @ref item_lifetime (members `begin` / `end`) or any
+	 *        intervals, as @ref atl::item_lifetime (members `begin` / `end`) or any
 	 *        tuple-like pair (`std::pair<int, int>`). Item `i` is the `i`-th element.
 	 * @tparam R Const-iterable sized forward range; lifetime extraction must work on its const-bound references.
 	 */
@@ -190,8 +190,8 @@ namespace atl {
 	concept time_predicate = std::predicate<Predicate &, uint32>;
 
 	/**
-	 * @brief A restore mode of @ref time_divide_and_conquer for `Structure`:
-	 *        @ref by_copy_t when `Structure` is copyable, or a @ref by_rollback whose
+	 * @brief A restore mode of @ref atl::time_divide_and_conquer for `Structure`:
+	 *        @ref atl::by_copy_t when `Structure` is copyable, or a @ref atl::by_rollback whose
 	 *        `save` is invocable on `Structure &` and whose `restore` is invocable on
 	 *        `Structure &` and `save`'s result.
 	 * @tparam Mode Restoration policy. @tparam Structure State restored by the policy.
@@ -205,7 +205,7 @@ namespace atl {
 	/**
 	 * @brief The restore mode used when none is passed:
 	 *        `by_rollback{&Structure::time, &Structure::rollback}` when both members
-	 *        exist unambiguously, otherwise @ref by_copy (for a copyable structure).
+	 *        exist unambiguously, otherwise @ref atl::by_copy (for a copyable structure).
 	 * @tparam Structure State whose restore mode is selected.
 	 */
 	template<typename Structure>
@@ -432,16 +432,16 @@ namespace atl {
 	 * that tile it; a depth-first walk inserts a node's items on the way down and
 	 * restores the state on the way up, so the structure only ever needs
 	 * insertion plus one of the two restore modes:
-	 * - @ref by_rollback `{save, restore}`: mutate in place, `restore(s, save(s))`
+	 * - @ref atl::by_rollback `{save, restore}`: mutate in place, `restore(s, save(s))`
 	 *   undoes everything inserted since `save`. Each insertion must cost its
 	 *   bound in the **worst case**: the walk undoes and redoes, which defeats
 	 *   amortized bounds (path compression, say).
-	 * - @ref by_copy: copy `s` at every node with items and insert into the copy.
+	 * - `by_copy`: copy `s` at every node with items and insert into the copy.
 	 *   O(T) copies in total, O(log T) alive at once; `structure` is left unchanged.
 	 *
 	 * Without `mode`, a structure with `time()` / `rollback(token)` members uses
 	 * `by_rollback{&Structure::time, &Structure::rollback}`, and a copyable one
-	 * without them uses @ref by_copy. Subtrees holding no visited time are pruned:
+	 * without them uses @ref atl::by_copy. Subtrees holding no visited time are pruned:
 	 * neither walked nor inserted into. With Q <= T / 10 selected times, rank
 	 * compression builds the tree over Q leaves and maps visits back to original
 	 * times. Denser workloads only count selected times during the leaf-flag pass:
@@ -467,7 +467,7 @@ namespace atl {
 	 *                     represented state unchanged (internal rebalancing such as
 	 *                     path compression is fine in copy mode)
 	 * @param should_visit which times to visit (default: all)
-	 * @param mode         @ref by_rollback or @ref by_copy (default: see above)
+	 * @param mode         @ref atl::by_rollback or @ref atl::by_copy (default: see above)
 	 * @pre `begin <= end <= time_count` for every lifetime, `time_count <= 2^30`,
 	 *      fewer than `2^32 - 1` items and cover entries. Counts are asserted;
 	 *      lifetime bounds are asserted when at least one time is selected.
@@ -532,7 +532,7 @@ namespace atl {
 	}
 
 	/**
-	 * @brief @ref time_divide_and_conquer visiting every time with an explicit
+	 * @brief @ref atl::time_divide_and_conquer visiting every time with an explicit
 	 *        restore mode, without spelling out @ref every_time.
 	 * @param structure Initial state, restored on normal completion.
 	 * @param time_count Number of times.
@@ -561,8 +561,8 @@ namespace atl {
 	}
 
 	/**
-	 * @brief A range of @ref item_event over a key @ref lifetimes_of can match:
-	 *        hashable by @ref atl::hash, equality comparable, default constructible
+	 * @brief A range of @ref atl::item_event over a key @ref atl::lifetimes_of can match:
+	 *        hashable by `atl`::hash, equality comparable, default constructible
 	 *        and copyable (the hash-map key requirements), with no-throw hashing.
 	 *        Const-bound event references must support kind comparisons and key lookup/insertion.
 	 * @tparam R Const input range of item_event records.
@@ -584,7 +584,7 @@ namespace atl {
 
 	/**
 	 * @brief The item lifetimes behind an event log, ready for
-	 *        @ref time_divide_and_conquer over `T = events.size()` times: one item
+	 *        @ref atl::time_divide_and_conquer over `T = events.size()` times: one item
 	 *        per add event, in log order. Time `t` is the state **after** event
 	 *        `t`, so the item added by event `a` and removed by event `r` lives on
 	 *        `[a, r)`, and one never removed on `[a, T)`. A remove closes the oldest
