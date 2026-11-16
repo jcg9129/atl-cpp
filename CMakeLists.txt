@@ -81,6 +81,9 @@ add_library(atl_project_options INTERFACE)
 if(MSVC)
     target_compile_options(atl_project_options INTERFACE /W4 /permissive-
                            /Zc:__cplusplus /Zc:preprocessor /utf-8)
+    # The CRT deprecates standard functions such as std::tmpfile in favour of
+    # its non-portable _s variants (C4996); tests and examples use the standard ones.
+    target_compile_definitions(atl_project_options INTERFACE _CRT_SECURE_NO_WARNINGS)
     if(NOT DISABLE_WERROR)
         target_compile_options(atl_project_options INTERFACE /WX)
     endif()
