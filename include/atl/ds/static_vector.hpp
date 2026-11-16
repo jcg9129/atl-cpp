@@ -145,9 +145,12 @@ namespace atl {
 		 */
 		constexpr void resize(std::size_t count, T const &value) {
 			atl_assert(count <= Capacity);
-			// Keep growth and shrinkage disjoint so optimizers can track the slot bounds.
 			if (count < size_) {
-				while (size_ > count) release(--size_);
+				// Release back to front through pointers: GCC -O3 cannot prove size_ <= Capacity
+				// and would flag std::array::operator[] here (a known -Warray-bounds false positive).
+				if constexpr (!std::is_trivially_destructible_v<T>)
+					for (T *slot = data_.data() + size_; slot != data_.data() + count;) *--slot = T{};
+				size_ = count;
 			} else {
 				while (size_ < count) data_[size_++] = value;
 			}
