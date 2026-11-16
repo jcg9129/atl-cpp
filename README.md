@@ -55,8 +55,9 @@ CI only **builds** benchmarks in the `benchmarks` preset. Run and record them
 only on dedicated machines outside CI with
 `ATL_BENCH_RESULTS=<dir> benchmarks/record.sh <area>-<name>` (e.g.
 `utils-counting_sort`); records go to `<dir>`, which must exist outside the
-repository. The recorder expects a Unix Makefiles build with
-`BUILD_BENCHMARKS=ON`, selected via `ATL_BENCH_TREE`; the `benchmarks` preset
+repository. The recorder takes any configured build tree with
+`BUILD_BENCHMARKS=ON` (Ninja or Makefiles), selected via `ATL_BENCH_TREE`, and
+reads the compile flags from its `compile_commands.json`; the `benchmarks` preset
 also provides a local `run_benchmarks` target. Benchmarks disable `ATL_ASSERT`
 by default. Set
 `ATL_BENCH_FLAGS="-march=native"` for machine-specific measurements; each flag
