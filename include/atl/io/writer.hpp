@@ -917,7 +917,7 @@ namespace atl::io {
 	inline writer out;
 
 	/**
-	 * @brief The empty base case of @ref write: writes nothing.
+	 * @brief The empty base case of the variadic `write`; writes nothing.
 	 * @note Not constexpr (retains the runtime output interface).
 	 */
 	inline void write() {}

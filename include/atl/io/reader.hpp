@@ -35,6 +35,10 @@
 #define ATL_HAS_MMAP 1
 #endif
 #endif
+/**
+ * @brief 1 when the reader maps regular-file input with mmap: `ATL_USE_MMAP` is defined and the POSIX
+ *        mapping headers exist; else 0 (buffered `fread` path).
+ */
 #ifndef ATL_HAS_MMAP
 #define ATL_HAS_MMAP 0
 #endif
@@ -62,6 +66,10 @@
 #error "ATL_IO_INTERACTIVE needs Windows _read or POSIX read"
 #endif
 #endif
+/**
+ * @brief 1 when `ATL_IO_INTERACTIVE` is defined and refills use one short descriptor read (POSIX `read`,
+ *        Windows `_read`); else 0 (refills fill the whole buffer with `fread`).
+ */
 #ifndef ATL_HAS_INTERACTIVE_READ
 #define ATL_HAS_INTERACTIVE_READ 0
 #endif

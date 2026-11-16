@@ -57,7 +57,7 @@ CI only **builds** benchmarks in the `benchmarks` preset, which enables
 `ATL_BUILD_IO_HARNESS` and builds its `io-harness` target too. Optional harness
 backends are omitted when compile-and-link probes cannot find `std::println`
 or the platform unlocked-stdio functions. See
-[the harness README](experimental/io_bench/README.md) for targets and backends.
+the harness README (`experimental/io_bench/README.md`) for targets and backends.
 Run and record benchmarks only on dedicated machines outside CI with
 `ATL_BENCH_RESULTS=<dir> benchmarks/record.sh <area>-<name>` (e.g.
 `utils-counting_sort`); records go to `<dir>`, which must exist outside the
