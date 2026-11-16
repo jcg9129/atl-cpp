@@ -78,13 +78,19 @@ Document new conventions here alongside their technical rationale.
   `auto const &` in range-for over non-trivial elements.
 - `constexpr` wherever constant evaluation is possible (exceptions: I/O,
   runtime-only state); every constexpr API gets a static_assert proof in
-  `tests/constexpr_checks.cpp`.
+  the owning folder's `tests/<folder>/constexpr_checks.cpp`.
 - Reuse existing library facilities before writing new code (helpers,
   concepts, `ds/` structures, modular helpers); hand-rolled replacements
   only with a measured, stated reason.
 
 ## Benchmarks
 
+- The top-level-only `ATL_BUILD_IO_HARNESS` CMake option defaults to OFF and
+  builds `experimental/io_bench` independently of `BUILD_BENCHMARKS`. The
+  `benchmarks` preset enables it and selects the `io-harness` build target.
+  Harness executables are compiled and linked in CI, never run, registered
+  with CTest, or installed. Compile-and-link probes omit the optional println
+  and unlocked-stdio backends when the toolchain lacks them.
 - Benchmarks measure release behavior: they are built without `ATL_ASSERT`
   by default; tests keep it on. Configure with `-DATL_BENCHMARK_ASSERTS=ON`
   to measure assertion overhead.
