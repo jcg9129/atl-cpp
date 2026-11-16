@@ -112,6 +112,10 @@ Document new conventions here alongside their technical rationale.
   `shipped`, `legacy`), its timing in an algorithm (`after_add`) or an internal
   variable. Each gets a doc comment saying what it does differently; benchmark
   labels use the same words.
+- Pass contenders to a shared benchmark loop as callables (a lambda per
+  contender, constrained with `std::invocable` / `std::is_invocable_r_v`), not
+  as function-pointer template parameters: each lambda has its own type, so the
+  call is direct and inlinable, and the loop accepts any callable.
 - Compare every contender on every shape in the same run so the conclusion
   can be reproduced.
 - Measure on x86-64 before choosing an x86 optimization. Results from aarch64

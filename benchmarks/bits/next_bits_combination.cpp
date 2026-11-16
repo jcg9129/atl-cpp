@@ -27,6 +27,7 @@
 #include <bit>
 #include <catch2/catch.hpp>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 using namespace atl;
@@ -53,19 +54,19 @@ namespace {
 	}
 
 	/**
-	 * @brief Sum of all k-subsets of n bits, enumerated with @p Next; each step depends
+	 * @brief Sum of all k-subsets of n bits, enumerated with @p next; each step depends
 	 *        on the previous one, so the time is the per-step latency. The sum (modulo
 	 *        2^64) keeps the loop from being optimised away and checks the contenders agree.
-	 * @pre `0 < k <= n < 64`; Next returns the correct combination successor.
+	 * @pre `0 < k <= n < 64`; next returns the correct combination successor.
 	 */
-	template<uint64 (*Next)(uint64) noexcept>
-		requires(Next != nullptr)
-	uint64 sum_all_k_subsets(int n, int k) {
+	template<typename Successor>
+		requires std::is_invocable_r_v<uint64, Successor const &, uint64>
+	uint64 sum_all_k_subsets(int n, int k, Successor const &next) {
 		uint64 x = (uint64(1) << k) - 1, sum = 0;
 		uint64 const limit = uint64(1) << n;
 		while (x < limit) {
 			sum += x;
-			x = Next(x);
+			x = next(x);
 		}
 		return sum;
 	}
@@ -77,12 +78,16 @@ TEST_CASE("next_bits_combination contenders", "[bits]") {
 		REQUIRE(next_bits_combination_by_shift_loop(x) == next_bits_combination(x));
 	}
 	REQUIRE(next_bits_combination(~uint64(0) << 3) == 0);
+	// Lambdas give each contender its own type, so every call below is a direct, inlinable call.
+	auto const library = [](uint64 x) noexcept { return next_bits_combination(x); };
+	auto const by_run_ctz = [](uint64 x) noexcept { return next_bits_combination_by_run_ctz(x); };
+	auto const by_shift_loop = [](uint64 x) noexcept { return next_bits_combination_by_shift_loop(x); };
 	for (auto [n, k] : {std::pair{28, 14}, std::pair{40, 6}}) {
 		std::string const shape = "C(" + std::to_string(n) + "," + std::to_string(k) + ")";
-		REQUIRE(sum_all_k_subsets<next_bits_combination<uint64>>(n, k) == sum_all_k_subsets<next_bits_combination_by_run_ctz>(n, k));
-		REQUIRE(sum_all_k_subsets<next_bits_combination<uint64>>(n, k) == sum_all_k_subsets<next_bits_combination_by_shift_loop>(n, k));
-		BENCHMARK(shape + " | library") { return sum_all_k_subsets<next_bits_combination<uint64>>(n, k); };
-		BENCHMARK(shape + " | by run ctz") { return sum_all_k_subsets<next_bits_combination_by_run_ctz>(n, k); };
-		BENCHMARK(shape + " | by shift loop") { return sum_all_k_subsets<next_bits_combination_by_shift_loop>(n, k); };
+		REQUIRE(sum_all_k_subsets(n, k, library) == sum_all_k_subsets(n, k, by_run_ctz));
+		REQUIRE(sum_all_k_subsets(n, k, library) == sum_all_k_subsets(n, k, by_shift_loop));
+		BENCHMARK(shape + " | library") { return sum_all_k_subsets(n, k, library); };
+		BENCHMARK(shape + " | by run ctz") { return sum_all_k_subsets(n, k, by_run_ctz); };
+		BENCHMARK(shape + " | by shift loop") { return sum_all_k_subsets(n, k, by_shift_loop); };
 	}
 }
