@@ -10,10 +10,11 @@ using namespace atl;
 
 namespace {
 	/**
-	 * @brief The serial-count contender: the
-	 *        trailing-zero count of `z` taken at the end of the chain.
+	 * @brief The serial-count contender: counts the trailing zeros of the moved run
+	 *        `z` after the addition, at the end of the dependency chain (the shipped
+	 *        form counts them on `x`, in parallel with the addition).
 	 */
-	constexpr uint64 next_ctz_of_z(uint64 x) noexcept {
+	constexpr uint64 next_serial_count(uint64 x) noexcept {
 		uint64 const r = lowest_one(x);
 		if (x == 0 || x > ~uint64(0) - r) return 0;
 		x += r;
@@ -53,14 +54,14 @@ namespace {
 
 TEST_CASE("next_bits_combination contenders", "[bits]") {
 	for (uint64 x = 1; x < (uint64(1) << 20); ++x) {
-		REQUIRE(next_ctz_of_z(x) == next_bits_combination(x));
+		REQUIRE(next_serial_count(x) == next_bits_combination(x));
 		REQUIRE(next_shift_loop(x) == next_bits_combination(x));
 	}
 	REQUIRE(next_bits_combination(~uint64(0) << 3) == 0);
 	for (auto [n, k] : {std::pair{28, 14}, std::pair{40, 6}}) {
 		std::string const shape = "C(" + std::to_string(n) + "," + std::to_string(k) + ")";
-		REQUIRE(walk<shipped>(n, k) == walk<next_ctz_of_z>(n, k));
-		BENCHMARK(shape + " | ctz of z (serial)") { return walk<next_ctz_of_z>(n, k); };
+		REQUIRE(walk<shipped>(n, k) == walk<next_serial_count>(n, k));
+		BENCHMARK(shape + " | serial count") { return walk<next_serial_count>(n, k); };
 		BENCHMARK(shape + " | shipped (ctz of x, parallel)") { return walk<shipped>(n, k); };
 		BENCHMARK(shape + " | shift loop") { return walk<next_shift_loop>(n, k); };
 	}
