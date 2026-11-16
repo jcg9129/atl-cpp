@@ -59,6 +59,7 @@ option(BUILD_BENCHMARKS "Build benchmarks" ${PROJECT_IS_TOP_LEVEL})
 option(ATL_INSTALL "Install atl headers and package" ${PROJECT_IS_TOP_LEVEL})
 if(PROJECT_IS_TOP_LEVEL)
     option(ATL_BUILD_DOCS "Build the documentation site" OFF)
+    option(ATL_BUILD_IO_HARNESS "Build the standalone I/O benchmark harness" OFF)
 endif()
 
 # Keep explicitly enabled development targets out of a parent project's namespace.
@@ -80,6 +81,9 @@ add_library(atl_project_options INTERFACE)
 if(MSVC)
     target_compile_options(atl_project_options INTERFACE /W4 /permissive-
                            /Zc:__cplusplus /Zc:preprocessor /utf-8)
+    # The CRT deprecates standard functions such as std::tmpfile in favour of
+    # its non-portable _s variants (C4996); tests and examples use the standard ones.
+    target_compile_definitions(atl_project_options INTERFACE _CRT_SECURE_NO_WARNINGS)
     if(NOT DISABLE_WERROR)
         target_compile_options(atl_project_options INTERFACE /WX)
     endif()
@@ -204,6 +208,10 @@ if(PROJECT_IS_TOP_LEVEL OR BUILD_TESTS OR BUILD_BENCHMARKS)
     if(BUILD_TESTS)
         add_dependencies(${ATL_TARGET_PREFIX}portability ${ATL_TARGET_PREFIX}tests)
     endif()
+endif()
+
+if(PROJECT_IS_TOP_LEVEL AND ATL_BUILD_IO_HARNESS)
+    add_subdirectory(experimental/io_bench)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL AND (BUILD_TESTS OR ATL_BUILD_DOCS))

@@ -14,3 +14,6 @@ See [Library conventions](conventions.md) for contribution rules, including
 where to put guide prose, executable examples and API comments.
 
 - [128-bit integers](int128.md): native aliases, portable software integers and formatting.
+- [Bit utilities](bit-utilities.md): lowest set bit and fixed-popcount enumeration.
+- [XOR bases](xor-basis.md): reduced spans and stamp-filtered queries.
+- [Fast I/O](fast-io.md): buffered readers and writers.

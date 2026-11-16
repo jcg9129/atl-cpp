@@ -78,13 +78,19 @@ Document new conventions here alongside their technical rationale.
   `auto const &` in range-for over non-trivial elements.
 - `constexpr` wherever constant evaluation is possible (exceptions: I/O,
   runtime-only state); every constexpr API gets a static_assert proof in
-  `tests/constexpr_checks.cpp`.
+  the owning folder's `tests/<folder>/constexpr_checks.cpp`.
 - Reuse existing library facilities before writing new code (helpers,
   concepts, `ds/` structures, modular helpers); hand-rolled replacements
   only with a measured, stated reason.
 
 ## Benchmarks
 
+- The top-level-only `ATL_BUILD_IO_HARNESS` CMake option defaults to OFF and
+  builds `experimental/io_bench` independently of `BUILD_BENCHMARKS`. The
+  `benchmarks` preset enables it and selects the `io-harness` build target.
+  Harness executables are compiled and linked in CI, never run, registered
+  with CTest, or installed. Compile-and-link probes omit the optional println
+  and unlocked-stdio backends when the toolchain lacks them.
 - Benchmarks measure release behavior: they are built without `ATL_ASSERT`
   by default; tests keep it on. Configure with `-DATL_BENCHMARK_ASSERTS=ON`
   to measure assertion overhead.
@@ -95,6 +101,21 @@ Document new conventions here alongside their technical rationale.
   local artifacts, while the benchmark sources are part of the library.
 - Quoted numbers must come from reproducible benchmark implementations. Cite the source,
   measurement date, CPU and flags; distinguish measurements from hypotheses.
+- A benchmark file explains itself. It starts with an `@file` comment stating
+  what is raced, the one thing each contender does differently, what the loop
+  measures (per-step latency or throughput, and the shapes), and the result
+  with its CPU, compiler, flags and date. The full table goes on the guide page.
+  Name each contender, in benchmarks and in `experimental/`, as
+  `<function>_by_<method>`: what it computes (the library function it races)
+  and the one thing it does differently, e.g. `next_bits_combination_by_run_ctz`,
+  `xor_basis_by_echelon_scan`. Never name one for its history (`before`,
+  `shipped`, `legacy`), its timing in an algorithm (`after_add`) or an internal
+  variable. Each gets a doc comment saying what it does differently; benchmark
+  labels use the same words.
+- Pass contenders to a shared benchmark loop as callables (a lambda per
+  contender, constrained with `std::invocable` / `std::is_invocable_r_v`), not
+  as function-pointer template parameters: each lambda has its own type, so the
+  call is direct and inlinable, and the loop accepts any callable.
 - Compare every contender on every shape in the same run so the conclusion
   can be reproduced.
 - Measure on x86-64 before choosing an x86 optimization. Results from aarch64
