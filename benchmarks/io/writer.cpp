@@ -1,3 +1,28 @@
+/**
+ * @file
+ * Race between ways of formatting unsigned decimal integers into memory, against
+ * the library's `io::writer`.
+ *
+ * All contenders produce the same digits; they differ in where the digits go:
+ * - `put_scratch_copy` writes the digits backward into a scratch buffer and then
+ *   copies them to the output; for `uint128` it does this with 128-bit divisions
+ *   by 100 ("128-bit digit pairs");
+ * - `put_in_place` counts the digits first, then writes them backward straight
+ *   into the output, which is the scheme `io::writer` uses for up to 64 bits;
+ * - `put_chunks_1e19` splits a `uint128` into 19-digit chunks, divides by 10^19
+ *   in 128 bits only, and formats each chunk with `put_in_place`.
+ * The library row runs `io::writer` on the same values into the null device, so it
+ * also includes the cost of the buffered stdio flush.
+ *
+ * Each benchmark formats a whole vector, space-separated, into a preallocated
+ * buffer, so it measures throughput. Shapes: 1e7 uint32 and 1e7 uint64 of mixed
+ * lengths, 1e7 uint32 of nine digits, and 1e6 full-width uint128.
+ *
+ * Result (Xeon Platinum 8280, GCC 15.2, `-O2` and `-O2 -march=native`, 2026-10-15):
+ * `put_in_place` beats `put_scratch_copy` on 32- and 64-bit values, where scratch +
+ * copy is 6-37% slower. 128-bit digit pairs are 1.9-2.2x slower than
+ * `put_chunks_1e19`, which ties the library. Numbers: docs/fast-io.md.
+ */
 #include <atl/io/writer.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
@@ -15,14 +40,10 @@
 
 using namespace atl;
 
-// Counting digits and writing directly won over scratch-and-copy by 6-27%;
-// 19-digit uint64 chunks won over 128-bit digit-pair divisions by about 2x.
-// See docs/fast-io.md for the measurement metadata. Keep both contenders here
-// so the conclusion can be reproduced; the null-device row includes stdio cost.
 namespace {
 #ifdef ATL_IO_BIG_LUT
-	// The comparison still needs the two-digit contender when the shipped writer
-	// selects the four-digit table and omits its private two-digit helpers.
+	// The comparison still needs the two-digit helpers when the library writer
+	// selects the four-digit table and omits its private ones.
 	constexpr auto digit_pairs = [] {
 		std::array<char, 200> table{};
 		for (std::size_t i = 0; i < 100; ++i) {
@@ -63,9 +84,9 @@ namespace {
 	using atl::io::detail::digits_backward;
 #endif
 
-	// Scratch-and-copy retains the losing contender for comparison.
+	/** @brief Contender: digits written backward into a scratch buffer, then copied to @p out. */
 	template<atl::unsigned_integral U>
-	char *put_scratch(char *out, U x) {
+	char *put_scratch_copy(char *out, U x) {
 		char tmp[44];
 		char *const p = digits_backward(tmp + sizeof(tmp), x);
 		std::size_t const len = std::size_t(tmp + sizeof(tmp) - p);
@@ -73,21 +94,23 @@ namespace {
 		return out + len;
 	}
 
-	char *put_direct(char *out, uint64 x) {
+	/** @brief Contender: digit count found first, digits written backward directly into @p out. */
+	char *put_in_place(char *out, uint64 x) {
 		uint32 const len = decimal_length(x);
 		digits_backward(out + len, x);
 		return out + len;
 	}
 
-	char *put_chunked(char *out, uint128 x) {
+	/** @brief Contender: `uint128` split into 19-digit chunks, so only the splitting divisions are 128-bit. */
+	char *put_chunks_1e19(char *out, uint128 x) {
 		constexpr uint64 chunk = 10000000000000000000ull; // 10^19
-		if (x < chunk) return put_direct(out, uint64(x));
+		if (x < chunk) return put_in_place(out, uint64(x));
 		uint64 const low = uint64(x % chunk);
 		uint128 const rest = x / chunk;
 		if (rest < chunk) {
-			out = put_direct(out, uint64(rest));
+			out = put_in_place(out, uint64(rest));
 		} else {
-			out = put_direct(out, uint64(rest / chunk));
+			out = put_in_place(out, uint64(rest / chunk));
 			char *const mid_end = out + 19;
 			char *p = digits_backward(mid_end, uint64(rest % chunk));
 			while (p > out) *--p = '0';
@@ -111,13 +134,21 @@ TEST_CASE("writer integer formatting", "[writer]") {
 	for (auto &x : u128) x = (uint128(rng()) << 64) | rng();
 	std::vector<char> buffer(260'000'000);
 
+	for (uint32 x : u32_mixed) {
+		char a[24], b[24];
+		REQUIRE(std::string_view(a, put_scratch_copy(a, x)) == std::string_view(b, put_in_place(b, x)));
+	}
+	for (uint32 x : u32_fixed) {
+		char a[24], b[24];
+		REQUIRE(std::string_view(a, put_scratch_copy(a, x)) == std::string_view(b, put_in_place(b, x)));
+	}
 	for (uint64 x : u64_mixed) {
 		char a[24], b[24];
-		REQUIRE(std::string_view(a, put_scratch(a, x)) == std::string_view(b, put_direct(b, x)));
+		REQUIRE(std::string_view(a, put_scratch_copy(a, x)) == std::string_view(b, put_in_place(b, x)));
 	}
 	for (uint128 x : u128) {
 		char a[48], b[48];
-		REQUIRE(std::string_view(a, put_scratch(a, x)) == std::string_view(b, put_chunked(b, x)));
+		REQUIRE(std::string_view(a, put_scratch_copy(a, x)) == std::string_view(b, put_chunks_1e19(b, x)));
 	}
 
 #ifdef _WIN32
@@ -126,7 +157,8 @@ TEST_CASE("writer integer formatting", "[writer]") {
 	std::FILE *const sink = std::fopen("/dev/null", "wb");
 #endif
 	REQUIRE(sink != nullptr);
-	auto shipped = [&]<std::ranges::sized_range R>(R const &values)
+	/** @brief Library: `io::writer` to the null device, each value followed by a space; returns the value count. */
+	auto library_writer = [&]<std::ranges::sized_range R>(R const &values)
 		requires std::ranges::input_range<R const> && std::ranges::sized_range<R const> && io::writable<std::ranges::range_value_t<R const>>
 	{
 		io::writer w(sink);
@@ -137,7 +169,8 @@ TEST_CASE("writer integer formatting", "[writer]") {
 		w.flush();
 		return std::ranges::size(values);
 	};
-	auto format = [&]<std::ranges::input_range R, typename Formatter>(R const &values, Formatter put)
+	/** @brief Format every value with @p put into the shared buffer, space-separated; returns the byte count. */
+	auto format_to_memory = [&]<std::ranges::input_range R, typename Formatter>(R const &values, Formatter put)
 		requires std::ranges::input_range<R const> && std::regular_invocable<Formatter &, char *, std::ranges::range_reference_t<R const>>
 			  && std::same_as<std::invoke_result_t<Formatter &, char *, std::ranges::range_reference_t<R const>>, char *>
 	{
@@ -148,32 +181,32 @@ TEST_CASE("writer integer formatting", "[writer]") {
 		}
 		return std::size_t(out - buffer.data());
 	};
-	BENCHMARK("1e7 uint32 mixed lengths | atl::io::writer to null device") { return shipped(u32_mixed); };
-	BENCHMARK("1e7 uint32 mixed lengths | scratch + copy (before)") {
-		return format(u32_mixed, [](char *o, uint32 x) { return put_scratch(o, x); });
+	BENCHMARK("1e7 uint32 mixed lengths | library (io::writer to null device)") { return library_writer(u32_mixed); };
+	BENCHMARK("1e7 uint32 mixed lengths | scratch + copy") {
+		return format_to_memory(u32_mixed, [](char *o, uint32 x) { return put_scratch_copy(o, x); });
 	};
-	BENCHMARK("1e7 uint32 mixed lengths | direct (shipped scheme)") {
-		return format(u32_mixed, [](char *o, uint32 x) { return put_direct(o, x); });
+	BENCHMARK("1e7 uint32 mixed lengths | in place (count digits first)") {
+		return format_to_memory(u32_mixed, [](char *o, uint32 x) { return put_in_place(o, x); });
 	};
-	BENCHMARK("1e7 uint32 9 digits | scratch + copy (before)") {
-		return format(u32_fixed, [](char *o, uint32 x) { return put_scratch(o, x); });
+	BENCHMARK("1e7 uint32 9 digits | scratch + copy") {
+		return format_to_memory(u32_fixed, [](char *o, uint32 x) { return put_scratch_copy(o, x); });
 	};
-	BENCHMARK("1e7 uint32 9 digits | direct (shipped scheme)") {
-		return format(u32_fixed, [](char *o, uint32 x) { return put_direct(o, x); });
+	BENCHMARK("1e7 uint32 9 digits | in place (count digits first)") {
+		return format_to_memory(u32_fixed, [](char *o, uint32 x) { return put_in_place(o, x); });
 	};
-	BENCHMARK("1e7 uint64 mixed lengths | atl::io::writer to null device") { return shipped(u64_mixed); };
-	BENCHMARK("1e7 uint64 mixed lengths | scratch + copy (before)") {
-		return format(u64_mixed, [](char *o, uint64 x) { return put_scratch(o, x); });
+	BENCHMARK("1e7 uint64 mixed lengths | library (io::writer to null device)") { return library_writer(u64_mixed); };
+	BENCHMARK("1e7 uint64 mixed lengths | scratch + copy") {
+		return format_to_memory(u64_mixed, [](char *o, uint64 x) { return put_scratch_copy(o, x); });
 	};
-	BENCHMARK("1e7 uint64 mixed lengths | direct (shipped scheme)") {
-		return format(u64_mixed, [](char *o, uint64 x) { return put_direct(o, x); });
+	BENCHMARK("1e7 uint64 mixed lengths | in place (count digits first)") {
+		return format_to_memory(u64_mixed, [](char *o, uint64 x) { return put_in_place(o, x); });
 	};
-	BENCHMARK("1e6 uint128 full width | atl::io::writer to null device") { return shipped(u128); };
-	BENCHMARK("1e6 uint128 full width | 128-bit pairs (before)") {
-		return format(u128, [](char *o, uint128 x) { return put_scratch(o, x); });
+	BENCHMARK("1e6 uint128 full width | library (io::writer to null device)") { return library_writer(u128); };
+	BENCHMARK("1e6 uint128 full width | 128-bit digit pairs") {
+		return format_to_memory(u128, [](char *o, uint128 x) { return put_scratch_copy(o, x); });
 	};
-	BENCHMARK("1e6 uint128 full width | 10^19 chunks (shipped scheme)") {
-		return format(u128, [](char *o, uint128 x) { return put_chunked(o, x); });
+	BENCHMARK("1e6 uint128 full width | 10^19 chunks") {
+		return format_to_memory(u128, [](char *o, uint128 x) { return put_chunks_1e19(o, x); });
 	};
 	std::fclose(sink);
 }

@@ -93,34 +93,50 @@ can ask for that count.
 
 ### Measured performance
 
-Source: `benchmarks/bits/xor_basis.cpp`, measured 2026-10-15 on x86-64
-Xeon 8358, assertions off; 1e6 operations per row, milliseconds
-(plain `-O2` / `-march=native`). These are imported measurements, not rerun here.
+`benchmarks/bits/xor_basis.cpp` races three bases that all keep one vector per
+highest set bit. The library's reduced `xor_basis` has no vector containing
+another pivot bit, so the XORs a word needs are selected by `x & pivot_mask()`
+and do not depend on one another. "Echelon, top-bit jump" stores plain echelon
+form and jumps to the next set bit, so each XOR decides which vector the next
+step reads. "Echelon, scan every bit" is the same form but tests every bit from
+the top. The two echelon contenders are in
+`experimental/atl/experimental/bits/xor_basis_variants.hpp`. Each `insert` row
+builds a basis from 1e6 words; each `max_xor(start)` and `contains` row runs 1e6
+independent probes against a built basis, so they measure throughput.
 
-| shape | operation | reduced | echelon, top-bit jump | echelon, scan every bit |
-|---|---|---|---|---|
+Xeon Platinum 8358, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
+Minimum of 3 runs, milliseconds per 1e6 operations, plain `-O2` / `-O2
+-march=native`:
+
+| shape | operation | library reduced | echelon, top-bit jump | echelon, scan every bit |
+|---|---|---:|---:|---:|
 | random uint64, full rank | insert | 33.6 / 23.8 | 140 / 129 | 287 / 279 |
 | random uint64, full rank | max_xor(start) | 33.6 / 22.5 | 267 / 268 | 268 / 268 |
 | random uint64, full rank | contains | 32.9 / 22.4 | 129 / 121 | 267 / 267 |
 | uint32, rank 20 of 30 bits | insert | 14.3 / 12.2 | 48.9 / 42.1 | 108 / 104 |
-| uint32, rank 20 of 30 bits | max_xor(start) | 14.9 / 12.4 | 129 / 129 | 130 / 129 |
+| uint32, rank 20 of 30 bits | max_xor(start) | 14.9 / 12.4 | 129 / 129 | 129 / 129 |
+| uint32, rank 20 of 30 bits | contains | 14.7 / 12.4 | 46.9 / 41.2 | 117 / 119 |
 | uint64, rank 40 | insert | 23.4 / 17.6 | 90.7 / 82.2 | 207 / 201 |
+| uint64, rank 40 | max_xor(start) | 24.1 / 17.0 | 268 / 268 | 268 / 268 |
+| uint64, rank 40 | contains | 24.2 / 17.1 | 82.0 / 76.8 | 268 / 268 |
 
-The reduced representation wins these measured shapes because pivot XORs do
-not depend on previous elimination results. The retained contenders are in
-`experimental/atl/experimental/bits/xor_basis_variants.hpp`.
+The library form is fastest on every row: top-bit jump is 3.2-15.8x slower and
+scan every bit 7.6-15.8x slower. The reduced form wins because its pivot XORs
+do not depend on previous elimination results.
 
-Order queries from the same benchmark, measurement date, CPU and flags, at
-rank 50, milliseconds per 1e6 queries:
+Order queries from the same benchmark, at rank 50, milliseconds per 1e6
+queries (plain `-O2` / `-O2 -march=native`). The experimental contender is a
+greedy descent over the pivots, each comparison waiting for the previous
+choice:
 
-| operation | time, plain / native |
+| operation | plain / native |
 |---|---|
-| `kth_smallest`, branch-free select | 57.7 / 40.2 |
-| `count_below`, pivot-pattern count | 107 / 48.2 |
-| experimental greedy descent | 208 / 130 |
+| library `kth_smallest` (branch-free select) | 57.7 / 40.2 |
+| library `count_below` (pivot pattern) | 107 / 48.2 |
+| `count_below` by greedy descent (`greedy_count_below`) | 208 / 130 |
 
-The serial greedy descent loses because each comparison waits for the previous
-choice. The plain flag set has no hardware popcount instruction.
+The greedy descent is 1.9x slower with `-O2` and 2.7x slower with
+`-march=native`. The plain flag set has no hardware popcount instruction.
 
 ### Pitfalls and notes
 
@@ -173,10 +189,10 @@ syntax alone cannot establish those semantic laws.
 
 ### Measured performance
 
-Source: `benchmarks/bits/xor_basis.cpp`, measured 2026-10-15 on x86-64
-Xeon 8358, assertions off, plain `-O2` / `-march=native`: offline subarray
-maximum XOR with `n = q = 5e5`, 20-bit values and queries sorted by right end,
-50.0 / 48.9 ms total. No measurements were rerun here.
+`benchmarks/bits/xor_basis.cpp` times offline subarray maximum XOR with
+`stamped_xor_basis`: `n = q = 5e5`, 20-bit values, queries sorted by right end.
+Xeon Platinum 8358, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15,
+minimum of 3 runs: 50.0 ms with `-O2` and 48.9 ms with `-O2 -march=native`.
 
 ### Pitfalls and notes
 

@@ -1,3 +1,33 @@
+/**
+ * @file
+ * Race between three GF(2) linear bases on `insert`, `max_xor` and `contains`,
+ * plus the library's order queries and `stamped_xor_basis`.
+ *
+ * All three keep one vector per highest set bit and reduce a word by XORing the
+ * vector at its top bit. They differ in what they store and how they walk:
+ * - `library_reduced_basis` (`atl::xor_basis`) is fully reduced: no vector contains
+ *   another pivot bit, so the XORs a word needs are selected by `x & pivot_mask()`
+ *   and do not depend on one another;
+ * - `echelon_top_bit_jump_basis` stores plain echelon form and jumps to the next set
+ *   bit with `bit_width`, so each XOR decides which vector the next step reads;
+ * - `echelon_scan_basis` is the same echelon form but tests every bit from the top,
+ *   set or not.
+ * For `count_below`, the library counts from the pivot pattern of the bound, while
+ * `greedy_count_below` descends over the pivots, each comparison waiting for the
+ * previous choice.
+ *
+ * Each `insert` row builds a basis from 1e6 words; each `max_xor` and `contains` row
+ * runs 1e6 independent probes against a built basis, so the figures are throughput.
+ * Shapes: random uint64 (full rank), uint32 of rank 20 in 30 bits (half the probes
+ * are members), and uint64 of rank 40. The order queries run 1e6 independent queries
+ * at rank 50; `stamped_xor_basis` answers n = q = 5e5 offline range max-xor queries.
+ *
+ * Result (Xeon Platinum 8358, GCC 15.2, `-O2` and `-O2 -march=native`, 2026-10-15):
+ * `library_reduced_basis` is fastest on every row. `echelon_top_bit_jump_basis` is
+ * 3.2-15.8x slower and `echelon_scan_basis` 7.6-15.8x slower. `greedy_count_below` is
+ * 1.9x slower than the library's `count_below` with `-O2` and 2.7x with
+ * `-march=native`. Numbers: docs/xor-basis.md.
+ */
 #include <atl/bits/xor_basis.hpp>
 #include <atl/experimental/bits/xor_basis_variants.hpp>
 #include <atl/types/alias.hpp>
@@ -14,6 +44,18 @@ using atl::uint64;
 namespace ex = atl::experimental;
 
 namespace {
+	/** @brief Library `atl::xor_basis`: fully reduced, XORs selected by the pivot mask and independent of each other. */
+	template<atl::unsigned_integral Word>
+	using library_reduced_basis = atl::xor_basis<Word>;
+
+	/** @brief Contender: plain echelon form; elimination jumps to the next set bit, each XOR deciding the next vector read. */
+	template<atl::unsigned_integral Word>
+	using echelon_top_bit_jump_basis = ex::echelon_xor_basis<Word>;
+
+	/** @brief Contender: plain echelon form; elimination tests every bit from the top, set or not. */
+	template<atl::unsigned_integral Word>
+	using echelon_scan_basis = ex::scanning_xor_basis<Word>;
+
 	/** @brief @p count words from a random subspace of dimension @p dim with
 	 *         values below 2^width. */
 	template<atl::unsigned_integral Word>
@@ -30,54 +72,67 @@ namespace {
 		return words;
 	}
 
+	/**
+	 * @brief Race the three bases on @p words (inserts) and @p probes (queries on the built bases).
+	 *        The insert loops return the rank and the query loops an accumulated result, which
+	 *        keeps them from being optimised away; the REQUIREs check the bases agree.
+	 */
 	template<atl::unsigned_integral Word>
 	void race(std::string const &shape, std::vector<Word> const &words, std::vector<Word> const &probes) {
-		BENCHMARK("reduced (shipped) -- insert -- " + shape) {
-			atl::xor_basis<Word> b;
+		BENCHMARK("library reduced -- insert -- " + shape) {
+			library_reduced_basis<Word> b;
 			for (Word const w : words) b.insert(w);
 			return b.rank();
 		};
-		BENCHMARK("echelon jump -- insert -- " + shape) {
-			ex::echelon_xor_basis<Word> b;
+		BENCHMARK("echelon top-bit jump -- insert -- " + shape) {
+			echelon_top_bit_jump_basis<Word> b;
 			for (Word const w : words) b.insert(w);
 			return b.rank();
 		};
-		BENCHMARK("echelon scan -- insert -- " + shape) {
-			ex::scanning_xor_basis<Word> b;
+		BENCHMARK("echelon scan every bit -- insert -- " + shape) {
+			echelon_scan_basis<Word> b;
 			for (Word const w : words) b.insert(w);
 			return b.rank();
 		};
 
-		atl::xor_basis<Word> reduced(words);
-		ex::echelon_xor_basis<Word> jump;
-		ex::scanning_xor_basis<Word> scan;
+		library_reduced_basis<Word> reduced(words);
+		echelon_top_bit_jump_basis<Word> jump;
+		echelon_scan_basis<Word> scan;
 		for (Word const w : words) jump.insert(w), scan.insert(w);
-		BENCHMARK("reduced (shipped) -- max_xor -- " + shape) {
+		REQUIRE(jump.rank() == reduced.rank());
+		REQUIRE(scan.rank() == reduced.rank());
+		for (Word const p : probes) {
+			REQUIRE(jump.max_xor(p) == reduced.max_xor(p));
+			REQUIRE(scan.max_xor(p) == reduced.max_xor(p));
+			REQUIRE(jump.contains(p) == reduced.contains(p));
+			REQUIRE(scan.contains(p) == reduced.contains(p));
+		}
+		BENCHMARK("library reduced -- max_xor -- " + shape) {
 			Word acc = 0;
 			for (Word const p : probes) acc ^= reduced.max_xor(p);
 			return acc;
 		};
-		BENCHMARK("echelon jump -- max_xor -- " + shape) {
+		BENCHMARK("echelon top-bit jump -- max_xor -- " + shape) {
 			Word acc = 0;
 			for (Word const p : probes) acc ^= jump.max_xor(p);
 			return acc;
 		};
-		BENCHMARK("echelon scan -- max_xor -- " + shape) {
+		BENCHMARK("echelon scan every bit -- max_xor -- " + shape) {
 			Word acc = 0;
 			for (Word const p : probes) acc ^= scan.max_xor(p);
 			return acc;
 		};
-		BENCHMARK("reduced (shipped) -- contains -- " + shape) {
+		BENCHMARK("library reduced -- contains -- " + shape) {
 			std::size_t hits = 0;
 			for (Word const p : probes) hits += reduced.contains(p);
 			return hits;
 		};
-		BENCHMARK("echelon jump -- contains -- " + shape) {
+		BENCHMARK("echelon top-bit jump -- contains -- " + shape) {
 			std::size_t hits = 0;
 			for (Word const p : probes) hits += jump.contains(p);
 			return hits;
 		};
-		BENCHMARK("echelon scan -- contains -- " + shape) {
+		BENCHMARK("echelon scan every bit -- contains -- " + shape) {
 			std::size_t hits = 0;
 			for (Word const p : probes) hits += scan.contains(p);
 			return hits;
@@ -118,7 +173,8 @@ TEST_CASE("xor_basis: order queries", "[xor_basis]") {
 	std::vector<uint64> ks(q), bounds(q);
 	for (auto &k : ks) k = rng() >> (64 - basis.rank());
 	for (auto &b : bounds) b = rng();
-	BENCHMARK("kth_smallest -- 1e6 queries, rank 50") {
+	for (auto const b : bounds) REQUIRE(ex::greedy_count_below(basis, b) == basis.count_below(b));
+	BENCHMARK("library kth_smallest (branch-free select) -- 1e6 queries, rank 50") {
 		uint64 acc = 0;
 		for (uint64 const k : ks) acc ^= basis.kth_smallest(k);
 		return acc;
@@ -128,7 +184,7 @@ TEST_CASE("xor_basis: order queries", "[xor_basis]") {
 		for (uint64 const b : bounds) acc += ex::greedy_count_below(basis, b);
 		return acc;
 	};
-	BENCHMARK("count_below pivot pattern (shipped) -- 1e6 queries, rank 50") {
+	BENCHMARK("library count_below (pivot pattern) -- 1e6 queries, rank 50") {
 		uint64 acc = 0;
 		for (uint64 const b : bounds) acc += basis.count_below(b);
 		return acc;
@@ -154,7 +210,7 @@ TEST_CASE("stamped_xor_basis: range max-xor, offline by right end", "[xor_basis]
 		++r;
 	}
 	std::ranges::sort(queries, {}, &range_query::r);
-	BENCHMARK("stamped_xor_basis -- n = q = 5e5, 20-bit") {
+	BENCHMARK("library stamped_xor_basis -- n = q = 5e5, 20-bit") {
 		atl::stamped_xor_basis<uint32> basis;
 		uint64 acc = 0;
 		std::size_t next = 0;

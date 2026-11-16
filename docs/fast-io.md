@@ -136,17 +136,38 @@ zero, with token consumption. These conveniences do not validate input.
 
 ## Measured performance
 
-Source: `benchmarks/io/writer.cpp`, 2026-10-15, Intel Xeon 8280, plain `-O2`.
-Integer formatting into memory, scratch-and-copy versus the selected scheme:
+`benchmarks/io/writer.cpp` races ways of formatting unsigned decimal integers
+into memory. All produce the same digits; they differ in where the digits go.
+"Scratch + copy" writes them backward into a scratch buffer and copies them out;
+for `uint128` that means 128-bit divisions by 100 ("128-bit digit pairs"). "In
+place" counts the digits first and writes them backward directly into the
+output, which is what `io::writer` does for up to 64 bits. "10^19 chunks" splits
+a `uint128` into 19-digit chunks so only the splitting divisions are 128-bit.
+The library row runs `io::writer` on the same values into the null device, so it
+also includes the buffered stdio flush. Each row formats a whole vector,
+space-separated, so it measures throughput.
 
-| Workload | Scratch / old divisions | Direct / chunked |
-|---|---:|---:|
-| 10^7 uint32, mixed lengths | 152 ms | 121 ms |
-| 10^7 uint32, nine digits | 96.8 ms | 73.1 ms |
-| 10^7 uint64, mixed lengths | 183 ms | 171 ms |
-| 10^6 full-width native uint128 | 161 ms | 83.8 ms |
+Xeon Platinum 8280, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
+Minimum of 3 runs, milliseconds per vector:
 
-These imported measurements have not been rerun for this publication.
+| shape | flags | library (io::writer to null device) | scratch + copy | in place (count digits first) |
+|---|---|---:|---:|---:|
+| 1e7 uint32, mixed lengths | `-O2` | 119 | 152 | 121 |
+| 1e7 uint32, mixed lengths | `-O2 -march=native` | 136 | 144 | 136 |
+| 1e7 uint32, nine digits | `-O2` | n/a | 96.8 | 73.1 |
+| 1e7 uint32, nine digits | `-O2 -march=native` | n/a | 94.2 | 68.9 |
+| 1e7 uint64, mixed lengths | `-O2` | 186 | 183 | 171 |
+| 1e7 uint64, mixed lengths | `-O2 -march=native` | 177 | 192 | 170 |
+
+| shape | flags | library (io::writer to null device) | 128-bit digit pairs | 10^19 chunks |
+|---|---|---:|---:|---:|
+| 1e6 uint128, full width | `-O2` | 83.2 | 161 | 83.8 |
+| 1e6 uint128, full width | `-O2 -march=native` | 82.4 | 181 | 83.0 |
+
+Placing the digits in the output is never slower than scratch + copy: the
+scratch + copy form is 6-37% slower on 32- and 64-bit values. 128-bit digit
+pairs are 1.9-2.2x slower than 10^19 chunks, which tie the library.
+
 No measurements are recorded for software int128 or the interactive backend.
 The experimental harness in `experimental/io_bench/` compares complete backends
 and pure input/output workloads; its range-sum workload has no historical timings.
