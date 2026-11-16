@@ -76,7 +76,8 @@
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "g++-15",
         "BUILD_TESTS": "OFF",
-        "BUILD_BENCHMARKS": "ON"
+        "BUILD_BENCHMARKS": "ON",
+        "ATL_BUILD_IO_HARNESS": "ON"
       },
       "inherits": "base"
     },
@@ -165,7 +166,8 @@
       "name": "benchmarks",
       "configurePreset": "benchmarks",
       "targets": [
-        "benchmarks"
+        "benchmarks",
+        "io-harness"
       ]
     },
     {

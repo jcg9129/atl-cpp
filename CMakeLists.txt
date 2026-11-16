@@ -59,6 +59,7 @@ option(BUILD_BENCHMARKS "Build benchmarks" ${PROJECT_IS_TOP_LEVEL})
 option(ATL_INSTALL "Install atl headers and package" ${PROJECT_IS_TOP_LEVEL})
 if(PROJECT_IS_TOP_LEVEL)
     option(ATL_BUILD_DOCS "Build the documentation site" OFF)
+    option(ATL_BUILD_IO_HARNESS "Build the standalone I/O benchmark harness" OFF)
 endif()
 
 # Keep explicitly enabled development targets out of a parent project's namespace.
@@ -207,6 +208,10 @@ if(PROJECT_IS_TOP_LEVEL OR BUILD_TESTS OR BUILD_BENCHMARKS)
     if(BUILD_TESTS)
         add_dependencies(${ATL_TARGET_PREFIX}portability ${ATL_TARGET_PREFIX}tests)
     endif()
+endif()
+
+if(PROJECT_IS_TOP_LEVEL AND ATL_BUILD_IO_HARNESS)
+    add_subdirectory(experimental/io_bench)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL AND (BUILD_TESTS OR ATL_BUILD_DOCS))
