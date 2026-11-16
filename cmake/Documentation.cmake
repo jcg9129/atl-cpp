@@ -74,13 +74,14 @@ if(ATL_DOXYGEN_AWESOME_DIR)
         "${atl_docs_dir}/doxygen-awesome-LICENSE" COPYONLY)
     string(APPEND ATL_DOXYGEN_FILES " \"${atl_docs_dir}/doxygen-awesome-LICENSE\"")
     # Generate Doxygen's own version-matched header in the build tree, then add
-    # the toggle hook. No third-party templates or assets enter the source tree.
+    # the toggle hook and a title fix (the main page is titled by README's "# atl",
+    # which would read "atl: atl"). No third-party templates or assets enter the source tree.
     execute_process(COMMAND "${DOXYGEN_EXECUTABLE}" -w html
         "${atl_docs_dir}/header.html" "${atl_docs_dir}/footer.html" "${atl_docs_dir}/default.css"
         COMMAND_ERROR_IS_FATAL ANY OUTPUT_QUIET)
     file(READ "${atl_docs_dir}/header.html" header)
     string(REPLACE "</head>"
-        "<script src=\"$relpath^doxygen-awesome-darkmode-toggle.js\"></script>\n<script>DoxygenAwesomeDarkModeToggle.init()</script>\n</head>" header "${header}")
+        "<script src=\"$relpath^doxygen-awesome-darkmode-toggle.js\"></script>\n<script>DoxygenAwesomeDarkModeToggle.init()</script>\n<script>if (document.title === \"$projectname: $projectname\") document.title = \"$projectname\";</script>\n</head>" header "${header}")
     file(WRITE "${atl_docs_dir}/header.html" "${header}")
     set(ATL_DOXYGEN_HEADER "${atl_docs_dir}/header.html")
 endif()

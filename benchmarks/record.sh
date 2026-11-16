@@ -65,9 +65,31 @@ build_type="$(cache CMAKE_BUILD_TYPE)"
 asserts="off"
 case "$(cache ATL_BENCHMARK_ASSERTS)" in ON | on | 1 | TRUE | true) asserts="on" ;; esac
 compiler="$("$(cache CMAKE_CXX_COMPILER)" --version | head -1)"
-# the flags this target was compiled with, minus warning switches
-compiled_with="$(sed -n 's/^CXX_FLAGS = //p' "$tree/benchmarks/CMakeFiles/benchmarks-$name.dir/flags.make" |
-	tr ' ' '\n' | grep -v -e '^-W' -e '^-pedantic$' -e '^$' | tr '\n' ' ' | sed 's/ $//')"
+# the flags this target was compiled with, minus warnings, include paths, macros and
+# output/dependency switches; compile_commands.json works for every generator
+compiled_with="$(python3 -I - "$tree/compile_commands.json" "$(cd "$root" && pwd -P)/$source_file" <<'PY'
+import json, shlex, sys
+from pathlib import Path
+target = Path(sys.argv[2]).resolve()
+for entry in json.load(open(sys.argv[1])):
+    if Path(entry["directory"], entry["file"]).resolve() != target:
+        continue
+    args = entry.get("arguments") or shlex.split(entry["command"])
+    kept, skip = [], False
+    for arg in args[1:]:
+        if skip:
+            skip = False
+        elif arg in ("-o", "-c", "-MF", "-MT", "-MQ", "-isystem", "-I", "-D"):
+            skip = True
+        elif arg == str(target) or arg == entry["file"] or arg in ("-MD", "-MMD", "-pedantic"):
+            pass
+        elif not arg.startswith(("-W", "-I", "-D", "-isystem")):
+            kept.append(arg)
+    print(" ".join(kept))
+    break
+PY
+)"
+[ -n "$compiled_with" ] || { echo "no compile command for $source_file in $tree/compile_commands.json" >&2; exit 1; }
 cpu="$(lscpu 2>/dev/null | sed -n 's/^Model name: *//p' | head -1)"
 case "$cpu" in "" | -) cpu="model not reported" ;; esac
 commit="$(git -C "$root" rev-parse --short HEAD)"
