@@ -101,6 +101,13 @@ Document new conventions here alongside their technical rationale.
   local artifacts, while the benchmark sources are part of the library.
 - Quoted numbers must come from reproducible benchmark implementations. Cite the source,
   measurement date, CPU and flags; distinguish measurements from hypotheses.
+- A benchmark file explains itself. It starts with an `@file` comment stating
+  what is raced, the one thing each contender does differently, what the loop
+  measures (per-step latency or throughput, and the shapes), and the result
+  with its CPU, compiler, flags and date. The full table goes on the guide page.
+  Name each contender for what it does (`next_ctz_after_add`, `library_next`),
+  never for its history (`before`, `shipped`, `legacy`) or an internal variable,
+  and give it a doc comment; benchmark labels follow the same rule.
 - Compare every contender on every shape in the same run so the conclusion
   can be reproduced.
 - Measure on x86-64 before choosing an x86 optimization. Results from aarch64
