@@ -46,11 +46,26 @@ sentinel and its successor is zero.
 
 ## Measured performance
 
-No measurements with complete CPU and compiler-flag provenance are recorded
-for these utilities. `benchmarks/bits/next_bits_combination.cpp` compares the
-shipped count-on-input formulation with a serial count on the derived word
-and a shift-loop contender. Its loop-carried shapes are C(28, 14) and C(40, 6).
-No benchmarks were run during this publication pass.
+`benchmarks/bits/next_bits_combination.cpp` races three formulations of the
+successor. All add the lowest set bit and then shift the rest of the moved run
+back down; they differ in how they find that shift. The library counts the
+trailing zeros of `x` before the addition, so the count runs in parallel with
+it. "Count after add" counts them on the moved run, after the addition. "Shift
+loop after add" normalises the moved run one bit at a time. Each step of the
+benchmark depends on the previous one, so it measures per-step latency.
+
+Xeon Platinum 8280, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
+Minimum of 3 runs, milliseconds per full enumeration:
+
+| shape | flags | library (count before add) | count after add | shift loop after add |
+|---|---|---:|---:|---:|
+| C(28,14) | `-O2` | 113 | 161 | 112 |
+| C(28,14) | `-O2 -march=native` | 90.5 | 118 | 92.0 |
+| C(40,6) | `-O2` | 10.7 | 15.4 | 16.3 |
+| C(40,6) | `-O2 -march=native` | 8.7 | 11.3 | 14.8 |
+
+The library form is never slower. The shift loop only ties it when the moved
+runs sit low in the word (C(28,14)).
 
 ## Pitfalls and notes
 

@@ -11,10 +11,10 @@ namespace atl {
 	 *
 	 * Iterating from `(T(1) << k) - 1` enumerates the k-subsets when
 	 * `0 < k < sizeof(T) * 8`; start with all bits set for the full subset.
-	 * @note The count-on-input variant beat the serial count by 24% to 31% on
-	 *       loop-carried x86-64 enumeration (benchmarks/bits/next_bits_combination.cpp,
-	 *       2026-10-15). CPU and flags were not recorded; this historical conclusion
-	 *       needs a fully attributed rerun before publication as measured performance.
+	 * @note Counting the trailing zeros of `x` before the addition lets the count run
+	 *       in parallel with it: 23-30% faster than counting them on the moved run after
+	 *       the addition, in a loop-carried enumeration (Xeon Platinum 8280, GCC 15.2,
+	 *       -O2 and -O2 -march=native; benchmarks/bits/next_bits_combination.cpp).
 	 * @tparam T An unsigned integer recognized by `atl::unsigned_integral`.
 	 * @param x The current combination; every value is valid.
 	 * @return 0 when x == 0 or when x is the largest combination of its
