@@ -35,8 +35,10 @@ gcc`, `cmake --build --preset gcc`, and `ctest --preset gcc`. Each preset uses
 (disable with `-DENABLE_CCACHE=OFF`); an existing compiler launcher is preserved.
 CI requires ccache on Linux and installs ccache and Ninja on macOS. Windows
 jobs have no compiler cache. Tests and benchmarks are independently controlled
-by `BUILD_TESTS` and `BUILD_BENCHMARKS`. Every discovered source is built;
-missing includes fail compilation. The external publication allowlist must
+by `BUILD_TESTS` and `BUILD_BENCHMARKS`. The top-level-only
+`ATL_BUILD_IO_HARNESS` option (default OFF) builds the standalone experimental
+I/O backend executables; they are never registered with CTest or installed.
+Every discovered source is built; missing includes fail compilation. The external publication allowlist must
 ship tests only when all their included folders are published.
 
 With `add_subdirectory` or FetchContent, tests, benchmarks and `ATL_INSTALL`
@@ -51,8 +53,12 @@ Install with `cmake --install build/gcc --prefix <prefix>`, then consume with
 `find_package(atl CONFIG REQUIRED)` and `target_link_libraries(app PRIVATE
 atl::atl)`. The package installs only public headers and the CMake interface.
 
-CI only **builds** benchmarks in the `benchmarks` preset. Run and record them
-only on dedicated machines outside CI with
+CI only **builds** benchmarks in the `benchmarks` preset, which enables
+`ATL_BUILD_IO_HARNESS` and builds its `io-harness` target too. Optional harness
+backends are omitted when compile-and-link probes cannot find `std::println`
+or the platform unlocked-stdio functions. See
+the harness README (`experimental/io_bench/README.md`) for targets and backends.
+Run and record benchmarks only on dedicated machines outside CI with
 `ATL_BENCH_RESULTS=<dir> benchmarks/record.sh <area>-<name>` (e.g.
 `utils-counting_sort`); records go to `<dir>`, which must exist outside the
 repository. The recorder takes any configured build tree with
@@ -86,8 +92,8 @@ switches consistent across translation units. See [128-bit integers](docs/int128
     data structures work at compile time. The exceptions are stream operators
     and code that reads runtime-only state (e.g.
     `dynamic_mod_int`'s runtime modulus). When adding `constexpr` code, add a
-    `static_assert` to [`tests/constexpr_checks.cpp`](tests/constexpr_checks.cpp)
-    to prove it actually evaluates at compile time.
+    `static_assert` to the owning folder's
+    `tests/<folder>/constexpr_checks.cpp` to prove it actually evaluates at compile time.
 -   Comments should explain the non-obvious — the *why*, a subtlety, or an
     invariant — not restate what the code already says plainly.
 -   Prefer `std::ranges` algorithms and `std::views` over iterator-pair `std::`
