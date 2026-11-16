@@ -145,8 +145,12 @@ namespace atl {
 		 */
 		constexpr void resize(std::size_t count, T const &value) {
 			atl_assert(count <= Capacity);
-			while (size_ > count) release(--size_);
-			while (size_ < count) data_[size_++] = value;
+			// Keep growth and shrinkage disjoint so optimizers can track the slot bounds.
+			if (count < size_) {
+				while (size_ > count) release(--size_);
+			} else {
+				while (size_ < count) data_[size_++] = value;
+			}
 		}
 
 		/** @brief Number of live elements. */

@@ -294,6 +294,33 @@ static_assert(std::same_as<atl::detail::forwarded_element_t<std::span<int>>, int
 static_assert([] { int x = 7; return &atl::detail::forward_element<std::span<int>>(x) == &x; }());
 
 namespace {
+	// enable_view alone is insufficient: an opted-in, immovable range is not a view.
+	struct immovable_range : std::ranges::view_base {
+		immovable_range() = default;
+		immovable_range(immovable_range &&) = delete;
+
+		int *begin() const { return nullptr; }
+
+		int *end() const { return nullptr; }
+	};
+
+	static_assert(std::ranges::enable_view<immovable_range> && !std::ranges::view<immovable_range>);
+	static_assert(atl::detail::moves_range_elements<immovable_range>);
+	static_assert(!atl::detail::moves_range_elements<std::ranges::owning_view<std::vector<int>>>);
+
+	// Copy/move checks must not recurse through the range constructor's view check.
+	static_assert(std::copyable<atl::coordinate_compression<int>>);
+	static_assert(std::copyable<atl::persistent_array<int>>);
+	static_assert(std::copyable<atl::semi_persistent_array<int>>);
+	static_assert(std::same_as<atl::detail::forwarded_element_t<atl::persistent_array<int>>, int const &&>);
+
+	// An own-type range constructor with an explicit projection remains a valid call.
+	static_assert([] {
+		atl::coordinate_compression<int> source(std::array{3, 1, 3});
+		atl::coordinate_compression<int> projected(std::move(source), [](int const &&x) { return -x; });
+		return projected.size() == 2 && projected[0] == -3 && projected[1] == -1;
+	}());
+
 	struct child_node {
 		atl::uint32 symbol{}, left{}, right{};
 	};

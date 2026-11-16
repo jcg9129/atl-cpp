@@ -17,8 +17,16 @@ namespace atl::detail {
 	 * @tparam R The range type as deduced from a forwarding parameter.
 	 */
 	template<std::ranges::range R>
-	inline constexpr bool moves_range_elements =
-		!std::is_lvalue_reference_v<R> && !std::ranges::borrowed_range<R> && !std::ranges::view<std::remove_cvref_t<R>>;
+	inline constexpr bool moves_range_elements = [] {
+		if constexpr (std::is_lvalue_reference_v<R> || std::ranges::borrowed_range<R>)
+			return false;
+		// Check the opt-in first: view checks movable, which can re-enter a range
+		// constructor's constraints while checking its enclosing type's move constructor.
+		else if constexpr (std::ranges::enable_view<std::remove_cvref_t<R>>)
+			return !std::ranges::view<std::remove_cvref_t<R>>;
+		else
+			return true;
+	}();
 
 	/**
 	 * @brief The library-wide element-forwarding rule for range constructors:

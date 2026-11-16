@@ -132,9 +132,9 @@ namespace {
 		constexpr counted_potential &operator=(counted_potential &&) = default;
 		constexpr bool operator==(counted_potential const &) const = default;
 
-		friend constexpr counted_potential operator+(counted_potential const &, counted_potential const &) { return {}; }
+		constexpr counted_potential operator+(counted_potential const &) const { return {}; }
 
-		friend constexpr counted_potential operator-(counted_potential const &) { return {}; }
+		constexpr counted_potential operator-() const { return {}; }
 	};
 
 	struct counted_add {

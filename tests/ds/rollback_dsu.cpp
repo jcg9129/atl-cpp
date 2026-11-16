@@ -94,7 +94,7 @@ TEST_CASE("rollback_dsu: bulk rollback returns to an exact earlier state", "[rol
 	for (int warmup = 0; warmup < 30; ++warmup) d.unite(uint32(rng() % n), uint32(rng() % n));
 
 	std::size_t const t = d.time();
-	uint32 const count_at_t = d.count();
+	std::size_t const count_at_t = d.count();
 	std::vector<std::pair<uint32, uint32>> probes;
 	for (int i = 0; i < 50; ++i) {
 		uint32 a = uint32(rng() % n), b = uint32(rng() % n);

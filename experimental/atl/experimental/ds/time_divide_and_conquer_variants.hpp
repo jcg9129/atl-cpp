@@ -287,7 +287,10 @@ namespace atl::experimental {
 			}
 		}
 		auto checked_visit = [&](Structure &s, uint32 t) {
-			if (IsPruning || std::invoke(should_visit, t)) std::invoke(visit, s, t);
+			if constexpr (IsPruning)
+				std::invoke(visit, s, t);
+			else if (std::invoke(should_visit, t))
+				std::invoke(visit, s, t);
 		};
 		detail::with_frames(structure, mode, height + 1, [&]<atl::detail::restore_frames Frames>(Frames &frames) {
 			if constexpr (IsSkipping)

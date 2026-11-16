@@ -394,7 +394,9 @@ namespace atl {
 			atl_assert(entries < uint64((std::numeric_limits<uint32>::max)()));
 			uint32 running = 0; // offsets[v] becomes the end of row v, then the fill decrements it to the start
 			for (auto &o : offsets) o = running += o;
-			std::vector<uint32> items(static_cast<std::size_t>(entries));
+			// Fill directly: GCC's default-initialization first-element/tail split can
+			// misdiagnose the zero-length tail of a one-element buffer as out of bounds.
+			std::vector<uint32> items(static_cast<std::size_t>(entries), uint32(0));
 			{
 				uint32 i = 0;
 				for (auto const &lifetime : lifetimes) {

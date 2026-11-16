@@ -289,7 +289,7 @@ TEST_CASE("time_divide_and_conquer: skipping opens fewer frames", "[time_divide_
 		CHECK(skipping.saves <= dense_csr.saves);
 		CHECK(skipping.copies == skipping.saves); // one frame is one copy or one save
 		CHECK(dense_csr.copies == dense_csr.saves);
-		if (std::ranges::count(is_query, uint8(1)) <= time_count / 10)
+		if (std::cmp_less_equal(std::ranges::count(is_query, uint8(1)), time_count / 10))
 			CHECK(count_frames(engine::rank_compressed_skipping, lifetimes, time_count, is_query).copies
 				  <= count_frames(engine::library, lifetimes, time_count, is_query).copies);
 		previous_total += dense_csr.copies, skipping_total += skipping.copies;

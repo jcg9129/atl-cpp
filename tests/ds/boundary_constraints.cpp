@@ -255,9 +255,9 @@ namespace {
 
 		bool operator==(no_default_potential const &) const = default;
 
-		friend no_default_potential operator+(no_default_potential const &a, no_default_potential const &b) { return no_default_potential(a.value + b.value); }
+		no_default_potential operator+(no_default_potential const &other) const { return no_default_potential(value + other.value); }
 
-		friend no_default_potential operator-(no_default_potential const &a) { return no_default_potential(-a.value); }
+		no_default_potential operator-() const { return no_default_potential(-value); }
 	};
 
 	static_assert(!std::constructible_from<atl::weighted_dsu<no_default_potential>, std::size_t>);
