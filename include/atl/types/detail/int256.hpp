@@ -21,9 +21,9 @@ namespace atl::detail {
 		 * @brief The exact product of two signed 128-bit values: the unsigned
 		 *        product of the two's-complement bits, then the signed correction
 		 *        on the high half (`a < 0` subtracts `b·2^128`, `b < 0` subtracts
-		 *        `a·2^128`), by masks. No negation and no branch on the signs:
-		 *        measured 9-18% faster in compare_products than the
-		 *        sign-magnitude form (benchmarks/types/int256.cpp).
+		 *        `a·2^128`), by masks. No negation and no branch on the signs: the
+		 *        sign-magnitude form is 9.5-22% slower in compare_products
+		 *        (benchmarks/types/int256.cpp; numbers in docs/int128.md).
 		 */
 		static constexpr int256 product(int128 a, int128 b) {
 			uint128 const ua = uint128(a), ub = uint128(b);
