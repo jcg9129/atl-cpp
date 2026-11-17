@@ -204,8 +204,9 @@ namespace atl {
 		}
 
 	public:
-		// The sizes are taken by reference: MSVC ARM64 (14.44) loses the first extent of a
-		// 16-byte array passed by value ahead of an empty Op, leaving it 0.
+		// The two sizes constructors assign sizes_ in their bodies: MSVC ARM64 (14.44)
+		// miscompiles the member initializer together with strides_'s default initializer
+		// and init_strides' checked loop, storing 0 as the first extent.
 		/**
 		 * @brief Build a tree over a `Dim`-dimensional box of the given sizes.
 		 * @param sizes Extent of each dimension.
@@ -213,8 +214,9 @@ namespace atl {
 		 * @param op Commutative monoid operation.
 		 * @complexity O(product of extents) time and storage.
 		 */
-		constexpr explicit binary_indexed_tree(std::array<std::size_t, Dim> const &sizes, T identity = T{}, Op op = Op{})
-			: sizes_(sizes), op_(std::move(op)), identity_(std::move(identity)) {
+		constexpr explicit binary_indexed_tree(std::array<std::size_t, Dim> sizes, T identity = T{}, Op op = Op{})
+			: op_(std::move(op)), identity_(std::move(identity)) {
+			sizes_ = sizes;
 			data_.assign(init_strides(), identity_);
 		}
 
@@ -253,8 +255,9 @@ namespace atl {
 		 */
 		template<std::ranges::sized_range Range>
 			requires std::constructible_from<T, detail::forwarded_element_t<Range>>
-		constexpr binary_indexed_tree(std::array<std::size_t, Dim> const &sizes, Range &&values, T identity = T{}, Op op = Op{})
-			: sizes_(sizes), op_(std::move(op)), identity_(std::move(identity)) {
+		constexpr binary_indexed_tree(std::array<std::size_t, Dim> sizes, Range &&values, T identity = T{}, Op op = Op{})
+			: op_(std::move(op)), identity_(std::move(identity)) {
+			sizes_ = sizes;
 			std::size_t total = init_strides();
 			atl_assert(std::ranges::size(values) == total);
 			data_.reserve(total);
