@@ -185,7 +185,12 @@ namespace atl {
 				if (hi - lo == 1) return lo;
 			}
 			std::size_t const mid = lo + (hi - lo) / 2;
-			Tag const acc2 = x == 0 ? acc : std::invoke(std::as_const(compose_), acc, nodes_[x].tag);
+			// An if, not `x == 0 ? acc : compose(...)`: MSVC's constant evaluation loses the
+			// members of a class-type conditional-operator result.
+			Tag const acc2 = [&]() -> Tag {
+				if (x == 0) return acc;
+				return std::invoke(std::as_const(compose_), acc, nodes_[x].tag);
+			}();
 			uint32 const lc = x == 0 ? 0 : nodes_[x].left, rc = x == 0 ? 0 : nodes_[x].right;
 			if (l < mid) {
 				std::size_t const b = max_right_descend(lc, lo, mid, l, acc2, sm, pred);

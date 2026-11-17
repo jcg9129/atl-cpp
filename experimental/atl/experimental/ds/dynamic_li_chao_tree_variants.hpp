@@ -743,6 +743,15 @@ namespace atl::experimental {
 			return !comp_(challenger(from), incumbent(from)) && !comp_(challenger(middle), incumbent(middle)) && !comp_(challenger(to), incumbent(to));
 		}
 
+		/** @brief `loses_clip` when this variant overwrites lost clips, else false (an if constexpr: MSVC C4127). */
+		[[nodiscard]] constexpr bool overwrites_lost_clip(node_type const &leaf, Coordinate const &first, Coordinate const &last,
+														  Function const &added) const {
+			if constexpr (OverwritesLostClips)
+				return loses_clip(leaf, first, last, added);
+			else
+				return false;
+		}
+
 		/**
 		 * @brief Whether the function of the clipped leaf `leaf` over
 		 *        `[first, last]` wins nowhere on its clip range against `added`.
@@ -800,7 +809,7 @@ namespace atl::experimental {
 			while (true) {
 				if (nodes_[node].kind != held_kind::whole) {
 					if (nodes_[node].kind != held_kind::none) {
-						if (OverwritesLostClips && loses_clip(nodes_[node], first, last, added))
+						if (overwrites_lost_clip(nodes_[node], first, last, added))
 							unclip(nodes_[node]);
 						else
 							push_clip(node, first, last);
@@ -860,7 +869,7 @@ namespace atl::experimental {
 				bool const covers_clip = nodes_[node].kind == held_kind::from_bound
 										   ? covers_last && !(bound_of(nodes_[node]) < l)
 										   : covers_first && !(r < bound_of(nodes_[node]));
-				if (OverwritesLostClips && covers_clip && loses_clip(nodes_[node], first, last, added))
+				if (covers_clip && overwrites_lost_clip(nodes_[node], first, last, added))
 					unclip(nodes_[node]);
 				else
 					push_clip(node, first, last);

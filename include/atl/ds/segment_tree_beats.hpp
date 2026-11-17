@@ -101,7 +101,21 @@ namespace atl {
 		[[nodiscard]] constexpr T beats_floor_sqrt(T v) noexcept {
 			atl_assert(v >= 0);
 			if (v < 2) return v;
-			if !consteval {
+			// Every branch returns, with nothing after it: MSVC reports C4702 for code after
+			// an `if !consteval` whose runtime branch always returns.
+			auto const newton = [v] {
+				int bits = 0;
+				for (T t = v; t != 0; t >>= 1) ++bits;
+				T x = T(1) << ((bits + 1) / 2);
+				for (;;) {
+					T const y = T((x + v / x) / 2);
+					if (y >= x) return x;
+					x = y;
+				}
+			};
+			if consteval {
+				return newton();
+			} else {
 				if constexpr (sizeof(T) <= 8) {
 					// v < 2^63, so r <= 3037000500 and (r + 1)^2 fits uint64
 					uint64 const u = uint64(v);
@@ -109,15 +123,9 @@ namespace atl {
 					while (r * r > u) --r;
 					while ((r + 1) * (r + 1) <= u) ++r;
 					return T(r);
+				} else {
+					return newton();
 				}
-			}
-			int bits = 0;
-			for (T t = v; t != 0; t >>= 1) ++bits;
-			T x = T(1) << ((bits + 1) / 2);
-			for (;;) {
-				T const y = T((x + v / x) / 2);
-				if (y >= x) return x;
-				x = y;
 			}
 		}
 	}
