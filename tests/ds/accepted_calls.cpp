@@ -507,3 +507,625 @@ TEST_CASE("segment family: member pointers follow the callable concepts", "[segm
 	REQUIRE(sparse.max_right(0, &value::within_limit) == 3);
 	REQUIRE(sparse.min_left(3, &value::within_limit) == 0);
 }
+
+#include <atl/ds/splay_engine.hpp>
+#include <atl/ds/splay_map.hpp>
+#include <atl/ds/splay_sequence.hpp>
+#include <atl/ds/treap_map.hpp>
+#include <atl/ds/treap_sequence.hpp>
+#include "ds/move_probe.hpp"
+
+namespace treap_splay_accepted {
+	enum class element : int { one = 1,
+							   two = 2 };
+
+	struct converted_element {
+		explicit operator element() const { return element::one; }
+	};
+
+	struct mutable_sum {
+		int operator()(int a, int b) { return a + b; }
+	};
+
+	struct mutable_order {
+		bool operator()(int a, int b) { return a < b; }
+	};
+
+	using copy_view = decltype(std::declval<std::vector<atl_test::move_probe> &>() | std::views::transform(std::identity{}));
+
+	template<typename Sequence>
+		requires std::constructible_from<Sequence, copy_view> && requires(Sequence &sequence) {
+			sequence.at(0);
+			sequence.for_each([](auto const &) {});
+		}
+	void check_view_copy() {
+		std::vector<atl_test::move_probe> source{atl_test::move_probe::sentinel};
+		auto view = source | std::views::transform(std::identity{});
+		atl_test::move_probe::reset();
+		// The view owns no elements, including when the constructor receives it as an rvalue.
+		Sequence values(std::move(view));
+		REQUIRE(source.front().v == atl_test::move_probe::sentinel);
+		REQUIRE(values.at(0).v == atl_test::move_probe::sentinel);
+		REQUIRE(atl_test::move_probe::sentinel_copies == 1);
+	}
+}
+
+TEST_CASE("treap and splay: accepted callable and range forms", "[accepted_calls]") {
+	using namespace treap_splay_accepted;
+	mutable_sum sum;
+	mutable_order order;
+	auto captured_sum = [offset = 0](int a, int b) { return a + b + offset; };
+	auto captured_order = [offset = 0](int a, int b) { return a + offset < b + offset; };
+	std::array entries{std::pair{1, 3}, std::pair{2, 5}};
+	atl::treap_map<int, int, decltype(captured_order), decltype(captured_sum)> treap(atl::sorted_unique, entries, 0, captured_sum, captured_order);
+	atl::splay_map<int, int, decltype(captured_order), decltype(captured_sum)> splay(atl::sorted_unique, entries, 0, captured_sum, captured_order);
+	REQUIRE(treap.fold() == 8);
+	REQUIRE(splay.fold() == 8);
+	atl::treap_map<int, int, std::reference_wrapper<mutable_order>, std::reference_wrapper<mutable_sum>> wrapped_treap(0, std::ref(sum), std::ref(order));
+	atl::splay_map<int, int, std::reference_wrapper<mutable_order>, std::reference_wrapper<mutable_sum>> wrapped_splay(0, std::ref(sum), std::ref(order));
+	wrapped_treap.insert(1, 5);
+	wrapped_splay.insert(1, 5);
+	REQUIRE(wrapped_treap.fold() == wrapped_splay.fold());
+	auto update_value = [increment = 2](int value) mutable { return value + increment; };
+	REQUIRE(treap.update(1, std::ref(update_value)) == 5);
+	REQUIRE(splay.update(1, update_value) == 5);
+	auto const const_update = [](int value) { return value + 1; };
+	REQUIRE(treap.update(1, const_update) == 6);
+	REQUIRE(splay.update(1, const_update) == 6);
+	std::array initial{1, 2, 3};
+	atl::treap_sequence<int, decltype(captured_sum)> sequence(initial, 0, captured_sum);
+	atl::splay_sequence<int, decltype(captured_sum)> adjusted(initial, 0, captured_sum);
+	auto predicate = [limit = 3](int value) mutable { return value <= limit; };
+	REQUIRE(sequence.max_right(0, std::ref(predicate)) == 2);
+	REQUIRE(adjusted.max_right(0, predicate) == 2);
+	int total = 0;
+	auto visitor = [&total](int value) mutable { total += value; };
+	sequence.for_each(std::ref(visitor));
+	adjusted.for_each(visitor);
+	REQUIRE(total == 12);
+	std::array<converted_element, 2> explicit_values{};
+	atl::treap_sequence<element> enums(explicit_values);
+	atl::splay_sequence<element> splay_enums(explicit_values);
+	REQUIRE(enums.at(0) == element::one);
+	REQUIRE(splay_enums.at(1) == element::one);
+	check_view_copy<atl::treap_sequence<atl_test::move_probe>>();
+	check_view_copy<atl::splay_sequence<atl_test::move_probe>>();
+
+	atl::sized_splay_links links;
+	std::array ids{links.add_node(), links.add_node()};
+	std::array<element, 2> enum_ids{element::one, element::two};
+	auto root = atl::splay_engine::build_balanced(links, enum_ids);
+	REQUIRE(root == ids[1]);
+	auto probe = [](atl::uint32) mutable { return atl::splay_step::left; };
+	REQUIRE(atl::splay_engine::descend(links, root, std::ref(probe)) == ids[0]);
+	atl::splay_engine::for_each(links, ids[0], [](atl::uint32) {});
+}
+
+namespace treap_splay_accepted {
+	struct fixed_order {
+		fixed_order() = default;
+		fixed_order(fixed_order const &) = delete;
+
+		bool operator()(int a, int b) const { return a < b; }
+	};
+
+	struct const_sum {
+		int operator()(int const &a, int const &b) const { return a + b; }
+
+		void operator()(int &, int &) const = delete;
+		void operator()(int const &, int const &) = delete;
+	};
+
+	struct member_value {
+		int number = 0;
+
+		member_value combine(member_value const &other) const { return {number + other.number}; }
+
+		member_value increment() const { return {number + 1}; }
+	};
+}
+
+TEST_CASE("treap and splay: invocation matches const-operand contracts", "[accepted_calls]") {
+	using namespace treap_splay_accepted;
+	atl::treap_map<int, int, fixed_order> treap_order;
+	atl::splay_map<int, int, fixed_order> splay_order;
+	treap_order.insert(1, 2);
+	splay_order.insert(1, 2);
+	REQUIRE(treap_order.at(1) == splay_order.at(1));
+	atl::treap_map<int, int, std::ranges::less, const_sum> treap(0, const_sum{});
+	atl::splay_map<int, int, std::ranges::less, const_sum> splay(0, const_sum{});
+	treap.insert(1, 2);
+	splay.insert(1, 2);
+	treap.insert(2, 3);
+	splay.insert(2, 3);
+	REQUIRE(treap.fold() == 5);
+	REQUIRE(splay.fold(0, 3) == 5);
+	atl::treap_sequence<int, const_sum> sequence(std::array{1, 2, 3}, 0, const_sum{});
+	atl::splay_sequence<int, const_sum> adjusted(std::array{1, 2, 3}, 0, const_sum{});
+	REQUIRE(sequence.fold(0, 3) == 6);
+	REQUIRE(adjusted.fold(0, 3) == 6);
+	auto predicate = [](int value) { return value <= 3; };
+	REQUIRE(sequence.max_right(0, predicate) == 2);
+	REQUIRE(adjusted.max_right(0, predicate) == 2);
+	auto const member_sum = &member_value::combine;
+	atl::treap_map<int, member_value, std::ranges::less, decltype(member_sum)> member_treap(member_value{}, member_sum);
+	atl::splay_map<int, member_value, std::ranges::less, decltype(member_sum)> member_splay(member_value{}, member_sum);
+	REQUIRE(member_treap.update(3, &member_value::increment).number == 1);
+	REQUIRE(member_splay.update(3, &member_value::increment).number == 1);
+	REQUIRE(member_treap.fold().number == 1);
+	REQUIRE(member_splay.fold().number == 1);
+}
+
+TEST_CASE("treap and splay: captured tag algebras construct directly", "[accepted_calls]") {
+	struct sum_width {
+		int sum = 0, width = 0;
+	};
+
+	auto fold_values = [zero = 0](sum_width const &a, sum_width const &b) { return sum_width{a.sum + b.sum + zero, a.width + b.width}; };
+	auto map_values = [scale = 1](int tag, sum_width const &value) { return sum_width{value.sum + scale * tag * value.width, value.width}; };
+	auto compose_tags = [zero = 0](int a, int b) { return a + b + zero; };
+	using treap = atl::treap_sequence<sum_width, decltype(fold_values), int, decltype(map_values), decltype(compose_tags)>;
+	using splay = atl::splay_sequence<sum_width, decltype(fold_values), int, decltype(map_values), decltype(compose_tags)>;
+	treap sequence(std::array{sum_width{2, 1}, sum_width{3, 1}}, sum_width{}, 0, fold_values, map_values, compose_tags);
+	splay adjusted(std::array{sum_width{2, 1}, sum_width{3, 1}}, sum_width{}, 0, fold_values, map_values, compose_tags);
+	sequence.apply(0, 2, 4);
+	adjusted.apply(0, 2, 4);
+	REQUIRE(sequence.fold().sum == 13);
+	REQUIRE(adjusted.fold().sum == 13);
+	REQUIRE(sequence.at(0).sum == 6);
+	REQUIRE(adjusted.at(0).sum == 6);
+}
+
+#include <atl/ds/euler_tour_tree.hpp>
+#include <atl/ds/link_cut_tree.hpp>
+#include <atl/ds/subtree_link_cut_tree.hpp>
+#include <atl/ds/top_tree.hpp>
+#include "move_probe.hpp"
+
+namespace dynamic_forest_accepted_calls {
+	struct mutable_add {
+		constexpr long long operator()(long long a, long long b) { return a + b; }
+	};
+
+	struct mutable_negate {
+		constexpr long long operator()(long long a) { return -a; }
+	};
+
+	static_assert([] {
+		mutable_add combine;
+		mutable_negate invert;
+		std::vector<long long> values{1, 2, 3};
+		auto view = values | std::views::all;
+		atl::link_cut_tree path(std::move(view), 0LL, std::ref(combine));
+		atl::subtree_link_cut_tree subtree(values, 0LL, std::ref(combine), std::ref(invert));
+		atl::euler_tour_tree tour(values | std::views::all, 0LL, std::ref(combine));
+		atl::sum_top_tree<long long> clusters(values | std::views::all);
+		std::array<atl::uint32, 3> const parents{atl::graph::none, 0, 0};
+		path.assign_parents(parents);
+		subtree.assign_parents(parents);
+		tour.assign_parents(parents);
+		clusters.assign_parents(parents);
+		long long increment = 4;
+		auto update = [increment](long long value) mutable { return value + increment; };
+		path.update(1, std::ref(update));
+		subtree.update(1, std::ref(update));
+		tour.update(1, std::ref(update));
+		clusters.update(1, std::ref(update));
+		return path.fold(1, 2) == 10 && subtree.subtree_fold(0) == 10 && tour.component_fold(0) == 10
+			&& clusters.component_sum(0) == 10 && values == std::vector<long long>{1, 2, 3};
+	}());
+
+	struct probe_add {
+		atl_test::move_probe operator()(atl_test::move_probe const &a, atl_test::move_probe const &b) const { return {a.v + b.v}; }
+	};
+
+	template<typename Tree>
+		requires std::constructible_from<Tree, std::ranges::ref_view<std::vector<atl_test::move_probe>>, atl_test::move_probe, probe_add>
+	void check_borrowed_values(int expected_copies) {
+		std::vector<atl_test::move_probe> values{atl_test::move_probe::sentinel};
+		atl_test::move_probe::reset();
+		Tree tree(values | std::views::all, atl_test::move_probe{}, probe_add{});
+		REQUIRE(values[0].v == atl_test::move_probe::sentinel);
+		REQUIRE(atl_test::move_probe::sentinel_copies == expected_copies);
+		REQUIRE(tree.at(0).v == atl_test::move_probe::sentinel);
+	}
+}
+
+TEST_CASE("dynamic forest range constructors preserve borrowed values", "[accepted_calls]") {
+	using namespace dynamic_forest_accepted_calls;
+	check_borrowed_values<atl::link_cut_tree<atl_test::move_probe, probe_add>>(3);
+	check_borrowed_values<atl::euler_tour_tree<atl_test::move_probe, probe_add>>(2);
+}
+
+namespace dynamic_forest_accepted_calls {
+	static_assert([] {
+		auto combine = [identity = 0LL](long long a, long long b) { return a + b + identity; };
+		auto invert = [identity = 0LL](long long a) { return identity - a; };
+		std::vector<long long> values{1, 2};
+		atl::link_cut_tree a(values, 0LL, combine);
+		atl::link_cut_tree b(2, 0LL, combine);
+		atl::subtree_link_cut_tree c(values, 0LL, combine, invert);
+		atl::subtree_link_cut_tree d(2, 0LL, combine, invert);
+		atl::euler_tour_tree e(values, 0LL, combine);
+		atl::euler_tour_tree f(2, 0LL, combine);
+		a.link(0, 1);
+		b.link(0, 1);
+		c.link(0, 1);
+		d.link(0, 1);
+		e.link(0, 1);
+		f.link(0, 1);
+		return a.fold(0, 1) == 3 && b.fold(0, 1) == 0 && c.subtree_fold(1) == 3 && d.subtree_fold(1) == 0
+			&& e.component_fold(0) == 3 && f.component_fold(0) == 0;
+	}());
+
+	struct sum_width {
+		long long sum = 0, width = 0;
+	};
+
+	static_assert([] {
+		auto combine = [zero = 0LL](sum_width a, sum_width b) { return sum_width{a.sum + b.sum + zero, a.width + b.width}; };
+		auto mapping = [zero = 0LL](long long tag, sum_width value) { return sum_width{value.sum + tag * value.width + zero, value.width}; };
+		auto compose = [zero = 0LL](long long a, long long b) { return a + b + zero; };
+		std::vector<sum_width> values{{1, 1}, {2, 1}};
+		atl::link_cut_tree path(values, sum_width{}, 0LL, combine, mapping, compose);
+		atl::link_cut_tree empty_path(2, sum_width{}, 0LL, combine, mapping, compose);
+		atl::euler_tour_tree tour(values, sum_width{}, 0LL, combine, mapping, compose);
+		atl::euler_tour_tree empty_tour(2, sum_width{}, 0LL, combine, mapping, compose);
+		path.link(0, 1);
+		empty_path.link(0, 1);
+		tour.link(0, 1);
+		empty_tour.link(0, 1);
+		path.apply(0, 1, 2);
+		tour.component_apply(0, 2);
+		return path.fold(0, 1).sum == 7 && tour.component_fold(0).sum == 7
+			&& empty_path.fold(0, 1).sum == 0 && empty_tour.component_fold(0).sum == 0;
+	}());
+}
+
+#include <atl/experimental/ds/euler_tour_tree_variants.hpp>
+
+namespace dynamic_forest_accepted_calls {
+	static_assert([] {
+		auto combine = [zero = 0LL](sum_width a, sum_width b) { return sum_width{a.sum + b.sum + zero, a.width + b.width}; };
+		auto mapping = [zero = 0LL](long long tag, sum_width value) { return sum_width{value.sum + tag * value.width + zero, value.width}; };
+		auto compose = [zero = 0LL](long long a, long long b) { return a + b + zero; };
+		std::vector<sum_width> values{{1, 1}, {2, 1}};
+		atl::experimental::euler_tour_tree_by_splay a(values, sum_width{}, 0LL, combine, mapping, compose);
+		atl::experimental::euler_tour_tree_by_splay b(2, sum_width{}, 0LL, combine, mapping, compose);
+		a.link(0, 1);
+		b.link(0, 1);
+		a.component_apply(0, 2);
+		auto sum = [zero = 0LL](long long x, long long y) { return x + y + zero; };
+		atl::experimental::euler_tour_tree_by_splay c(std::vector<long long>{1, 2}, 0LL, sum);
+		atl::experimental::euler_tour_tree_by_splay d(2, 0LL, sum);
+		c.link(0, 1);
+		d.link(0, 1);
+		return a.component_fold(0).sum == 7 && b.component_fold(0).sum == 0 && c.component_fold(0) == 3 && d.component_fold(0) == 0;
+	}());
+}
+
+#include <atl/ds/meldable_heap_forest.hpp>
+#include <atl/ds/persistent_heap.hpp>
+#include <atl/ds/persistent_lazy_segment_tree.hpp>
+#include <atl/ds/persistent_list.hpp>
+#include <atl/ds/persistent_segment_tree.hpp>
+#include <atl/ds/persistent_treap_sequence.hpp>
+#include <atl/ds/persistent_vector.hpp>
+#include <span>
+#include "move_probe.hpp"
+
+TEST_CASE("publication persistent callables accept captures and reference wrappers", "[accepted_calls]") {
+	int offset = 0; // not a constant expression, so the lambdas must capture it
+	auto plus = [offset](int a, int b) { return a + b + offset; };
+	auto mapping = [offset](int f, int x) { return x + f + offset; };
+	auto less = [offset](int a, int b) mutable { return a + offset < b; };
+	atl::persistent_heap<int, decltype(less)> heap(less);
+	heap = heap.push(2);
+	REQUIRE(heap.top() == 2);
+	atl::persistent_heap_forest<int, decltype(std::ref(less))> forest(std::ref(less));
+	REQUIRE(forest.top(forest.push(forest.empty_heap, 3)) == 3);
+	atl::meldable_heap_forest<int, decltype(std::ref(less))> meldable(1, std::ref(less));
+	meldable.emplace(0, 4);
+	REQUIRE(meldable.pop(0) == 4);
+	std::array values{1, 2, 3};
+	atl::persistent_segment_tree tree(values, 0, std::ref(plus));
+	auto update = [delta = 1](int x) mutable { return x + delta; };
+	REQUIRE(tree.update(0, std::ref(update)).at(0) == 2);
+	auto choose = [go_left = true](int, int) mutable { return go_left; };
+	REQUIRE(decltype(tree)::descend(tree, tree, std::ref(choose)) == 0);
+	atl::persistent_lazy_segment_tree lazy(values, 0, 0, std::ref(plus), std::ref(mapping), std::ref(plus));
+	REQUIRE(lazy.update(0, update).at(0) == 2);
+	atl::persistent_treap_sequence sequence(values, 0, plus);
+	REQUIRE(sequence.compacted().fold() == 6);
+	atl::persistent_treap_sequence tagged(values, 0, 0, plus, mapping, plus);
+	REQUIRE(tagged.compacted().at(2) == 3);
+}
+
+TEST_CASE("persistent treap range forwarding preserves views and moves owned values", "[accepted_calls][persistent_treap_sequence]") {
+	using probe = atl_test::move_probe;
+	std::vector<probe> values{probe(probe::sentinel), probe(2)};
+	probe::reset();
+	atl::persistent_treap_sequence copied{std::span(values)};
+	REQUIRE(values[0].v == probe::sentinel);
+	REQUIRE(probe::sentinel_copies == 1);
+	REQUIRE(copied.at(0).v == probe::sentinel);
+	probe::reset();
+	auto view = values | std::views::filter([](probe const &) { return true; });
+	// A sized view over caller storage remains a copy source even as an rvalue.
+	auto sized_view = std::views::all(values);
+	atl::persistent_treap_sequence copied_view(std::move(sized_view));
+	REQUIRE(values[0].v == probe::sentinel);
+	REQUIRE(probe::sentinel_copies == 1);
+	REQUIRE(copied_view.at(0).v == probe::sentinel);
+	probe::reset();
+	atl::persistent_treap_sequence moved(std::move(values));
+	REQUIRE(probe::sentinel_copies == 0);
+	REQUIRE(moved.at(0).v == probe::sentinel);
+	(void)view;
+}
+
+TEST_CASE("persistent sized constructors accept enum values and yielded prvalues", "[accepted_calls]") {
+	enum value { first = 1,
+				 second = 2 };
+
+	std::array values{first, second};
+	auto prvalues = values | std::views::transform([delta = 0](value x) { return int(x) + delta; });
+	atl::persistent_list<int> list(values);
+	atl::persistent_vector<int> vector{std::span(values)};
+	atl::semi_persistent_vector<int> partial(prvalues);
+	atl::persistent_segment_tree<int, std::plus<>> tree(prvalues, 0);
+	auto plus = std::plus<>{};
+	auto identity_map = [](int, int x) { return x; };
+	atl::persistent_lazy_segment_tree lazy(prvalues, 0, 0, plus, identity_map, plus);
+	atl::persistent_treap_sequence<int> sequence(prvalues);
+	REQUIRE(list[1] == 2);
+	REQUIRE(vector[0] == 1);
+	REQUIRE(partial[1] == 2);
+	REQUIRE(tree.fold() == 3);
+	REQUIRE(lazy.fold() == 3);
+	REQUIRE(sequence.at(1) == 2);
+}
+
+namespace publication_review_calls {
+	struct rvalue_proxy {
+		int value;
+
+		operator int() && { return value; }
+	};
+
+	struct copy_sum {
+		int bias = 0;
+
+		copy_sum() = default;
+
+		copy_sum(copy_sum const &) = default;
+
+		copy_sum(copy_sum &&) = delete;
+
+		copy_sum &operator=(copy_sum const &) = default;
+
+		constexpr int operator()(int a, int b) const { return a + b + bias; }
+	};
+
+	struct copy_identity {
+		copy_identity() = default;
+
+		copy_identity(copy_identity const &) = default;
+
+		copy_identity(copy_identity &&) = delete;
+
+		int operator()(int value) const { return value; }
+	};
+
+	struct assign_sum {
+		assign_sum() = default;
+
+		assign_sum(assign_sum const &) = delete;
+
+		assign_sum(assign_sum &&) = default;
+
+		assign_sum &operator=(assign_sum const &) = default;
+
+		int operator()(int a, int b) const { return a + b; }
+	};
+
+	struct copy_accumulator {
+		int value = 0;
+
+		constexpr copy_accumulator() = default;
+
+		constexpr explicit copy_accumulator(int x) : value(x) {}
+
+		constexpr copy_accumulator(copy_accumulator const &) = default;
+
+		copy_accumulator(copy_accumulator &&) = delete;
+
+		constexpr copy_accumulator &operator=(copy_accumulator const &) = default;
+	};
+
+	struct accumulator_store : atl::sized_splay_links {
+		std::array<copy_accumulator, 4> values{};
+
+		constexpr copy_accumulator const &value(atl::uint32 x) const { return values[x]; }
+
+		constexpr copy_accumulator const &aggregate(atl::uint32 x) const { return values[x]; }
+	};
+
+	static_assert([] {
+		accumulator_store store;
+		auto root = store.add_node();
+		store.values[root] = copy_accumulator(3);
+		copy_accumulator initial;
+		auto combine = [](copy_accumulator const &a, copy_accumulator const &b) { return copy_accumulator(a.value + b.value); };
+		auto result = atl::splay_engine::max_right(store, root, initial, combine, [](copy_accumulator const &a) { return a.value <= 3; });
+		return result.length == 1;
+	}());
+
+	struct moving_probe_max {
+		static inline int calls = 0;
+
+		atl_test::move_probe operator()(atl_test::move_probe a, atl_test::move_probe const &b) const {
+			++calls;
+			if (a.v >= b.v) return a;
+			return b;
+		}
+	};
+
+	struct longer_probe {
+		static inline int calls = 0;
+
+		atl_test::move_probe const &operator()(atl_test::move_probe const &a, atl_test::move_probe const &b) const {
+			++calls;
+			return a.v >= b.v ? a : b;
+		}
+	};
+}
+
+TEST_CASE("sequence builders accept move-only prvalues and rvalue-only proxies", "[accepted_calls]") {
+	using namespace publication_review_calls;
+	auto pointers = std::views::iota(1, 4) | std::views::transform([](int x) { return std::make_unique<int>(x); });
+	atl::treap_sequence<std::shared_ptr<int>> treap(pointers);
+	atl::splay_sequence<std::shared_ptr<int>> splay(pointers);
+	atl::persistent_treap_sequence<std::shared_ptr<int>> persistent(pointers);
+	atl::persistent_vector<std::shared_ptr<int>> vector(pointers);
+	atl::persistent_list<std::shared_ptr<int>> list(pointers);
+	REQUIRE(*treap.at(1) == 2);
+	REQUIRE(*splay.at(1) == 2);
+	REQUIRE(*persistent.at(1) == 2);
+	REQUIRE(*vector[1] == 2);
+	REQUIRE(*list[1] == 2);
+	auto proxies = std::views::iota(1, 4) | std::views::transform([](int x) { return rvalue_proxy{x}; });
+	atl::treap_sequence<int> proxy_treap(proxies);
+	atl::splay_sequence<int> proxy_splay(proxies);
+	atl::persistent_treap_sequence<int> proxy_persistent(proxies);
+	atl::persistent_vector<int> proxy_vector(proxies);
+	atl::persistent_list<int> proxy_list(proxies);
+	atl::link_cut_tree<int, std::plus<>> path(proxies, 0);
+	atl::euler_tour_tree<int, std::plus<>> tour(proxies, 0);
+	atl::sum_top_tree<int> top(proxies);
+	REQUIRE(proxy_treap.at(1) == 2);
+	REQUIRE(proxy_splay.at(1) == 2);
+	REQUIRE(proxy_persistent.at(1) == 2);
+	REQUIRE(proxy_vector[1] == 2);
+	REQUIRE(proxy_list[1] == 2);
+	REQUIRE(path.at(1) == 2);
+	REQUIRE(tour.at(1) == 2);
+	REQUIRE(top.at(1) == 2);
+}
+
+TEST_CASE("algebra pools accept copy construction with deleted moves", "[accepted_calls]") {
+	using namespace publication_review_calls;
+	copy_sum combine;
+	std::array const values{1, 2, 3};
+	atl::treap_sequence<int, copy_sum> treap(values, 0, combine);
+	atl::splay_sequence<int, copy_sum> splay(values, 0, combine);
+	atl::treap_map<int, int, std::ranges::less, copy_sum> map(0, combine);
+	atl::splay_map<int, int, std::ranges::less, copy_sum> adjusted(0, combine);
+	map.insert(1, 6);
+	adjusted.insert(1, 6);
+	atl::persistent_treap_sequence<int, copy_sum> persistent(values, 0, combine);
+	atl::persistent_treap_sequence<int, copy_sum, int, copy_sum, copy_sum> tagged(values, 0, 0, combine, combine, combine);
+	atl::persistent_segment_tree<int, copy_sum> segment(values, 0, combine);
+	atl::persistent_lazy_segment_tree<int, int, copy_sum, copy_sum, copy_sum> lazy(values, 0, 0, combine, combine, combine);
+	atl::link_cut_tree<int, copy_sum> path(values, 0, combine);
+	atl::euler_tour_tree<int, copy_sum> tour(values, 0, combine);
+	atl::experimental::euler_tour_tree_by_splay<int, copy_sum> splay_tour(values, 0, combine);
+	atl::top_tree<int, int, int, copy_sum, copy_sum, copy_sum, copy_identity, atl::commutative_fold_t> top(values, 0, 0, combine, combine, combine, copy_identity{});
+	top.link(0, 1);
+	REQUIRE(top.fold(0, 1) == 3);
+	REQUIRE(treap.fold() == 6);
+	REQUIRE(splay.fold() == 6);
+	REQUIRE(map.fold() == 6);
+	REQUIRE(adjusted.fold() == 6);
+	REQUIRE(persistent.fold() == 6);
+	REQUIRE(tagged.fold() == 6);
+	REQUIRE(segment.fold() == 6);
+	REQUIRE(lazy.fold() == 6);
+	REQUIRE(path.at(1) == 2);
+	REQUIRE(tour.at(1) == 2);
+	REQUIRE(splay_tour.at(1) == 2);
+	atl::persistent_treap_sequence<int, assign_sum> assignable(values, 0, assign_sum{});
+	REQUIRE(assignable.fold() == 6);
+	atl::persistent_treap_sequence<int, assign_sum, int, assign_sum, assign_sum> assignable_tags(values, 0, 0, assign_sum{}, assign_sum{}, assign_sum{});
+	REQUIRE(assignable_tags.fold() == 6);
+}
+
+TEST_CASE("treap algebra reference results avoid intermediate payload copies", "[accepted_calls][move_probe]") {
+	using probe = atl_test::move_probe;
+	using publication_review_calls::longer_probe;
+	atl::treap_sequence<probe, longer_probe> sequence(std::vector<probe>{}, probe{}, longer_probe{});
+	atl::treap_map<int, probe, std::ranges::less, longer_probe> map(probe{}, longer_probe{});
+	map.reserve(32);
+	for (int i = 0; i < 16; ++i) {
+		probe::reset();
+		sequence.insert(std::size_t(i), probe(probe::sentinel));
+		// The node's initial aggregate and all pulls assign directly from references.
+		REQUIRE(probe::sentinel_copy_constructions == 0);
+		probe::reset();
+		map.insert(i, probe(probe::sentinel));
+		REQUIRE(probe::sentinel_copy_constructions == 0);
+	}
+	probe::reset();
+	REQUIRE(sequence.fold().v == probe::sentinel);
+	REQUIRE(probe::sentinel_copies == 1);
+	probe::reset();
+	REQUIRE(map.fold().v == probe::sentinel);
+	REQUIRE(probe::sentinel_copies == 1);
+	probe::reset();
+	longer_probe::calls = 0;
+	REQUIRE(map.fold(0, 16).v == probe::sentinel);
+	// Each helper returns one payload copy for its pair of operations; nested
+	// reference results are used directly, as in the algebra expression.
+	REQUIRE(longer_probe::calls > 0);
+	REQUIRE(probe::sentinel_copy_constructions == longer_probe::calls / 2);
+}
+
+TEST_CASE("treap nested operations move their intermediate payloads", "[accepted_calls][move_probe]") {
+	using probe = atl_test::move_probe;
+	using publication_review_calls::moving_probe_max;
+	atl::treap_sequence<probe, moving_probe_max> sequence(std::vector<probe>{}, probe{}, moving_probe_max{});
+	atl::treap_map<int, probe, std::ranges::less, moving_probe_max> map(probe{}, moving_probe_max{});
+	for (int i = 0; i < 16; ++i) {
+		probe::reset();
+		moving_probe_max::calls = 0;
+		sequence.insert(std::size_t(i), probe(probe::sentinel));
+		// Each pull copies its lvalue input once; the outer op moves the intermediate.
+		// The new sequence node also copy-assigns its initial aggregate once.
+		REQUIRE(probe::sentinel_copies == moving_probe_max::calls / 2 + 1);
+		probe::reset();
+		moving_probe_max::calls = 0;
+		map.insert(i, probe(probe::sentinel));
+		REQUIRE(probe::sentinel_copies == moving_probe_max::calls / 2);
+	}
+	probe::reset();
+	REQUIRE(sequence.fold().v == probe::sentinel);
+	REQUIRE(probe::sentinel_copies == 1);
+	probe::reset();
+	REQUIRE(map.fold().v == probe::sentinel);
+	REQUIRE(probe::sentinel_copies == 1);
+}
+
+TEST_CASE("sequence constructors accept const operation types", "[accepted_calls]") {
+	using op = std::plus<int> const;
+	std::array const values{1, 2, 3};
+	atl::treap_sequence<int, op> treap_count(3, 0, std::plus<int>{});
+	atl::treap_sequence<int, op> treap_range(values, 0, std::plus<int>{});
+	atl::splay_sequence<int, op> splay_count(3, 0, std::plus<int>{});
+	atl::splay_sequence<int, op> splay_range(values, 0, std::plus<int>{});
+	atl::treap_sequence<int, op, int, op, op> treap_tag_count(3, 0, 0, std::plus<int>{}, std::plus<int>{}, std::plus<int>{});
+	atl::treap_sequence<int, op, int, op, op> treap_tag_range(values, 0, 0, std::plus<int>{}, std::plus<int>{}, std::plus<int>{});
+	atl::splay_sequence<int, op, int, op, op> splay_tag_count(3, 0, 0, std::plus<int>{}, std::plus<int>{}, std::plus<int>{});
+	atl::splay_sequence<int, op, int, op, op> splay_tag_range(values, 0, 0, std::plus<int>{}, std::plus<int>{}, std::plus<int>{});
+	atl::persistent_treap_sequence<int, op> persistent(values, 0, std::plus<int>{});
+	atl::persistent_treap_sequence<int, op, int, op, op> persistent_tags(values, 0, 0, std::plus<int>{}, std::plus<int>{}, std::plus<int>{});
+	REQUIRE(treap_count.fold() == 0);
+	REQUIRE(treap_range.fold() == 6);
+	REQUIRE(splay_count.fold() == 0);
+	REQUIRE(splay_range.fold() == 6);
+	REQUIRE(treap_tag_count.fold() == 0);
+	REQUIRE(treap_tag_range.fold() == 6);
+	REQUIRE(splay_tag_count.fold() == 0);
+	REQUIRE(splay_tag_range.fold() == 6);
+	REQUIRE(persistent.fold() == 6);
+	REQUIRE(persistent_tags.fold() == 6);
+}

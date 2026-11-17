@@ -202,3 +202,4 @@ all variants against explicit active-item sets and an ordered-map FIFO oracle.
 
 - [DSUs](dsu.md)
 - [Weighted DSUs](weighted-dsu.md)
+- [Link-cut tree](link-cut-tree.md) — online link/cut and path queries.

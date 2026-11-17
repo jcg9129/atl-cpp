@@ -172,9 +172,9 @@ namespace {
 			}
 
 			iterator operator++(int) {
-				auto previous = *this;
+				auto snapshot = *this;
 				++*this;
-				return previous;
+				return snapshot;
 			}
 
 			bool operator==(iterator const &) const = default;
@@ -736,4 +736,300 @@ namespace segment_family_boundaries {
 	static_assert(!can_search<engine, not_callable>);
 	static_assert(!can_search<beats, not_callable>);
 	static_assert(!can_derive<engine, not_callable>);
+}
+
+#include <atl/ds/splay_engine.hpp>
+#include <atl/ds/splay_map.hpp>
+#include <atl/ds/splay_sequence.hpp>
+#include <atl/ds/treap_map.hpp>
+#include <atl/ds/treap_sequence.hpp>
+#include <atl/experimental/ds/splay_engine_variants.hpp>
+
+namespace treap_splay_boundaries {
+	struct not_callable {};
+
+	struct bad_update {
+		void operator()(int) const;
+	};
+
+	struct non_const_range {
+		int *begin();
+		int *end();
+		std::size_t size();
+	};
+
+	template<typename Range>
+	concept can_build = requires(atl::splay_links &links, Range const &range) { atl::splay_engine::build_balanced(links, range); };
+	static_assert(!can_build<non_const_range>);
+	static_assert(!can_build<std::vector<std::string>>);
+	template<typename Tree, typename Update>
+	concept can_update = requires(Tree &tree, Update update) { tree.update(0, update); };
+	static_assert(!can_update<atl::treap_map<int, int>, bad_update>);
+	static_assert(!can_update<atl::splay_map<int, int>, bad_update>);
+	template<typename Tree, typename Predicate>
+	concept can_search = requires(Tree &tree, Predicate predicate) { tree.max_right(0, predicate); };
+	static_assert(!can_search<atl::treap_sequence<int, std::plus<>>, not_callable>);
+	static_assert(!can_search<atl::splay_sequence<int, std::plus<>>, not_callable>);
+	static_assert(!std::constructible_from<atl::treap_sequence<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::splay_sequence<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::treap_sequence<int, std::plus<>>, std::vector<std::string>, int, std::plus<>>);
+	static_assert(!std::constructible_from<atl::splay_sequence<int, std::plus<>>, std::vector<std::string>, int, std::plus<>>);
+	template<typename Engine, typename Store>
+	concept can_splay = requires(Store &store) { Engine::splay(store, 1); };
+	using parity_engine = atl::experimental::splay_engine_by_strategy<atl::experimental::splay_shape::bottom_up, atl::experimental::splay_path_push::parity_walk>;
+	using buffer_engine = atl::experimental::splay_engine_by_strategy<atl::experimental::splay_shape::bottom_up, atl::experimental::splay_path_push::store_buffer>;
+
+	struct push_store : atl::splay_links {
+		void push(atl::uint32);
+	};
+
+	static_assert(!can_splay<parity_engine, atl::splay_links>);
+	static_assert(!can_splay<buffer_engine, push_store>);
+	static_assert(!atl::splay_probe<not_callable>);
+	static_assert(!atl::detail::treap_store<atl::splay_links>);
+}
+
+namespace treap_splay_boundaries {
+	struct supplied_order {
+		supplied_order() = delete;
+		bool operator()(int, int) const;
+	};
+
+	static_assert(!std::default_initializable<atl::treap_map<int, int, supplied_order>>);
+	static_assert(!std::default_initializable<atl::splay_map<int, int, supplied_order>>);
+}
+
+namespace treap_splay_boundaries {
+	struct parent_store_signature {
+		atl::uint32 left(atl::uint32) const;
+		atl::uint32 right(atl::uint32) const;
+		atl::uint32 size(atl::uint32) const;
+		atl::uint32 priority(atl::uint32) const;
+		atl::uint32 rebind(atl::uint32, atl::uint32, atl::uint32);
+		atl::uint32 push(atl::uint32);
+		atl::uint32 parent(atl::uint32) const;
+		void set_parent(atl::uint32, atl::uint32);
+	};
+
+	static_assert(atl::detail::treap_parent_store<parent_store_signature>);
+	template<typename Store>
+	concept can_insert_by_handle = requires(Store &store) { atl::detail::treap_base::insert_before_node(store, 1, 2); };
+	static_assert(!can_insert_by_handle<parent_store_signature>);
+	template<typename Draw>
+	concept can_merge_weighted = requires(parent_store_signature &store, Draw draw) { atl::detail::treap_base::merge_weighted(store, 1, 2, draw); };
+	static_assert(!can_merge_weighted<not_callable>);
+
+	struct fold_store : atl::sized_splay_links {
+		int const &value(atl::uint32) const;
+		int const &aggregate(atl::uint32) const;
+	};
+
+	template<typename Fold>
+	concept can_fold_prefix = requires(fold_store &store, Fold fold) { atl::splay_engine::max_right(store, 0, 0, fold, [](int) { return true; }); };
+	static_assert(!can_fold_prefix<not_callable>);
+}
+
+#include <atl/ds/euler_tour_tree.hpp>
+#include <atl/ds/link_cut_tree.hpp>
+#include <atl/ds/subtree_link_cut_tree.hpp>
+#include <atl/ds/top_tree.hpp>
+#include <atl/experimental/ds/euler_tour_tree_variants.hpp>
+
+namespace dynamic_forest_boundary_constraints {
+	template<typename Value, typename Op>
+	concept path_algebra = requires { typename atl::link_cut_tree<Value, Op>; };
+	template<typename Value, typename Op>
+	concept tour_algebra = requires { typename atl::euler_tour_tree<Value, Op>; };
+	template<typename Value, typename Op, typename Inverse>
+	concept subtree_algebra = requires { typename atl::subtree_link_cut_tree<Value, Op, Inverse>; };
+
+	static_assert(!path_algebra<int, std::identity>);
+	static_assert(!tour_algebra<int, std::identity>);
+	static_assert(!subtree_algebra<int, std::plus<>, std::plus<>>);
+	static_assert(path_algebra<int, std::plus<>>);
+	static_assert(tour_algebra<int, std::plus<>>);
+
+	using path = atl::link_cut_tree<int, std::plus<>>;
+	using subtree = atl::subtree_link_cut_tree<int, std::plus<>, std::negate<>>;
+	using tour = atl::euler_tour_tree<int, std::plus<>>;
+	using clusters = atl::sum_top_tree<int>;
+	using splay_tour = atl::experimental::euler_tour_tree_by_splay<int, std::plus<>>;
+
+	static_assert(!std::constructible_from<path, std::vector<std::string> &, int, std::plus<>>);
+	static_assert(!std::constructible_from<subtree, std::vector<std::string> &, int, std::plus<>, std::negate<>>);
+	static_assert(!std::constructible_from<tour, std::vector<std::string> &, int, std::plus<>>);
+	static_assert(!std::constructible_from<splay_tour, std::vector<std::string> &, int, std::plus<>>);
+	static_assert(!std::constructible_from<clusters, std::vector<std::string> &>);
+}
+
+#include <atl/ds/meldable_heap_forest.hpp>
+#include <atl/ds/persistent_heap.hpp>
+#include <atl/ds/persistent_lazy_segment_tree.hpp>
+#include <atl/ds/persistent_segment_tree.hpp>
+#include <atl/ds/persistent_treap_sequence.hpp>
+
+namespace publication_persistent_constraints {
+	struct invalid_callable {};
+
+	template<typename Compare>
+	concept heap_order = requires { typename atl::persistent_heap<int, Compare>; typename atl::persistent_heap_forest<int, Compare>; };
+	template<typename Compare>
+	concept meldable_order = requires { typename atl::meldable_heap_forest<int, Compare>; };
+	template<typename Op>
+	concept segment_fold = requires { typename atl::persistent_segment_tree<int, Op>; };
+	template<typename Op>
+	concept sequence_fold = requires { typename atl::persistent_treap_sequence<int, Op>; };
+	static_assert(!heap_order<invalid_callable>);
+	static_assert(!meldable_order<invalid_callable>);
+	static_assert(!segment_fold<invalid_callable>);
+	static_assert(!sequence_fold<invalid_callable>);
+	template<typename Update>
+	concept point_update = requires(atl::persistent_segment_tree<int, std::plus<>> const &tree, Update update) { tree.update(0, update); };
+	static_assert(!point_update<invalid_callable>);
+	template<typename Choose>
+	concept descent = requires(atl::persistent_segment_tree<int, std::plus<>> const &tree, Choose choose) { tree.descend(tree, tree, choose); };
+	static_assert(!descent<invalid_callable>);
+	static_assert(heap_order<std::reference_wrapper<std::less<>>>);
+}
+
+namespace publication_forwarding_constraints {
+	struct invalid_element {};
+
+	using range = std::vector<invalid_element>;
+	static_assert(!std::constructible_from<atl::persistent_segment_tree<int, std::plus<>>, range &, int, std::plus<>>);
+	static_assert(!std::constructible_from<atl::persistent_treap_sequence<int>, range &>);
+}
+
+#include <atl/experimental/ds/link_cut_tree_variants.hpp>
+#include <atl/experimental/ds/top_tree_variants.hpp>
+
+namespace owner_interface_constraints {
+	using path_variant = atl::experimental::link_cut_tree_by_configuration<atl::splay_engine, atl::splay_layout_interleaved, true, false>;
+	using top_variant = atl::experimental::top_tree_by_interleaved_layout<int, int, int, std::plus<>, std::plus<>, std::plus<>, std::identity, atl::commutative_fold_t>;
+
+	struct non_const_parents {
+		atl::uint32 *begin();
+		atl::uint32 *end();
+	};
+
+	struct input_parents {
+		struct iterator {
+			using value_type = atl::uint32;
+			using difference_type = std::ptrdiff_t;
+			using iterator_concept = std::input_iterator_tag;
+			atl::uint32 const *position{};
+			atl::uint32 operator*() const;
+			iterator &operator++();
+			void operator++(int);
+			bool operator==(iterator const &) const = default;
+		};
+
+		iterator begin() const;
+		iterator end() const;
+	};
+
+	static_assert(std::ranges::forward_range<non_const_parents>);
+	static_assert(!std::ranges::range<non_const_parents const>);
+	static_assert(std::ranges::input_range<input_parents const>);
+	static_assert(atl::graph::vertex_range<input_parents const>);
+	static_assert(!std::ranges::forward_range<input_parents const>);
+
+	template<typename Tree, typename Parents>
+	concept can_assign = requires(Tree &tree, Parents const &parents) { tree.assign_parents(parents); };
+	template<typename Tree, typename Parents>
+	concept can_assign_weights = requires(Tree &tree, Parents const &parents, std::vector<int> &weights) { tree.assign_parents(parents, weights); };
+	template<typename Parents>
+	constexpr bool rejects_parents = !can_assign<atl::link_cut_tree<>, Parents> && !can_assign<path_variant, Parents> && !can_assign<top_variant, Parents> && !can_assign<atl::subtree_link_cut_tree<int, std::plus<>, std::negate<>>, Parents> && !can_assign<atl::euler_tour_tree<>, Parents> && !can_assign<atl::sum_top_tree<int>, Parents> && !can_assign<atl::experimental::euler_tour_tree_by_splay<>, Parents> && !can_assign_weights<atl::edge_link_cut_tree<int, std::plus<>>, Parents> && !can_assign_weights<atl::diameter_top_tree<int>, Parents>;
+	static_assert(rejects_parents<non_const_parents>);
+	static_assert(rejects_parents<input_parents>);
+	static_assert(can_assign<atl::link_cut_tree<>, std::vector<atl::uint32>>);
+	static_assert(can_assign_weights<atl::edge_link_cut_tree<int, std::plus<>>, std::vector<atl::uint32>>);
+
+	struct supplied_value {
+		supplied_value() = delete;
+		explicit supplied_value(int);
+	};
+
+	struct combine {
+		supplied_value operator()(supplied_value const &, supplied_value const &) const;
+	};
+
+	struct invert {
+		supplied_value operator()(supplied_value const &) const;
+	};
+
+	struct map {
+		int operator()(supplied_value const &, int) const;
+	};
+
+	template<typename Value>
+	concept path_value = requires { typename atl::link_cut_tree<Value, combine>; };
+	template<typename Value>
+	concept tour_value = requires { typename atl::euler_tour_tree<Value, combine>; };
+	template<typename Value>
+	concept splay_tour_value = requires { typename atl::experimental::euler_tour_tree_by_splay<Value, combine>; };
+	template<typename Value>
+	concept variant_path_value = requires { typename atl::experimental::link_cut_tree_by_configuration<atl::splay_engine, atl::splay_layout_interleaved, true, false, Value, combine>; };
+	template<typename Value>
+	concept subtree_value = requires { typename atl::subtree_link_cut_tree<Value, combine, invert>; };
+	template<typename Tag>
+	concept path_tag = requires { typename atl::link_cut_tree<int, std::plus<>, Tag, map, combine>; };
+	template<typename Tag>
+	concept tour_tag = requires { typename atl::euler_tour_tree<int, std::plus<>, Tag, map, combine>; };
+	static_assert(std::copyable<supplied_value>);
+	static_assert(!std::default_initializable<supplied_value>);
+	static_assert(atl::detail::link_cut_algebra<supplied_value, combine, void, void, void, void, void>);
+	static_assert(atl::detail::euler_tour_algebra<supplied_value, combine, void, void, void>);
+	static_assert(atl::detail::link_cut_algebra<int, std::plus<>, supplied_value, map, combine, void, void>);
+	static_assert(atl::detail::euler_tour_algebra<int, std::plus<>, supplied_value, map, combine>);
+	static_assert(!path_value<supplied_value>);
+	static_assert(!tour_value<supplied_value>);
+	static_assert(!splay_tour_value<supplied_value>);
+	static_assert(!variant_path_value<supplied_value>);
+	static_assert(!subtree_value<supplied_value>);
+	static_assert(!path_tag<supplied_value>);
+	static_assert(!tour_tag<supplied_value>);
+
+	using captured_compare = decltype([offset = 0](int a, int b) { return a + offset < b; });
+	static_assert(!std::default_initializable<atl::persistent_heap<int, captured_compare>>);
+	static_assert(std::constructible_from<atl::persistent_heap<int, captured_compare>, captured_compare>);
+
+	struct assign_sum {
+		assign_sum() = default;
+		assign_sum(assign_sum const &) = delete;
+		assign_sum(assign_sum &&) = default;
+		assign_sum &operator=(assign_sum const &) = default;
+
+		int operator()(int a, int b) const { return a + b; }
+	};
+
+	struct move_sum {
+		move_sum() = default;
+		move_sum(move_sum const &) = delete;
+		move_sum(move_sum &&) = default;
+
+		int operator()(int a, int b) const { return a + b; }
+	};
+
+	struct copy_sum {
+		copy_sum() = default;
+		copy_sum(copy_sum const &) = default;
+		copy_sum(copy_sum &&) = delete;
+
+		int operator()(int a, int b) const { return a + b; }
+	};
+
+	template<typename Sequence>
+	concept can_compact = requires(Sequence const &sequence) { sequence.compacted(); };
+	static_assert(std::is_copy_assignable_v<assign_sum> && !std::copy_constructible<assign_sum>);
+	static_assert(std::is_copy_constructible_v<copy_sum> && !std::copy_constructible<copy_sum>);
+	static_assert(!can_compact<atl::persistent_treap_sequence<int, move_sum>>);
+	static_assert(!can_compact<atl::persistent_treap_sequence<int, assign_sum>>);
+	static_assert(!can_compact<atl::persistent_treap_sequence<int, assign_sum, int, assign_sum, assign_sum>>);
+	static_assert(!can_compact<atl::persistent_treap_sequence<int, copy_sum>>);
+	static_assert(!can_compact<atl::persistent_treap_sequence<int, copy_sum, int, copy_sum, copy_sum>>);
+	static_assert(!can_compact<atl::persistent_treap_sequence<int, std::plus<>, int, move_sum, std::plus<>>>);
+	static_assert(!can_compact<atl::persistent_treap_sequence<int, std::plus<>, int, std::plus<>, move_sum>>);
+	static_assert(can_compact<atl::persistent_treap_sequence<int>>);
+	static_assert(can_compact<atl::persistent_treap_sequence<int, std::plus<>>>);
 }

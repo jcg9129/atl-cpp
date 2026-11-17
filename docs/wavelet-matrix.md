@@ -53,13 +53,22 @@ numeric_limits<T>::max(). To count the closed interval [lo,max], use
 rank space and races two-pass versus one-pass stable partition, separate
 versus interleaved rank cells, and branching versus branchless queries.
 The loops measure construction separately from independent query throughput.
-The persistent-segment-tree comparison returns with that structure's page.
+Prefix count versions of [persistent_segment_tree](persistent-segment-tree.md)
+provide the static order-statistic comparison: compressed values, a lockstep
+kth descent and two prefix-fold differences for count_less.
+
+The benchmark also prints an estimate of the payload storage in decimal MB: for
+the wavelet matrix, the packed bit words and rank prefixes of every level; for
+the persistent segment tree, its arena nodes plus the version handles and the
+sorted value universe the comparison keeps. Allocator overhead is not counted.
+The 2026-10-15 record's persistent-tree figure counts arena nodes only, so no
+memory comparison is quoted here.
 
 Xeon Platinum 8358, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-15.
 Minimum of three runs, milliseconds, plain -O2 / -O2 -march=native;
 both also use -g -DNDEBUG -std=c++23. Compression work is outside the query timing.
 
-| shape | phase | library | prefix versions | by rank compression |
+| shape | phase | library | by persistent segment tree | by rank compression |
 |---|---|---:|---:|---:|
 | balanced n=q=2e5 | build | 10.0 / 8.4 | 148 / 150 | — |
 | balanced n=q=2e5 | kth | 117 / 99.9 | 216 / 236 | 66.1 / 54.8 |
@@ -70,8 +79,12 @@ both also use -g -DNDEBUG -std=c++23. Compression work is outside the query timi
 | build-heavy n=1e6 q=1e4 | build | 52.7 / 44.4 | 1245 / 1247 | — |
 | build-heavy n=1e6 q=1e4 | kth | 10.3 / 9.3 | 17.8 / 19.0 | 6.7 / 5.7 |
 | build-heavy n=1e6 q=1e4 | count_less | 8.3 / 6.8 | 32.5 / 32.1 | 7.1 / 5.6 |
-| alphabet<256 n=q=2e5 | kth | 27.5 / 22.3 | 61.6 / 62.6 | — |
+| alphabet<256 n=q=2e5 | build | 3.2 / 2.7 | 27.2 / 27.5 | — |
+| alphabet<256 n=q=2e5 | kth | 27.5 / 22.3 | 61.6 / 62.6 | 27.2 / 22.3 |
+| alphabet<256 n=q=2e5 | count_less | 19.9 / 10.2 | 90.1 / 86.0 | 26.2 / 16.4 |
+| narrow r-l<=64 n=q=2e5 | build | 10.0 / 8.4 | 155 / 159 | — |
 | narrow r-l<=64 n=q=2e5 | kth | 118 / 100 | 199 / 202 | 65.5 / 54.2 |
+| narrow r-l<=64 n=q=2e5 | count_less | 81.6 / 59.3 | 347 / 348 | 69.9 / 53.3 |
 
 The following race table isolates construction and query methods on the
 balanced 30-bit shape. A build with branchless queries uses the same one-pass

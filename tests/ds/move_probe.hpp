@@ -10,10 +10,12 @@ namespace atl_test {
 		int v = 0;
 		static constexpr int sentinel = 1'000'000;
 		static inline int sentinel_copies = 0, sentinel_moves = 0;
+		static inline int sentinel_copy_constructions = 0;
 
 		static void reset() {
 			sentinel_copies = 0;
 			sentinel_moves = 0;
+			sentinel_copy_constructions = 0;
 		}
 
 		move_probe() = default;
@@ -21,7 +23,10 @@ namespace atl_test {
 		move_probe(int x) : v(x) {}
 
 		move_probe(move_probe const &o) : v(o.v) {
-			if (o.v == sentinel) ++sentinel_copies;
+			if (o.v == sentinel) {
+				++sentinel_copies;
+				++sentinel_copy_constructions;
+			}
 		}
 
 		move_probe(move_probe &&o) noexcept : v(o.v) {

@@ -2,18 +2,20 @@
  * @file
  * @brief Sparse point-update and range-fold throughput.
  *
- * Materialized paths allocate a path for every touched position; offline compression uses a dense tree; two-child folding visits absent or disjoint children. Mixed affine streams use a 1e9 domain; short and uniform affine/sum folds use 1e9 and 1e18 domains where size_t permits.
- * Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, -O2 and -O2 -march=native, 2026-10-15: mixed library 263/271 ms, materialized paths 430/427 ms, offline compression 174/189 ms.
+ * Materialized paths allocate a path for every touched position; offline compression uses a dense tree; a treap map stores only touched keys; two-child folding visits absent or disjoint children. Mixed affine streams use a 1e9 domain; short and uniform affine/sum folds use 1e9 and 1e18 domains where size_t permits.
+ * Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, -O2 and -O2 -march=native, 2026-10-15: mixed library 263/271 ms, materialized paths 430/427 ms, offline compression 174/189 ms, treap map 604/633 ms.
  * Full measurements: docs/dynamic-segment-tree.md.
  */
 #include <atl/ds/dynamic_segment_tree.hpp>
 #include <atl/ds/segment_tree.hpp>
+#include <atl/ds/treap_map.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/utils/assert.hpp>
 #include <algorithm>
 #include <catch2/catch.hpp>
 #include <cstddef>
 #include <cstdio>
+#include <functional>
 #include <limits>
 #include <random>
 #include <string>
@@ -115,14 +117,19 @@ TEST_CASE("dynamic_segment_tree benchmarks", "[dynamic_segment_tree]") {
 	{
 		atl::dynamic_segment_tree probe(domain, aff{1, 0}, op);
 		dynamic_segment_tree_by_materialized_paths<decltype(op)> nprobe{op, domain};
+		atl::treap_map<std::size_t, aff, std::less<std::size_t>, decltype(op)> keyed(aff{1, 0}, op);
 		for (auto const &s : steps)
 			if (s.is_set) {
 				probe.set(s.i, s.f);
 				nprobe.set(s.i, s.f);
+				keyed.insert_or_assign(s.i, s.f);
 			} else {
 				auto const expected = probe.fold(s.i, s.j), actual = nprobe.fold(s.i, s.j);
 				REQUIRE(actual.a == expected.a);
 				REQUIRE(actual.b == expected.b);
+				auto const keyed_actual = keyed.fold(s.i, s.j);
+				REQUIRE(keyed_actual.a == expected.a);
+				REQUIRE(keyed_actual.b == expected.b);
 			}
 		std::printf("nodes: naive %zu, compressed %zu (%.1fx fewer)\n", nprobe.nodes.size(),
 					probe.node_count(), double(nprobe.nodes.size()) / double(probe.node_count()));
@@ -151,6 +158,19 @@ TEST_CASE("dynamic_segment_tree benchmarks", "[dynamic_segment_tree]") {
 				acc += t.fold(s.i, s.j).a;
 		return acc;
 	};
+
+	/** @brief Fold sparse affine values by keeping only touched positions in a keyed treap. */
+	auto const fold_by_treap_map = [&] {
+		atl::treap_map<std::size_t, aff, std::less<std::size_t>, decltype(op)> t(aff{1, 0}, op);
+		ll acc = 0;
+		for (auto const &s : steps)
+			if (s.is_set)
+				t.insert_or_assign(s.i, s.f);
+			else
+				acc += t.fold(s.i, s.j).a;
+		return acc;
+	};
+	BENCHMARK("by treap map") { return fold_by_treap_map(); };
 
 	std::vector<std::size_t> sorted(positions);
 	std::ranges::sort(sorted);

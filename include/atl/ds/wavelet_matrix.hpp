@@ -28,6 +28,7 @@ namespace atl {
 	 * This is the memory-lean, cache-friendly answer to *static* range order
 	 * statistics (k-th smallest, "how many < x", "how many in [lo, hi)").
 
+	 * See @ref atl::persistent_segment_tree for order statistics over prefix count versions.
 	 * @tparam T The stored unsigned integer type.
 	 */
 	template<unsigned_integral T>

@@ -94,8 +94,9 @@ Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off,
 ## Pitfalls and notes
 
 Equality-comparable tags allow identity pushes to skip both mapping and child
-materialization. A const fill may maintain a pure cache, but results must depend
-only on its arguments. A `mutable` lambda itself is not const-callable.
+materialization. Identity equality also avoids path copies in
+[persistent treap sequences](persistent-treap-sequence.md). A const fill may
+maintain a pure cache, but results must depend only on its arguments. A `mutable` lambda itself is not const-callable.
 For periodic implicit data, position fill can use a wrap-aware static RMQ.
 
 ## How it works

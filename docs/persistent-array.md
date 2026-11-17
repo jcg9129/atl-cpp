@@ -151,3 +151,6 @@ move node objects. This distinction explains reference invalidation.
 ## See also
 
 - [DSUs](dsu.md)
+- [Persistent queue and deque](persistent-queue-deque.md) — FIFO and fixed-capacity double-ended adapters.
+- [Persistent vector](persistent-vector.md) — growable indexed sequences.
+- [Persistent list](persistent-list.md) — constant-time front operations.

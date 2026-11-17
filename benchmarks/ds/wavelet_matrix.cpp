@@ -7,9 +7,10 @@
  * Xeon Platinum 8358, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-15,
  * -O2 / -O2 -march=native (also -g -DNDEBUG -std=c++23): balanced raw build
  * takes 10.0 / 8.4 ms, versus two-pass partition 52.3 / 51.5; docs/wavelet-matrix.md.
- * The persistent-segment-tree comparison returns with that structure's page.
+ * Prefix count versions of persistent_segment_tree provide the comparison for static order statistics.
  */
 
+#include <atl/ds/persistent_segment_tree.hpp>
 #include <atl/ds/wavelet_matrix.hpp>
 #include <atl/types/alias.hpp>
 #include <algorithm>
@@ -27,6 +28,47 @@
 using atl::uint32;
 
 namespace {
+	/** @brief Order statistics by prefix count versions and a lockstep persistent-segment-tree descent. */
+	struct kth_by_persistent_segment_tree {
+		using pst = atl::persistent_segment_tree<uint32, std::plus<>>;
+		std::vector<uint32> sorted;
+		std::vector<pst> vs;
+
+		explicit kth_by_persistent_segment_tree(std::vector<uint32> const &a) : sorted(a) {
+			std::ranges::sort(sorted);
+			sorted.erase(std::ranges::unique(sorted).begin(), sorted.end());
+			vs.reserve(a.size() + 1);
+			vs.emplace_back(sorted.size(), uint32(0), std::plus<>{});
+			vs.front().reserve(a.size());
+			for (uint32 const x : a) {
+				std::size_t const pos = std::size_t(std::ranges::lower_bound(sorted, x) - sorted.begin());
+				vs.push_back(vs.back().update(pos, [](uint32 const &c) { return c + 1; }));
+			}
+		}
+
+		uint32 kth(std::size_t l, std::size_t r, std::size_t k) const {
+			std::size_t const pos = pst::descend(vs[l], vs[r], [k = k](uint32 const &cl, uint32 const &cr) mutable {
+				uint32 const c = cr - cl;
+				if (k < c) return true;
+				k -= c;
+				return false;
+			});
+			return sorted[pos];
+		}
+
+		std::size_t count_less(std::size_t l, std::size_t r, uint32 x) const {
+			std::size_t const pos = std::size_t(std::ranges::lower_bound(sorted, x) - sorted.begin());
+			return vs[r].fold(0, pos) - vs[l].fold(0, pos);
+		}
+
+		std::size_t nodes() const { return vs.front().arena_size(); }
+
+		/** @brief Arena nodes (aggregate + two child ids each) plus the version handles and the sorted universe. */
+		std::size_t estimated_bytes() const {
+			return nodes() * (sizeof(uint32) * 3) + vs.capacity() * sizeof(pst) + sorted.capacity() * sizeof(uint32);
+		}
+	};
+
 	struct scenario {
 		char const *name;
 		std::size_t n, q;
@@ -54,6 +96,28 @@ namespace {
 		}
 
 		atl::wavelet_matrix wm(a);
+		kth_by_persistent_segment_tree ch(a);
+		// Wavelet: per level, packed words (one sentinel word) plus 32-bit rank prefixes.
+		std::size_t const wm_levels = sc.vmax == 0 ? 1 : std::size_t(std::bit_width(sc.vmax));
+		std::size_t const wm_bytes = wm_levels * ((sc.n / 64 + 2) * 8 + (sc.n / 64 + 3) * 4);
+		std::size_t const ch_bytes = ch.estimated_bytes();
+		std::printf("[%s] estimated storage (payload only, no allocator overhead): wavelet %.1f MB, by persistent segment tree %.1f MB (%.2fx)\n", sc.name,
+					double(wm_bytes) / 1e6, double(ch_bytes) / 1e6, double(ch_bytes) / double(wm_bytes));
+		for (auto const &[l, r, k, x] : qs) {
+			REQUIRE(ch.kth(l, r, k) == wm.kth(l, r, k));
+			REQUIRE(ch.count_less(l, r, x) == wm.count_less(l, r, x));
+		}
+		BENCHMARK(std::string(sc.name) + " | build by persistent segment tree") { return kth_by_persistent_segment_tree(a).nodes(); };
+		BENCHMARK(std::string(sc.name) + " | kth by persistent segment tree") {
+			atl::uint64 acc = 0;
+			for (auto const &[l, r, k, x] : qs) acc += ch.kth(l, r, k);
+			return acc;
+		};
+		BENCHMARK(std::string(sc.name) + " | count_less by persistent segment tree") {
+			atl::uint64 acc = 0;
+			for (auto const &[l, r, k, x] : qs) acc += ch.count_less(l, r, x);
+			return acc;
+		};
 		BENCHMARK(std::string(sc.name) + " | build library") { return atl::wavelet_matrix(a).size(); };
 		BENCHMARK(std::string(sc.name) + " | kth library") {
 			atl::uint64 acc = 0;
