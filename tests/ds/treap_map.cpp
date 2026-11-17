@@ -31,6 +31,9 @@ using ll = long long;
  *        the same seeds, so parity between the classes holds by construction.
  */
 namespace {
+	inline constexpr auto sum_values = [](ll a, ll b) { return a + b; };
+	inline constexpr auto concatenate_values = [](std::string const &a, std::string const &b) { return a + b; };
+
 	struct treap_kind {
 		template<std::semiregular Key, typename Value = void, typename Compare = std::ranges::less, typename Op = void>
 		using map = atl::treap_map<Key, Value, Compare, Op>;
@@ -95,7 +98,7 @@ TEMPLATE_LIST_TEST_CASE("ordered set: matches std::set with order statistics", "
 TEMPLATE_LIST_TEST_CASE("ordered map: values, folds over key ranges", "[treap_map][splay_map]", map_kinds) {
 	auto seed = GENERATE(take(4, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
-	auto plus_ = [](ll a, ll b) { return a + b; };
+	auto plus_ = sum_values;
 	std::map<int, ll> ref;
 	typename TestType::template map<int, ll, std::ranges::less, decltype(plus_)> t(0LL, plus_);
 	for (int step = 0; step < 800; ++step) {
@@ -129,7 +132,7 @@ TEMPLATE_LIST_TEST_CASE("ordered map: values, folds over key ranges", "[treap_ma
 TEST_CASE("treap_map: merge_union keeps this map's values on duplicates", "[treap_map]") {
 	auto seed = GENERATE(take(4, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
-	auto plus_ = [](ll a, ll b) { return a + b; };
+	auto plus_ = sum_values;
 	std::map<int, ll> ra, rb;
 	atl::treap_map<int, ll, std::ranges::less, decltype(plus_)> ta(0LL, plus_);
 	auto tb = ta.sibling(); // shares the pool, as merge_union requires
@@ -205,7 +208,7 @@ TEMPLATE_LIST_TEST_CASE("ordered map: a fold-tier map cannot be built without it
 }
 
 TEMPLATE_LIST_TEST_CASE("ordered map: value and identity arguments convert like plain parameters", "[treap_map][splay_map]", map_kinds) {
-	auto plus_ = [](ll a, ll b) { return a + b; };
+	auto plus_ = sum_values;
 	typename TestType::template map<ll, ll, std::ranges::less, decltype(plus_)> t(0, plus_);
 	REQUIRE(t.insert(1, 5));
 	REQUIRE_FALSE(t.insert_or_assign(1, 7));
@@ -216,7 +219,7 @@ TEMPLATE_LIST_TEST_CASE("ordered map: value and identity arguments convert like 
 TEMPLATE_LIST_TEST_CASE("ordered map: find, update and entry-returning kth/next/prev match std::map", "[treap_map][splay_map]", map_kinds) {
 	auto seed = GENERATE(take(4, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
-	auto plus_ = [](ll a, ll b) { return a + b; };
+	auto plus_ = sum_values;
 	std::map<int, ll> ref;
 	typename TestType::template map<int, ll, std::ranges::less, decltype(plus_)> t(0LL, plus_);
 	for (int step = 0; step < 1500; ++step) {
@@ -330,7 +333,7 @@ TEMPLATE_LIST_TEST_CASE("ordered map: sorted_unique build and reserve", "[treap_
 	REQUIRE(s.contains(1));
 	REQUIRE(s.size() == keys.size() + 1);
 
-	auto plus_ = [](ll a, ll b) { return a + b; };
+	auto plus_ = sum_values;
 	std::vector<std::pair<int, ll>> entries{{1, 10}, {4, 20}, {9, 30}};
 	typename TestType::template map<int, ll, std::ranges::less, decltype(plus_)> m(atl::sorted_unique, entries, 0LL, plus_);
 	REQUIRE(m.fold() == 60);
@@ -419,7 +422,7 @@ TEMPLATE_LIST_TEST_CASE("ordered map: a non-commutative fold keeps key order thr
 						map_kinds) {
 	auto seed = GENERATE(take(3, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
-	auto concat = [](std::string const &a, std::string const &b) { return a + b; };
+	auto concat = concatenate_values;
 	std::map<int, std::string> ref;
 	typename TestType::template map<int, std::string, std::ranges::less, decltype(concat)> t(std::string{}, concat);
 	auto range_fold = [&](int lo, int hi) {

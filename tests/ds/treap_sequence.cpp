@@ -252,7 +252,9 @@ TEMPLATE_LIST_TEST_CASE("sequence: values are moved in, never copied", "[treap_s
 
 TEMPLATE_LIST_TEST_CASE("sequence: emplace builds in place with at most one move", "[treap_sequence][splay_sequence]", sequence_kinds) {
 	using atl_test::move_probe;
-	typename TestType::template sequence<move_probe> t(4, move_probe(0));
+	using probe_sequence = typename TestType::template sequence<atl_test::move_probe>;
+	static_assert(std::constructible_from<probe_sequence, std::size_t, atl_test::move_probe>);
+	probe_sequence t(4, move_probe(0));
 	t.clear(); // recycled nodes: no node-array growth moving stored probes below
 	move_probe::reset();
 	t.emplace_back(move_probe::sentinel);
@@ -287,18 +289,21 @@ TEMPLATE_LIST_TEST_CASE("sequence: erase and clear release heap-owning elements"
 
 TEMPLATE_LIST_TEST_CASE("sequence: range construction moves only from owning rvalues", "[treap_sequence][splay_sequence]", sequence_kinds) {
 	using atl_test::move_probe;
+	using probe_sequence = typename TestType::template sequence<atl_test::move_probe>;
+	static_assert(std::constructible_from<probe_sequence, std::vector<atl_test::move_probe>>);
+	static_assert(std::constructible_from<probe_sequence, std::span<atl_test::move_probe>>);
 	std::vector<move_probe> vals(4, move_probe(move_probe::sentinel));
 	move_probe::reset();
-	typename TestType::template sequence<move_probe> from_span{std::span<move_probe>(vals)};
+	probe_sequence from_span{std::span<move_probe>(vals)};
 	REQUIRE(move_probe::sentinel_copies == 4);
 	auto const view = vals | std::views::transform([](move_probe &p) -> move_probe & { return p; });
 	move_probe::reset();
-	typename TestType::template sequence<move_probe> from_view(std::move(view));
+	probe_sequence from_view(std::move(view));
 	REQUIRE(move_probe::sentinel_copies == 4);
 	REQUIRE(std::ranges::all_of(vals, [](move_probe const &p) { return p.v == move_probe::sentinel; }));
 
 	move_probe::reset();
-	typename TestType::template sequence<move_probe> moved(std::move(vals));
+	probe_sequence moved(std::move(vals));
 	REQUIRE(move_probe::sentinel_copies == 0);
 	REQUIRE(moved.at(3).v == move_probe::sentinel);
 }

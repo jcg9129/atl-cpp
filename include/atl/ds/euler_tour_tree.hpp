@@ -782,15 +782,14 @@ namespace atl {
 	/** @brief `Value` from the identity; the elements must convert to it without narrowing. */
 	template<std::ranges::sized_range R, std::copyable Value, binary_operation<Value> Op>
 		requires requires(std::ranges::range_value_t<R> v) { Value{std::move(v)}; }
-	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	euler_tour_tree(R &&, Value, Op) -> euler_tour_tree<Value, Op>;
 	/** @brief Lazy updates: `Value` and `Tag` from the identities. */
 	template<std::copyable Value, std::copyable Tag, binary_operation<Value> Op, action<Tag, Value> Mapping,
 			 binary_operation<Tag> Compose>
 	euler_tour_tree(std::size_t, Value, Tag, Op, Mapping, Compose) -> euler_tour_tree<Value, Op, Tag, Mapping, Compose>;
+	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	template<std::ranges::sized_range R, std::copyable Value, std::copyable Tag, binary_operation<Value> Op,
 			 action<Tag, Value> Mapping, binary_operation<Tag> Compose>
 		requires requires(std::ranges::range_value_t<R> v) { Value{std::move(v)}; }
-	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	euler_tour_tree(R &&, Value, Tag, Op, Mapping, Compose) -> euler_tour_tree<Value, Op, Tag, Mapping, Compose>;
 }

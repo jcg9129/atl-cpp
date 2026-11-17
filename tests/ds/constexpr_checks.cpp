@@ -933,6 +933,27 @@ namespace treap_proof {
 		auto const [c, d] = base::split_at(store, weighted, 5);
 		return is_merged && is_split && is_weighted && is_in_order(store, base::merge_spines(store, c, d), 1, 8);
 	}());
+
+	static_assert([] {
+		using base = atl::detail::treap_base;
+		// Every cut on both spine directions exercises the recursive result's two fields.
+		for (bool is_left_spine : std::array{false, true}) {
+			for (atl::uint32 k = 0; k <= 8; ++k) {
+				array_store store;
+				atl::uint32 root = 0;
+				for (atl::uint32 id = 1; id <= 8; ++id) {
+					store.nodes[id] = {0, 0, 1, is_left_spine ? id : 9 - id};
+					root = base::merge(store, root, id);
+				}
+				auto const parts = base::split_at(store, root, k);
+				if (!is_in_order(store, parts.first, 1, k) || !is_in_order(store, parts.second, k + 1, 8 - k)) return false;
+				root = base::merge(store, parts.first, parts.second);
+				auto const keyed = base::split(store, root, [k](array_store &, atl::uint32 id) { return id <= k; });
+				if (!is_in_order(store, keyed.first, 1, k) || !is_in_order(store, keyed.second, k + 1, 8 - k)) return false;
+			}
+		}
+		return true;
+	}());
 }
 
 namespace splay_engine_checks {

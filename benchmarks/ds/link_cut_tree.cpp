@@ -267,7 +267,7 @@ TEST_CASE("link_cut_tree benchmarks: random churn (cut / link / path sum thirds)
 																																																				   t.assign_parents(parents);
 																																																				   ll acc = 0;
 																																																				   for (std::size_t i = 0; i < n; ++i) {
-																																																					   uint32 const u = w.x[i] % n, v = w.y[i] % n;
+																																																					   uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 																																																					   switch (w.op[i] % 3) {
 																																																					   case 0:
 																																																						   if (t.parent(u) != none) t.cut_from_parent(u);
@@ -304,7 +304,7 @@ TEST_CASE("link_cut_tree benchmarks: make_root every query", "[link_cut_tree]") 
 																																																				   t.assign_parents(parents);
 																																																				   ll acc = 0;
 																																																				   for (std::size_t i = 0; i < n; ++i) {
-																																																					   uint32 const u = w.x[i] % n, v = w.y[i] % n;
+																																																					   uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 																																																					   t.make_root(u);
 																																																					   acc += t.fold(u, v);
 																																																				   }
@@ -335,7 +335,7 @@ TEST_CASE("link_cut_tree benchmarks: point set + path composite", "[link_cut_tre
 																																																	  t.assign_parents(parents);
 																																																	  ll acc = 0;
 																																																	  for (std::size_t i = 0; i < n; ++i) {
-																																																		  uint32 const u = w.x[i] % n, v = w.y[i] % n;
+																																																		  uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 																																																		  if (w.op[i] % 2 == 0) {
 																																																			  t.set(u, affine{w.value[i] + 1, w.value[i]});
 																																																		  } else {
@@ -369,7 +369,7 @@ TEST_CASE("link_cut_tree benchmarks: lazy affine path update + path sum (Tree II
 																																													 t.assign_parents(parents);
 																																													 ll acc = 0;
 																																													 for (std::size_t i = 0; i < n; ++i) {
-																																														 uint32 const u = w.x[i] % n, v = w.y[i] % n;
+																																														 uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 																																														 if (w.op[i] % 2 == 0)
 																																															 t.apply(u, v, w.op[i] % 4 == 0 ? affine{w.value[i], 0} : affine{1, w.value[i]});
 																																														 else
@@ -399,7 +399,7 @@ TEST_CASE("link_cut_tree benchmarks: structure only - link / cut / connected", "
 																																										  t.assign_parents(parents);
 																																										  ll acc = 0;
 																																										  for (std::size_t i = 0; i < n; ++i) {
-																																											  uint32 const u = w.x[i] % n, v = w.y[i] % n;
+																																											  uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 																																											  switch (w.op[i] % 3) {
 																																											  case 0:
 																																												  if (t.parent(u) != none) t.cut_from_parent(u);
@@ -440,7 +440,7 @@ TEST_CASE("link_cut_tree benchmarks: edge tier - incremental MST by path max", "
 			std::vector<std::pair<uint32, uint32>> ends(n);
 			ll total = 0;
 			for (std::size_t i = 0; i < n; ++i) {
-				uint32 const u = w.x[i] % n, v = w.y[i] % n;
+				uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 				if (u == v) continue;
 				ll const weight = w.value[i];
 				ends[i] = {u, v};

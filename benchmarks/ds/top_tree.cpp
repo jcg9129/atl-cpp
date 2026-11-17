@@ -333,7 +333,7 @@ TEST_CASE("top_tree benchmarks: point set + affine path composite (reversal mode
 			t.assign_parents(parents);
 			ll acc = 0;
 			for (std::size_t i = 0; i < n; ++i) {
-				uint32 const u = w.x[i] % n, v = w.y[i] % n;
+				uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 				if (w.op[i] % 2 == 0) {
 					t.set(u, affine{w.value[i] + 1, w.value[i]});
 				} else {
@@ -622,7 +622,7 @@ TEST_CASE("top_tree benchmarks: mixed path/subtree mix (re-root, path / subtree 
 				t.assign_parents(parents);
 				ll acc = 0;
 				for (std::size_t i = 0; i < n; ++i) {
-					uint32 const u = w.x[i] % n, v = w.y[i] % n;
+					uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 					ll const x = w.value[i];
 					switch (w.op[i] % 10) {
 					case 0:
@@ -769,7 +769,7 @@ TEST_CASE("top_tree benchmarks: marked toggles + distance sums", "[top_tree]") {
 			t.assign_parents(parents, weights);
 			ll acc = 0;
 			for (std::size_t i = 0; i < n; ++i) {
-				uint32 const v = w.x[i] % n;
+				uint32 const v = uint32(w.x[i] % n);
 				if (w.op[i] % 2 == 0)
 					t.set_marked(v, w.op[i] % 4 == 0);
 				else

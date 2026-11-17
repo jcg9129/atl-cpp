@@ -404,6 +404,7 @@ namespace atl {
 		[[nodiscard]] persistent_list set(std::size_t i, T value) && { return set_in(std::move(pool_), i, std::move(value)); }
 	};
 
+	/** @brief Deduce the element type from a sized range. */
 	template<std::ranges::sized_range Range>
 	persistent_list(Range &&) -> persistent_list<std::ranges::range_value_t<Range>>;
 }

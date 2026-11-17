@@ -1447,7 +1447,7 @@ namespace atl {
 	 * @tparam Mapping        `mapping(f, a)`, distributing over `Op`.
 	 * @tparam Compose        `compose(f, g)` = "g first, then f"; tag_identity is its two-sided identity.
 	 * @tparam FoldOrder      `void` or @ref atl::commutative_fold_t.
-	 * @tparam ValuePlacement `void` (vertex values) or @ref atl::edge_values_t.
+	 * @tparam ValuePlacement `void` (vertex values) or `atl::edge_values_t`.
 	 */
 	template<typename Value = void, typename Op = void, typename Tag = void, typename Mapping = void, typename Compose = void,
 			 typename FoldOrder = void, typename ValuePlacement = void>
@@ -1461,7 +1461,7 @@ namespace atl {
 		using base::base;
 	};
 
-	/** @brief The edge tier spelled as a type: @ref atl::link_cut_tree with @ref atl::edge_values_t. */
+	/** @brief The edge tier spelled as a type: @ref atl::link_cut_tree with `atl::edge_values_t`. */
 	template<typename Value, typename Op, typename Tag = void, typename Mapping = void, typename Compose = void,
 			 typename FoldOrder = void>
 	using edge_link_cut_tree = link_cut_tree<Value, Op, Tag, Mapping, Compose, FoldOrder, edge_values_t>;
@@ -1476,38 +1476,37 @@ namespace atl {
 	/** @brief `Value` from the identity; the elements must convert to it without narrowing. */
 	template<std::ranges::sized_range R, std::copyable Value, binary_operation<Value> Op>
 		requires requires(std::ranges::range_value_t<R> v) { Value{std::move(v)}; }
-	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	link_cut_tree(R &&, Value, Op) -> link_cut_tree<Value, Op>;
 	/** @brief Lazy path updates: `Value` and `Tag` from the identities. */
 	template<std::copyable Value, std::copyable Tag, binary_operation<Value> Op, action<Tag, Value> Mapping,
 			 binary_operation<Tag> Compose>
 	link_cut_tree(std::size_t, Value, Tag, Op, Mapping, Compose) -> link_cut_tree<Value, Op, Tag, Mapping, Compose>;
+	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	template<std::ranges::sized_range R, std::copyable Value, std::copyable Tag, binary_operation<Value> Op,
 			 action<Tag, Value> Mapping, binary_operation<Tag> Compose>
 		requires requires(std::ranges::range_value_t<R> v) { Value{std::move(v)}; }
-	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	link_cut_tree(R &&, Value, Tag, Op, Mapping, Compose) -> link_cut_tree<Value, Op, Tag, Mapping, Compose>;
 
 	/** @brief The commutative-fold mode, deduced from the leading @ref atl::commutative_fold argument. */
 	template<std::copyable Value, binary_operation<Value> Op>
 	link_cut_tree(commutative_fold_t, std::size_t, Value, Op) -> link_cut_tree<Value, Op, void, void, void, commutative_fold_t>;
+	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	template<std::ranges::sized_range R, std::copyable Value, binary_operation<Value> Op>
 		requires requires(std::ranges::range_value_t<R> v) { Value{std::move(v)}; }
-	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	link_cut_tree(commutative_fold_t, R &&, Value, Op) -> link_cut_tree<Value, Op, void, void, void, commutative_fold_t>;
 	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	template<std::copyable Value, std::copyable Tag, binary_operation<Value> Op, action<Tag, Value> Mapping,
 			 binary_operation<Tag> Compose>
 	link_cut_tree(commutative_fold_t, std::size_t, Value, Tag, Op, Mapping, Compose)
 		-> link_cut_tree<Value, Op, Tag, Mapping, Compose, commutative_fold_t>;
+	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	template<std::ranges::sized_range R, std::copyable Value, std::copyable Tag, binary_operation<Value> Op,
 			 action<Tag, Value> Mapping, binary_operation<Tag> Compose>
 		requires requires(std::ranges::range_value_t<R> v) { Value{std::move(v)}; }
-	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */
 	link_cut_tree(commutative_fold_t, R &&, Value, Tag, Op, Mapping, Compose)
 		-> link_cut_tree<Value, Op, Tag, Mapping, Compose, commutative_fold_t>;
 
-	/** @brief The edge tier, deduced from the leading @ref atl::edge_values argument. */
+	/** @brief The edge tier, deduced from the leading `atl::edge_values` argument. */
 	template<std::copyable Value, binary_operation<Value> Op>
 	link_cut_tree(edge_values_t, std::size_t, Value, Op) -> link_cut_tree<Value, Op, void, void, void, void, edge_values_t>;
 	/** @brief Deduce the forest algebra and value tier from the supplied constructor arguments. */

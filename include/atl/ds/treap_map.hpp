@@ -517,6 +517,7 @@ namespace atl {
 		 * @brief Replace the value at @p key by `f(value)` (map tier), inserting
 		 *        `f(Value{})` when @p key is absent — `m[k] += d` in one
 		 *        descent, with one pull-up of the path. Returns the new value.
+		 * @param key Key to update, or insert when absent.
 		 * @param f Invoked exactly once.
 		 * @complexity expected O(log n)
 		 */
@@ -524,9 +525,9 @@ namespace atl {
 			requires(has_value && std::same_as<V, Value> && update_function<Update, V>)
 		V const &update(Key key, Update &&f) {
 			atl_assert(pool_ != nullptr);
-			uint32 hit = 0;
-			root_ = upsert(root_, key, f, hit);
-			return pool_->nodes[hit].value;
+			auto const result = upsert(root_, key, f);
+			root_ = result.first;
+			return pool_->nodes[result.second].value;
 		}
 
 		/**
@@ -818,40 +819,40 @@ namespace atl {
 		 * @brief The `update` descent: find @p key under @p t and replace its
 		 *        value, or insert it at the leaf and rotate it up past every
 		 *        lower-priority ancestor (the rotate-insert form of the treap,
-		 *        so finding and placing share one root-to-leaf walk). Records
-		 *        the touched node in @p hit; returns the subtree's new root.
+		 *        so finding and placing share one root-to-leaf walk). Returns
+		 *        the subtree's new root and the touched node by value.
 		 */
 		template<typename Update>
 			requires update_function<Update, Value>
-		uint32 upsert(uint32 t, Key &key, Update &f, uint32 &hit) {
+		std::pair<uint32, uint32> upsert(uint32 t, Key &key, Update &f) {
 			if (t == 0) {
 				uint32 const nid = pool_->make(std::move(key));
 				Value const fresh{};
 				pool_->nodes[nid].value = std::invoke(f, fresh);
 				pool_->pull(nid);
-				hit = nid;
-				return nid;
+				return {nid, nid};
 			}
 			if (pool_->compare_keys(key, pool_->nodes[t].key)) {
-				uint32 const l = upsert(pool_->nodes[t].left, key, f, hit);
+				auto const result = upsert(pool_->nodes[t].left, key, f);
+				uint32 const l = result.first;
 				if (pool_->priority(l) > pool_->priority(t)) { // l was just placed: rotate right
 					pool_->rebind_left(t, pool_->nodes[l].right);
-					return pool_->rebind_right(l, t);
+					return {pool_->rebind_right(l, t), result.second};
 				}
-				return pool_->rebind_left(t, l);
+				return {pool_->rebind_left(t, l), result.second};
 			}
 			if (pool_->compare_keys(pool_->nodes[t].key, key)) {
-				uint32 const r = upsert(pool_->nodes[t].right, key, f, hit);
+				auto const result = upsert(pool_->nodes[t].right, key, f);
+				uint32 const r = result.first;
 				if (pool_->priority(r) > pool_->priority(t)) { // mirror: rotate left
 					pool_->rebind_right(t, pool_->nodes[r].left);
-					return pool_->rebind_left(r, t);
+					return {pool_->rebind_left(r, t), result.second};
 				}
-				return pool_->rebind_right(t, r);
+				return {pool_->rebind_right(t, r), result.second};
 			}
 			pool_->nodes[t].value = std::invoke(f, std::as_const(pool_->nodes[t].value));
 			if constexpr (has_op) pool_->pull(t);
-			hit = t;
-			return t;
+			return {t, t};
 		}
 
 		// Union of two subtrees; `a_wins` says whose value survives a duplicate

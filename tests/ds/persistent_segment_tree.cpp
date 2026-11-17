@@ -168,9 +168,9 @@ TEST_CASE("persistent_segment_tree: range constructor forwarding rule", "[persis
 	REQUIRE(std::ranges::all_of(vals, [](move_probe const &p) { return p.v == move_probe::sentinel; }));
 
 	// a sized, non-borrowed rvalue view over the caller's container: copied too
-	atl::persistent_segment_tree strided(vals | std::views::stride(1), move_probe(0), op);
+	atl::persistent_segment_tree transformed(vals | std::views::transform([](move_probe &p) -> move_probe & { return p; }), move_probe(0), op);
 	REQUIRE(std::ranges::all_of(vals, [](move_probe const &p) { return p.v == move_probe::sentinel; }));
-	REQUIRE(strided.at(5).v == move_probe::sentinel);
+	REQUIRE(transformed.at(5).v == move_probe::sentinel);
 
 	move_probe::reset();
 	atl::persistent_segment_tree moved(std::move(vals), move_probe(0), op);

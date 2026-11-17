@@ -123,6 +123,12 @@ namespace atl {
 				heaps_.resize(heap_count);
 			}
 
+			/** @brief Check the full-width heap id before narrowing to the stored index type. */
+			constexpr heap_id checked_heap_id(std::size_t heap) const {
+				atl_assert(heap < heaps_.size());
+				return static_cast<heap_id>(heap);
+			}
+
 			/** @pre `heap < heap_count()` (asserted) */
 			constexpr heap_record &record(heap_id heap) {
 				atl_assert(heap < heaps_.size());
@@ -220,10 +226,21 @@ namespace atl {
 
 		struct node {
 			T value;
-			[[no_unique_address]] tag_type tag{};
+			// MSVC needs its vendor spelling to retain the empty-member layout.
+#ifdef _MSC_VER
+			[[msvc::no_unique_address]]
+#else
+			[[no_unique_address]]
+#endif
+			tag_type tag{};
 			uint32 child = 0, sibling = 0;
 			/** @brief The parent if this is a first child, else the preceding sibling; 0 for a root. */
-			[[no_unique_address]] std::conditional_t<has_handles, uint32, detail::no_heap_link> prev{};
+#ifdef _MSC_VER
+			[[msvc::no_unique_address]]
+#else
+			[[no_unique_address]]
+#endif
+			std::conditional_t<has_handles, uint32, detail::no_heap_link> prev{};
 		};
 
 		/** @brief The node without a lazy add or handles: what `node` must not outgrow then. */

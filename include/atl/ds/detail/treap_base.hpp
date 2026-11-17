@@ -125,11 +125,13 @@ namespace atl::detail {
 			if (t == 0) return {0, 0};
 			t = s.push(t);
 			if (std::invoke(goes_left, s, t)) {
-				auto [m, r] = split(s, s.right(t), goes_left);
-				return {rebind_right(s, t, m), r};
+				auto const parts = split(s, s.right(t), goes_left);
+				uint32 const middle = parts.first, right = parts.second;
+				return {rebind_right(s, t, middle), right};
 			}
-			auto [l, m] = split(s, s.left(t), goes_left);
-			return {l, rebind_left(s, t, m)};
+			auto const parts = split(s, s.left(t), goes_left);
+			uint32 const left = parts.first, middle = parts.second;
+			return {left, rebind_left(s, t, middle)};
 		}
 
 		/**
@@ -351,10 +353,12 @@ namespace atl::detail {
 			t = s.push(t);
 			uint32 const left_size = s.size(s.left(t));
 			if (left_size < k) {
-				auto const [middle, right] = split_at(s, s.right(t), k - left_size - 1);
+				auto const parts = split_at(s, s.right(t), k - left_size - 1);
+				uint32 const middle = parts.first, right = parts.second;
 				return {rebind_right(s, t, middle), right};
 			}
-			auto const [left, middle] = split_at(s, s.left(t), k);
+			auto const parts = split_at(s, s.left(t), k);
+			uint32 const left = parts.first, middle = parts.second;
 			return {left, rebind_left(s, t, middle)};
 		}
 	};

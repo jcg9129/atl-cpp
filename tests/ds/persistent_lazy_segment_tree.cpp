@@ -189,9 +189,9 @@ TEST_CASE("persistent_lazy_segment_tree: borrowed or view ranges are copied", "[
 	};
 	atl::persistent_lazy_segment_tree spanned{std::span(vals), move_probe(0), 0, op, map, compose};
 	REQUIRE(intact());
-	atl::persistent_lazy_segment_tree strided(vals | std::views::stride(1), move_probe(0), 0, op, map, compose);
+	atl::persistent_lazy_segment_tree transformed(vals | std::views::transform([](move_probe &p) -> move_probe & { return p; }), move_probe(0), 0, op, map, compose);
 	REQUIRE(intact());
-	REQUIRE(strided.at(2).v == move_probe::sentinel);
+	REQUIRE(transformed.at(2).v == move_probe::sentinel);
 }
 
 TEST_CASE("persistent_lazy_segment_tree: rvalue overloads match the lvalue ones and leave other versions intact", "[persistent_lazy_segment_tree]") {
@@ -586,18 +586,18 @@ TEST_CASE("persistent_lazy_segment_tree_by_partial_copy: lean and whole-node cop
 					   ex::persistent_lazy_segment_tree_by_partial_copy<node, affine, op_t, map_t, comp_t, void, false>>(
 		rng, make_affine, affine_tag);
 
-	auto const add_map = [](ll f, node const &s) { return node{(s.sum + f * s.width) % mod, s.width}; };
+	auto const variant_add_map = [](ll f, node const &s) { return node{(s.sum + f * s.width) % mod, s.width}; };
 	auto const add = [](ll f, ll g) { return f + g; };
-	using add_map_t = decltype(add_map);
+	using variant_add_map_t = decltype(variant_add_map);
 	using add_t = decltype(add);
 	auto const make_add = [&]<typename Tree>(std::vector<node> const &init) {
-		return Tree(init, node{0, 0}, ll(0), sum_op, add_map, add);
+		return Tree(init, node{0, 0}, ll(0), sum_op, variant_add_map, add);
 	};
 	auto const add_tag = [](std::mt19937_64 &g) { return ll(g() % 100); };
-	variant_vs_library<atl::persistent_lazy_segment_tree<node, ll, op_t, add_map_t, add_t, atl::commutative_tags_t>,
-					   ex::persistent_lazy_segment_tree_by_partial_copy<node, ll, op_t, add_map_t, add_t, atl::commutative_tags_t, true>>(
+	variant_vs_library<atl::persistent_lazy_segment_tree<node, ll, op_t, variant_add_map_t, add_t, atl::commutative_tags_t>,
+					   ex::persistent_lazy_segment_tree_by_partial_copy<node, ll, op_t, variant_add_map_t, add_t, atl::commutative_tags_t, true>>(
 		rng, make_add, add_tag);
-	variant_vs_library<atl::persistent_lazy_segment_tree<node, ll, op_t, add_map_t, add_t, atl::commutative_tags_t>,
-					   ex::persistent_lazy_segment_tree_by_partial_copy<node, ll, op_t, add_map_t, add_t, atl::commutative_tags_t, false>>(
+	variant_vs_library<atl::persistent_lazy_segment_tree<node, ll, op_t, variant_add_map_t, add_t, atl::commutative_tags_t>,
+					   ex::persistent_lazy_segment_tree_by_partial_copy<node, ll, op_t, variant_add_map_t, add_t, atl::commutative_tags_t, false>>(
 		rng, make_add, add_tag);
 }

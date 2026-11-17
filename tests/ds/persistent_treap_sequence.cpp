@@ -3,9 +3,12 @@
 #include <catch2/catch.hpp>
 #include <concepts>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <random>
+#include <ranges>
+#include <sstream>
 #include <utility>
 #include <vector>
 #include "../expect_abort.hpp"
@@ -496,4 +499,14 @@ TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and
 	REQUIRE(a.size() == ref.size() + 1);
 	auto c = std::move(a).erase(0);
 	REQUIRE(c.size() == ref.size());
+}
+
+TEST_CASE("persistent_treap_sequence: sized input ranges can have move-only iterators", "[persistent_treap_sequence]") {
+	std::istringstream source("1 2 3 4 5");
+	auto input = std::views::istream<int>(source);
+	static_assert(!std::copy_constructible<decltype(input.begin())>);
+	auto values = std::ranges::subrange(input.begin(), std::default_sentinel, std::size_t(5));
+	atl::persistent_treap_sequence<int> tree(std::move(values));
+	REQUIRE(tree.size() == 5);
+	for (std::size_t i = 0; i < tree.size(); ++i) REQUIRE(tree.at(i) == int(i + 1));
 }

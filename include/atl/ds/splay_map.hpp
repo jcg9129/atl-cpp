@@ -721,6 +721,7 @@ namespace atl {
 			 * @brief Replace the value at @p key by `f(value)` (map tier), inserting
 			 *        `f(Value{})` when @p key is absent — `m[k] += d` in one
 			 *        descent. Returns the new value.
+			 * @param key Key to update, or insert when absent.
 			 * @param f Invoked exactly once.
 			 * @complexity amortized O(log n)
 			 */

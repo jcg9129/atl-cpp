@@ -386,7 +386,7 @@ namespace atl {
 			handle extract_tail(trie t, bool is_strict = true) {
 				if (t.size == 0) return make_handle(0, 0, 0, 0, is_strict);
 				uint32 id = t.root;
-				for (uint32 h = t.height; h > 0; --h) id = branches[id].child[branches[id].count - 1];
+				for (std::size_t h = t.height; h > 0; --h) id = branches[id].child[branches[id].count - 1];
 				uint32 c = leaves[id].count;
 				if (t.size == c) return make_handle(0, id, t.size, 0, is_strict);
 				trie tt = take(t, t.size - c);
@@ -491,13 +491,14 @@ namespace atl {
 			 *        push_back spill.
 			 */
 			std::pair<uint32, uint32> push_leaf(uint32 root, std::size_t height, uint32 tc, uint32 leafid) {
+				atl_assert(height < (std::numeric_limits<uint32>::max)());
 				if (tc == 0) return {leafid, 0};
-				uint32 leaf_no = tc / Radix;
+				uint32 leaf_no = tc / uint32(Radix);
 				if (uint64(leaf_no) == (uint64(1) << (radix::bits * height))) {
 					uint32 kids[2] = {root, build_spine(height, leafid)};
-					return {new_branch(kids, 2, height + 1), height + 1};
+					return {new_branch(kids, 2, height + 1), uint32(height + 1)};
 				}
-				return {append_leaf(root, height, leaf_no, leafid), height};
+				return {append_leaf(root, height, leaf_no, leafid), uint32(height)};
 			}
 
 			/**
@@ -515,7 +516,7 @@ namespace atl {
 					return make_handle(v.root, leaves.make(std::move(nd)), v.size + 1, v.height, v.is_strict);
 				}
 				if (v.is_strict) {
-					auto [nr, nh] = push_leaf(v.root, v.height, v.size - Radix, v.tail);
+					auto [nr, nh] = push_leaf(v.root, v.height, v.size - uint32(Radix), v.tail);
 					return make_handle(nr, new_singleton_leaf(std::move(x)), v.size + 1, nh, true);
 				}
 				trie t = trie_concat(trie_of(v), tail_trie(v));
@@ -746,15 +747,16 @@ namespace atl {
 			 *        growing a new root when the trie is full; returns {root, height}.
 			 */
 			std::pair<uint32, uint32> push_leaf(uint32 root, std::size_t height, uint32 t, uint32 leafid, int32 ver) {
+				atl_assert(height < (std::numeric_limits<uint32>::max)());
 				if (t == 0) return {leafid, 0};
-				uint32 leaf_no = t / Radix;
+				uint32 leaf_no = t / uint32(Radix);
 				if (uint64(leaf_no) == (uint64(1) << (radix::bits * height))) {
 					uint32 n = new_branch();
 					branches[n].child[0] = root;
 					branches[n].child[1] = build_path(height, leafid);
-					return {n, height + 1};
+					return {n, uint32(height + 1)};
 				}
-				return {insert_leaf(root, height, leaf_no, leafid, ver), height};
+				return {insert_leaf(root, height, leaf_no, leafid, ver), uint32(height)};
 			}
 
 			/**
@@ -809,12 +811,12 @@ namespace atl {
 				uint32 tc = trie_count<Radix>(v.size), ts = v.size - tc;
 				if (ts > 1) return {v.root, v.tail, v.size - 1, v.height, t};
 				if (tc == 0) return {0, 0, 0, 0, t};
-				uint32 num_leaves = tc / Radix;
+				uint32 num_leaves = tc / uint32(Radix);
 				uint32 newtail = leaf_at(v.root, v.height, num_leaves - 1, v.version);
 				if (num_leaves == 1) return {0, newtail, v.size - 1, 0, t};
 				uint32 nr = remove_leaf(v.root, v.height, num_leaves - 1, t, v.version);
 				std::size_t nh = v.height, target = 0;
-				for (uint32 cap = 1; cap < num_leaves - 1; cap *= Radix) ++target;
+				for (uint32 cap = 1; cap < num_leaves - 1; cap *= uint32(Radix)) ++target;
 				while (nh > target) nr = branch_read(nr, 0, t), --nh;
 				return {nr, newtail, v.size - 1, nh, t};
 			}
@@ -850,7 +852,7 @@ namespace atl {
 				uint32 n = uint32(std::ranges::size(values));
 				high_water = n;
 				if (n == 0) return {};
-				uint32 ts = ((n - 1) % Radix) + 1, trie_n = n - ts;
+				uint32 ts = ((n - 1) % uint32(Radix)) + 1, trie_n = n - ts;
 				auto it = std::ranges::begin(values);
 				std::vector<uint32> below;
 				for (uint32 done = 0; done < trie_n;) {

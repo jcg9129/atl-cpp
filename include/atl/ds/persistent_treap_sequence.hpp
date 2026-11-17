@@ -280,14 +280,16 @@ namespace atl {
 				nd.tag = tag_identity;
 				uint32 const ls = nodes[nd.left].size;
 				if (k <= ls) {
-					auto const [a, b] = split_at_tagged(nd.left, k, down, is_down_live);
-					nd.left = b;
+					auto const parts = split_at_tagged(nd.left, k, down, is_down_live);
+					uint32 const a = parts.first;
+					nd.left = parts.second;
 					nd.right = with_tag_if_live(nd.right, down, is_down_live);
 					pull_into(nd);
 					return {a, nodes.make(std::move(nd))};
 				}
-				auto const [a, b] = split_at_tagged(nd.right, k - ls - 1, down, is_down_live);
-				nd.right = a;
+				auto const parts = split_at_tagged(nd.right, k - ls - 1, down, is_down_live);
+				uint32 const b = parts.second;
+				nd.right = parts.first;
 				nd.left = with_tag_if_live(nd.left, down, is_down_live);
 				pull_into(nd);
 				return {nodes.make(std::move(nd)), b};
@@ -418,17 +420,17 @@ namespace atl {
 		// balanced in expectation).
 		template<std::ranges::input_range R, std::input_iterator It>
 			requires std::constructible_from<T, detail::forwarded_element_t<R>>
-		uint32 build_tree(It &it, std::size_t count) {
-			if (count == 0) return 0;
+		std::pair<uint32, It> build_tree(It it, std::size_t count) {
+			if (count == 0) return {0, std::move(it)};
 			std::size_t const half = count / 2;
-			uint32 const l = build_tree<R>(it, half);
-			uint32 const id = pool_->make(static_cast<T>(detail::forward_element<R>(*it)));
-			++it;
-			uint32 const r = build_tree<R>(it, count - half - 1);
-			pool_->nodes[id].left = l;
-			pool_->nodes[id].right = r;
+			auto left = build_tree<R>(std::move(it), half);
+			uint32 const id = pool_->make(static_cast<T>(detail::forward_element<R>(*left.second)));
+			++left.second;
+			auto right = build_tree<R>(std::move(left.second), count - half - 1);
+			pool_->nodes[id].left = left.first;
+			pool_->nodes[id].right = right.first;
 			pool_->pull_into(pool_->nodes[id]);
-			return id;
+			return {id, std::move(right.second)};
 		}
 
 		// Balanced rebuild of a copied end-path: path[lo, hi) are the settled
@@ -544,7 +546,7 @@ namespace atl {
 		explicit persistent_treap_sequence(R &&values) : pool_(std::make_shared<pool>()) {
 			auto it = std::ranges::begin(values);
 			atl_assert(std::ranges::size(values) <= saturated);
-			root_ = build_tree<R>(it, std::ranges::size(values));
+			root_ = build_tree<R>(std::move(it), std::ranges::size(values)).first;
 		}
 
 		/**
@@ -559,7 +561,7 @@ namespace atl {
 			: pool_(std::make_shared<pool>(std::move(s_identity), detail::move_or_copy(op))) {
 			auto it = std::ranges::begin(values);
 			atl_assert(std::ranges::size(values) <= saturated);
-			root_ = build_tree<R>(it, std::ranges::size(values));
+			root_ = build_tree<R>(std::move(it), std::ranges::size(values)).first;
 		}
 
 		/** @brief From initial values with the full tag algebra. @complexity O(n) */
@@ -573,7 +575,7 @@ namespace atl {
 			: pool_(std::make_shared<pool>(std::move(s_identity), std::move(f_identity), detail::move_or_copy(op), detail::move_or_copy(mapping), detail::move_or_copy(compose))) {
 			auto it = std::ranges::begin(values);
 			atl_assert(std::ranges::size(values) <= saturated);
-			root_ = build_tree<R>(it, std::ranges::size(values));
+			root_ = build_tree<R>(std::move(it), std::ranges::size(values)).first;
 		}
 
 		/** @brief Number of elements; saturates at 2^32 - 1 (see the class notes). */
@@ -872,7 +874,7 @@ namespace atl {
 			fresh->nodes.reserve_extra(values.size());
 			persistent_treap_sequence out(std::move(fresh), 0);
 			auto it = values.begin();
-			out.root_ = out.template build_tree<std::vector<T>>(it, values.size());
+			out.root_ = out.template build_tree<std::vector<T>>(std::move(it), values.size()).first;
 			return out;
 		}
 

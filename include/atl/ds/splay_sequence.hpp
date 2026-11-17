@@ -594,12 +594,12 @@ namespace atl {
 
 			/** @brief An empty sequence (plain tier; algebra tiers start from values). @note Not constexpr (uses a shared_ptr node pool). */
 			splay_sequence_impl()
-				requires(!has_op)
+				requires(std::is_void_v<Op>)
 				: pool_(std::make_shared<pool>()) {}
 
 			/** @brief Construct @p n copies of @p fill (plain tier). @complexity O(n) @note Not constexpr (uses a shared_ptr node pool). */
 			splay_sequence_impl(std::size_t n, T fill)
-				requires(!has_op)
+				requires(std::is_void_v<Op>)
 				: pool_(std::make_shared<pool>()) {
 				auto const same = std::views::repeat(fill, n);
 				root_ = build_tree<decltype(same)>(std::ranges::begin(same), std::ranges::end(same));
@@ -607,14 +607,14 @@ namespace atl {
 
 			/** @brief From initial values (plain tier). @complexity O(n) @note Not constexpr (uses a shared_ptr node pool). */
 			template<std::ranges::sized_range R>
-				requires(!has_op && requires(detail::forwarded_element_t<R> element) { static_cast<T>(std::forward<detail::forwarded_element_t<R>>(element)); })
+				requires(std::is_void_v<Op> && requires { static_cast<T>(std::declval<detail::forwarded_element_t<R>>()); })
 			explicit splay_sequence_impl(R &&values) : pool_(std::make_shared<pool>()) {
 				root_ = build_tree<R>(std::ranges::begin(values), std::ranges::end(values));
 			}
 
 			/** @brief Construct @p n elements, all equal to @p s_identity (fold tier). @complexity O(n) @note Not constexpr (uses a shared_ptr node pool). */
 			template<typename OpArg = Op>
-				requires(has_op && !has_tags && std::same_as<OpArg, Op>)
+				requires(!std::is_void_v<Op> && std::is_void_v<F> && std::same_as<OpArg, Op>)
 			splay_sequence_impl(std::size_t n, T s_identity, std::type_identity_t<OpArg> op) : pool_(std::make_shared<pool>(detail::move_or_copy(op), slot<Mapping>{}, slot<Compose>{}, std::move(s_identity))) {
 				auto const same = std::views::repeat(pool_->element_identity, n);
 				root_ = build_tree<decltype(same)>(std::ranges::begin(same), std::ranges::end(same));
@@ -627,7 +627,7 @@ namespace atl {
 			 * @note Not constexpr (uses a shared_ptr node pool).
 			 */
 			template<std::ranges::sized_range R, typename OpArg = Op>
-				requires(has_op && !has_tags && std::same_as<OpArg, Op> && requires(detail::forwarded_element_t<R> element) { static_cast<T>(std::forward<detail::forwarded_element_t<R>>(element)); })
+				requires(!std::is_void_v<Op> && std::is_void_v<F> && std::same_as<OpArg, Op> && requires { static_cast<T>(std::declval<detail::forwarded_element_t<R>>()); })
 			splay_sequence_impl(R &&values, std::type_identity_t<T> s_identity, std::type_identity_t<OpArg> op) : pool_(std::make_shared<pool>(detail::move_or_copy(op), slot<Mapping>{}, slot<Compose>{}, std::move(s_identity))) {
 				root_ = build_tree<R>(std::ranges::begin(values), std::ranges::end(values));
 			}
@@ -637,7 +637,7 @@ namespace atl {
 			 * @note Not constexpr (uses a shared_ptr node pool).
 			 */
 			template<typename OpArg = Op, typename FArg = F, typename MapArg = Mapping, typename CompArg = Compose>
-				requires(has_tags && std::same_as<OpArg, Op> && std::same_as<FArg, F> && std::same_as<MapArg, Mapping>
+				requires(!std::is_void_v<F> && std::same_as<OpArg, Op> && std::same_as<FArg, F> && std::same_as<MapArg, Mapping>
 						 && std::same_as<CompArg, Compose>)
 			splay_sequence_impl(std::size_t n, T s_identity, std::type_identity_t<FArg> f_identity, std::type_identity_t<OpArg> op, std::type_identity_t<MapArg> mapping, std::type_identity_t<CompArg> compose)
 				: pool_(std::make_shared<pool>(detail::move_or_copy(op), detail::move_or_copy(mapping), detail::move_or_copy(compose), std::move(s_identity), std::move(f_identity))) {
@@ -652,8 +652,8 @@ namespace atl {
 			 */
 			template<std::ranges::sized_range R, typename OpArg = Op, typename FArg = F, typename MapArg = Mapping,
 					 typename CompArg = Compose>
-				requires(has_tags && std::same_as<OpArg, Op> && std::same_as<FArg, F> && std::same_as<MapArg, Mapping>
-						 && std::same_as<CompArg, Compose> && requires(detail::forwarded_element_t<R> element) { static_cast<T>(std::forward<detail::forwarded_element_t<R>>(element)); })
+				requires(!std::is_void_v<F> && std::same_as<OpArg, Op> && std::same_as<FArg, F> && std::same_as<MapArg, Mapping>
+						 && std::same_as<CompArg, Compose> && requires { static_cast<T>(std::declval<detail::forwarded_element_t<R>>()); })
 			splay_sequence_impl(R &&values, std::type_identity_t<T> s_identity, std::type_identity_t<FArg> f_identity, std::type_identity_t<OpArg> op, std::type_identity_t<MapArg> mapping,
 								std::type_identity_t<CompArg> compose)
 				: pool_(std::make_shared<pool>(detail::move_or_copy(op), detail::move_or_copy(mapping), detail::move_or_copy(compose), std::move(s_identity), std::move(f_identity))) {
@@ -1031,8 +1031,8 @@ namespace atl {
 			 detail::splay_selectable_layout Layout = detail::splay_sequence_default_layout<T, Op, F, true>>
 	using reversible_splay_sequence = splay_sequence<T, Op, F, Mapping, Compose, true, Layout>;
 
-	// Deduction guides, as treap_sequence's (always the non-reversible tier).
 	/** @brief Deduce the plain element type from a sized range. */
+	// Deduction guides, as treap_sequence's (always the non-reversible tier).
 	template<std::ranges::sized_range R>
 	splay_sequence(R &&) -> splay_sequence<std::ranges::range_value_t<R>>;
 	/** @brief Deduce the plain element type from the fill value. */
@@ -1042,7 +1042,6 @@ namespace atl {
 	template<typename T, binary_operation<T> Op>
 	splay_sequence(std::size_t, T, Op) -> splay_sequence<T, Op>;
 	/** @brief Deduces `T` from the identity; rejected if that would narrow the range's values. */
-	/** @brief Deduce the fold tier from a range, rejecting narrowing to the identity type. */
 	template<std::ranges::sized_range R, typename T, binary_operation<T> Op>
 		requires requires(std::ranges::range_value_t<R> v) { T{std::move(v)}; }
 	splay_sequence(R &&, T, Op) -> splay_sequence<T, Op>;

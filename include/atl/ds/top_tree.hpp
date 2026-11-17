@@ -1663,7 +1663,7 @@ namespace atl {
 				requires is_commutative && std::constructible_from<top_tree_impl, Args...>
 			constexpr explicit top_tree_impl(commutative_fold_t, Args &&...args) : top_tree_impl(std::forward<Args>(args)...) {}
 
-			/** @brief The forms above on the edge tier, deduced from the leading @ref atl::edge_values. */
+			/** @brief The forms above on the edge tier, deduced from the leading `atl::edge_values`. */
 			template<typename... Args>
 				requires has_edge_values && std::constructible_from<top_tree_impl, Args...>
 			constexpr explicit top_tree_impl(edge_values_t, Args &&...args) : top_tree_impl(std::forward<Args>(args)...) {}
@@ -2220,7 +2220,7 @@ namespace atl {
 	 * @tparam MapPath        `Path(Tag const &spine, Tag const &light, Path const &)`.
 	 * @tparam MapPoint       `Point(Tag const &, Point const &)`.
 	 * @tparam Compose        `Tag(Tag const &f, Tag const &g)`, g first.
-	 * @tparam ValuePlacement `void` (vertex values) or @ref atl::edge_values_t.
+	 * @tparam ValuePlacement `void` (vertex values) or `atl::edge_values_t`.
 	 */
 	template<typename Value, typename Path, typename Point, typename Compress, typename Rake, typename AddVertex,
 			 typename AddEdge, typename Reverse = void, typename Tag = void, typename Mapping = void, typename MapPath = void,
@@ -2339,7 +2339,7 @@ namespace atl {
 		-> top_tree<std::ranges::range_value_t<R>, Path, Point, Compress, Rake, AddVertex, AddEdge, commutative_fold_t, Tag,
 					Mapping, MapPath, MapPoint, Compose>;
 
-	/** @brief The edge tier, deduced from the leading @ref atl::edge_values argument. */
+	/** @brief The edge tier, deduced from the leading `atl::edge_values` argument. */
 	template<std::copyable Value, std::copyable Path, std::copyable Point, typename Compress, typename Rake, typename AddVertex,
 			 typename AddEdge>
 	top_tree(edge_values_t, std::size_t, Value, Path, Point, Compress, Rake, AddVertex, AddEdge)

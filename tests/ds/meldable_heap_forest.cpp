@@ -270,6 +270,18 @@ namespace {
 			Forest<int64, std::less<>, void, add, compose> forest(2);
 			forest.meld(0, 2);
 		}));
+		using forest_type = Forest<int64, std::less<>, void, add, compose>;
+		if constexpr (sizeof(std::size_t) > sizeof(uint32) && !std::same_as<forest_type, atl::meldable_heap_forest<int64>>) {
+			std::size_t const invalid = std::size_t((std::numeric_limits<uint32>::max)()) + std::size_t(1);
+			CHECK(atl_test::aborts([] {
+				forest_type forest(1);
+				forest.push(invalid, 7);
+			}));
+			CHECK(atl_test::aborts([] {
+				forest_type forest(1);
+				forest.meld(0, invalid);
+			}));
+		}
 	}
 
 	template<template<typename, typename, typename, typename, typename> typename Forest, bool HasLambdaShift = true>
@@ -370,12 +382,12 @@ namespace {
 				int64 const step_size = int64(rng() % std::uint64_t(range / 2 + 1));
 				item promoted{element.key + step_size, element.label};
 				if (comp(promoted, element)) promoted.key = element.key - step_size;
-				forest.promote(h, x, promoted);
+				forest.promote(uint32(h), x, promoted);
 				element = promoted;
 			} else {
 				if (oracle[h].empty()) continue;
 				std::size_t const i = rng() % oracle[h].size();
-				REQUIRE(is_identical(forest.erase(h, oracle[h][i].first), oracle[h][i].second));
+				REQUIRE(is_identical(forest.erase(uint32(h), oracle[h][i].first), oracle[h][i].second));
 				oracle[h].erase(oracle[h].begin() + std::ptrdiff_t(i));
 			}
 			check_heap(h);
@@ -469,11 +481,11 @@ TEST_CASE("pairing heap forest: release empties a heap and recycles its nodes", 
 	using heap_forest = atl::meldable_heap_forest<int64, std::less<>, int64>;
 	auto const seed = GENERATE(take(12, random(atl::uint64(0), (std::numeric_limits<atl::uint64>::max)())));
 	std::mt19937_64 rng(seed);
-	std::size_t const heaps = 1 + seed % 6;
+	heap_forest::heap_id const heaps = heap_forest::heap_id(1 + seed % 6);
 	heap_forest forest(heaps);
 	std::vector<std::multiset<int64>> oracle(heaps);
 	for (int step = 0; step < 1500; ++step) {
-		std::size_t const a = rng() % heaps, b = rng() % heaps;
+		heap_forest::heap_id const a = heap_forest::heap_id(rng() % heaps), b = heap_forest::heap_id(rng() % heaps);
 		switch (rng() % 7) {
 		case 0:
 		case 1:

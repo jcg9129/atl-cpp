@@ -221,15 +221,15 @@ namespace atl::experimental {
 
 		/** @brief The comp-largest element of heap `heap`. @pre the heap is not empty (asserted) */
 		constexpr T const &top(std::size_t heap) const {
-			atl_assert(record(heap).size != 0);
-			return at(record(heap).root).value;
+			atl_assert(record(checked_heap_id(heap)).size != 0);
+			return at(record(checked_heap_id(heap)).root).value;
 		}
 
 		/** @brief Insert `T(args...)` into heap `heap`; returns its node id (no promote / erase here). @complexity O(log n) */
 		template<typename... Args>
 			requires std::constructible_from<T, Args...>
 		constexpr uint32 emplace(std::size_t heap, Args &&...args) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			uint32 const x = allocate(std::forward<Args>(args)...);
 			h.root = merge(h.root, x);
 			++h.size;
@@ -241,7 +241,7 @@ namespace atl::experimental {
 
 		/** @brief Remove and return the top of heap `heap`. @pre not empty (asserted) @complexity O(log n) */
 		constexpr T pop(std::size_t heap) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			atl_assert(h.size != 0);
 			uint32 const x = h.root;
 			push_down(x);
@@ -256,8 +256,8 @@ namespace atl::experimental {
 		/** @brief Move every element of `from` into `into`; `from` is left empty (a no-op when they are the same heap). */
 		constexpr void meld(std::size_t into, std::size_t from) {
 			if (into == from) return;
-			atl::detail::heap_record &a = record(into);
-			atl::detail::heap_record &b = record(from);
+			atl::detail::heap_record &a = record(checked_heap_id(into));
+			atl::detail::heap_record &b = record(checked_heap_id(from));
 			a.root = merge(a.root, b.root);
 			a.size += b.size;
 			b = {};
@@ -267,7 +267,7 @@ namespace atl::experimental {
 		constexpr void add_to_all(std::size_t heap, tag_type const &shift)
 			requires has_shift
 		{
-			uint32 const x = record(heap).root;
+			uint32 const x = record(checked_heap_id(heap)).root;
 			if (x != 0) apply(x, shift);
 		}
 	};
@@ -409,15 +409,15 @@ namespace atl::experimental {
 
 		/** @brief The comp-largest element of heap `heap`. @pre the heap is not empty (asserted) */
 		constexpr T const &top(std::size_t heap) const {
-			atl_assert(record(heap).size != 0);
-			return at(record(heap).root).value;
+			atl_assert(record(checked_heap_id(heap)).size != 0);
+			return at(record(checked_heap_id(heap)).root).value;
 		}
 
 		/** @brief Insert `T(args...)` into heap `heap`; returns its node id (no promote / erase here). @complexity O(log n) amortized */
 		template<typename... Args>
 			requires std::constructible_from<T, Args...>
 		constexpr uint32 emplace(std::size_t heap, Args &&...args) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			uint32 const x = allocate(std::forward<Args>(args)...);
 			h.root = merge(h.root, x);
 			++h.size;
@@ -429,7 +429,7 @@ namespace atl::experimental {
 
 		/** @brief Remove and return the top of heap `heap`. @pre not empty (asserted) @complexity O(log n) amortized */
 		constexpr T pop(std::size_t heap) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			atl_assert(h.size != 0);
 			uint32 const x = h.root;
 			push_down(x);
@@ -444,8 +444,8 @@ namespace atl::experimental {
 		/** @brief Move every element of `from` into `into`; `from` is left empty (a no-op when they are the same heap). */
 		constexpr void meld(std::size_t into, std::size_t from) {
 			if (into == from) return;
-			atl::detail::heap_record &a = record(into);
-			atl::detail::heap_record &b = record(from);
+			atl::detail::heap_record &a = record(checked_heap_id(into));
+			atl::detail::heap_record &b = record(checked_heap_id(from));
 			a.root = merge(a.root, b.root);
 			a.size += b.size;
 			b = {};
@@ -455,7 +455,7 @@ namespace atl::experimental {
 		constexpr void add_to_all(std::size_t heap, tag_type const &shift)
 			requires has_shift
 		{
-			uint32 const x = record(heap).root;
+			uint32 const x = record(checked_heap_id(heap)).root;
 			if (x != 0) apply(x, shift);
 		}
 	};
@@ -626,15 +626,15 @@ namespace atl::experimental {
 
 		/** @brief The comp-largest element of heap `heap`. @pre the heap is not empty (asserted) */
 		constexpr T const &top(std::size_t heap) const {
-			atl_assert(record(heap).size != 0);
-			return at(record(heap).root).value;
+			atl_assert(record(checked_heap_id(heap)).size != 0);
+			return at(record(checked_heap_id(heap)).root).value;
 		}
 
 		/** @brief Insert `T(args...)` into heap `heap`; returns its node id (no promote / erase here). @complexity O(1) */
 		template<typename... Args>
 			requires std::constructible_from<T, Args...>
 		constexpr uint32 emplace(std::size_t heap, Args &&...args) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			uint32 const x = allocate(std::forward<Args>(args)...);
 			h.root = meld_roots(h.root, x);
 			++h.size;
@@ -646,7 +646,7 @@ namespace atl::experimental {
 
 		/** @brief Remove and return the top of heap `heap`. @pre not empty (asserted) @complexity O(log n) amortized */
 		constexpr T pop(std::size_t heap) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			atl_assert(h.size != 0);
 			uint32 const x = h.root;
 			push_down(x);
@@ -663,8 +663,8 @@ namespace atl::experimental {
 		/** @brief Move every element of `from` into `into`; `from` is left empty (a no-op when they are the same heap). @complexity O(1) */
 		constexpr void meld(std::size_t into, std::size_t from) {
 			if (into == from) return;
-			atl::detail::heap_record &a = record(into);
-			atl::detail::heap_record &b = record(from);
+			atl::detail::heap_record &a = record(checked_heap_id(into));
+			atl::detail::heap_record &b = record(checked_heap_id(from));
 			a.root = meld_roots(a.root, b.root);
 			a.size += b.size;
 			b = {};
@@ -674,7 +674,7 @@ namespace atl::experimental {
 		constexpr void add_to_all(std::size_t heap, tag_type const &shift)
 			requires has_shift
 		{
-			uint32 const x = record(heap).root;
+			uint32 const x = record(checked_heap_id(heap)).root;
 			if (x != 0) apply(x, shift);
 		}
 	};
@@ -830,15 +830,15 @@ namespace atl::experimental {
 
 		/** @brief The comp-largest element of heap `heap`. @pre the heap is not empty (asserted) */
 		constexpr T const &top(std::size_t heap) const {
-			atl_assert(record(heap).size != 0);
-			return value(record(heap).root);
+			atl_assert(record(checked_heap_id(heap)).size != 0);
+			return value(record(checked_heap_id(heap)).root);
 		}
 
 		/** @brief Insert `T(args...)` into heap `heap`; returns its node id (no promote / erase here). @complexity O(1) */
 		template<typename... Args>
 			requires std::constructible_from<T, Args...>
 		constexpr uint32 emplace(std::size_t heap, Args &&...args) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			uint32 const x = allocate(std::forward<Args>(args)...);
 			h.root = meld_roots(h.root, x);
 			++h.size;
@@ -850,7 +850,7 @@ namespace atl::experimental {
 
 		/** @brief Remove and return the top of heap `heap`. @pre not empty (asserted) @complexity O(log n) amortized */
 		constexpr T pop(std::size_t heap) {
-			atl::detail::heap_record &h = record(heap);
+			atl::detail::heap_record &h = record(checked_heap_id(heap));
 			atl_assert(h.size != 0);
 			uint32 const x = h.root;
 			push_down(x);
@@ -865,8 +865,8 @@ namespace atl::experimental {
 		/** @brief Move every element of `from` into `into`; `from` is left empty (a no-op when they are the same heap). @complexity O(1) */
 		constexpr void meld(std::size_t into, std::size_t from) {
 			if (into == from) return;
-			atl::detail::heap_record &a = record(into);
-			atl::detail::heap_record &b = record(from);
+			atl::detail::heap_record &a = record(checked_heap_id(into));
+			atl::detail::heap_record &b = record(checked_heap_id(from));
 			a.root = meld_roots(a.root, b.root);
 			a.size += b.size;
 			b = {};
@@ -876,7 +876,7 @@ namespace atl::experimental {
 		constexpr void add_to_all(std::size_t heap, tag_type const &shift)
 			requires has_shift
 		{
-			uint32 const x = record(heap).root;
+			uint32 const x = record(checked_heap_id(heap)).root;
 			if (x != 0) apply(x, shift);
 		}
 	};

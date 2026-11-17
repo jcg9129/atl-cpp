@@ -426,7 +426,6 @@ namespace atl {
 	persistent_lazy_segment_tree(R &&, Value, Tag, Op, Mapping, Compose)
 		-> persistent_lazy_segment_tree<Value, Tag, Op, Mapping, Compose>;
 	/** @brief The commutative mode, deduced from the leading @ref atl::commutative_tags argument. */
-	/** @brief Deduce the container types from constructor arguments and their algebra. */
 	template<std::copyable Value, std::copyable Tag, binary_operation<Value> Op, action<Tag, Value> Mapping, binary_operation<Tag> Compose>
 	persistent_lazy_segment_tree(commutative_tags_t, std::size_t, Value, Tag, Op, Mapping, Compose)
 		-> persistent_lazy_segment_tree<Value, Tag, Op, Mapping, Compose, commutative_tags_t>;

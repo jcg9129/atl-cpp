@@ -16,19 +16,19 @@ namespace atl {
 	 *        @ref atl::top_tree : values live on edges, given to `link(u, v, w)`, and
 	 *        path folds and updates cover the edges of the path. As the
 	 *        `ValuePlacement` template argument, or as the first constructor
-	 *        argument (@ref atl::edge_values), which deduces it.
+	 *        argument (`atl::edge_values`), which deduces it.
 	 */
 	struct edge_values_t {
 		/** @brief Construct the edge-value selector. */
 		explicit edge_values_t() = default;
 	};
 
-	/** @brief The @ref atl::edge_values_t tag value. */
+	/** @brief The `atl::edge_values_t` tag value. */
 	inline constexpr edge_values_t edge_values{};
 
 	/**
 	 * @brief Where a dynamic forest keeps its values: `void` (on vertices;
-	 *        the default) or @ref atl::edge_values_t (on edges).
+	 *        the default) or `atl::edge_values_t` (on edges).
 	 */
 	template<typename ValuePlacement>
 	concept value_placement = std::is_void_v<ValuePlacement> || std::same_as<ValuePlacement, edge_values_t>;

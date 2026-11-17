@@ -191,7 +191,7 @@ TEST_CASE("subtree_link_cut_tree benchmarks: component_size churn", "[subtree_li
 																														t.assign_parents(parents);
 																														uint64 acc = 0;
 																														for (std::size_t i = 0; i < n; ++i) {
-																															uint32 const u = w.x[i] % n, v = w.y[i] % n;
+																															uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 																															switch (w.op[i] % 3) {
 																															case 0:
 																																if (t.parent(u) != none) t.cut_from_parent(u);
@@ -223,7 +223,7 @@ TEST_CASE("subtree_link_cut_tree benchmarks: path-sum churn against link_cut_tre
 		t.assign_parents(parents);
 		ll acc = 0;
 		for (std::size_t i = 0; i < n; ++i) {
-			uint32 const u = w.x[i] % n, v = w.y[i] % n;
+			uint32 const u = uint32(w.x[i] % n), v = uint32(w.y[i] % n);
 			switch (w.op[i] % 3) {
 			case 0:
 				if (t.parent(u) != none) t.cut_from_parent(u);

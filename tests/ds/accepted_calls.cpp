@@ -513,7 +513,7 @@ TEST_CASE("segment family: member pointers follow the callable concepts", "[segm
 #include <atl/ds/splay_sequence.hpp>
 #include <atl/ds/treap_map.hpp>
 #include <atl/ds/treap_sequence.hpp>
-#include "ds/move_probe.hpp"
+#include "move_probe.hpp"
 
 namespace treap_splay_accepted {
 	enum class element : int { one = 1,
