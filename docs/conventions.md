@@ -143,6 +143,9 @@ Document new conventions here alongside their technical rationale.
 - `atl::forward_like`, never `std::forward_like`: older standard libraries
   fail at parse time. Toolchain compatibility gaps get a shim rather than
   a NOLINT or a reversion.
+- Constexpr code that MSVC must evaluate never passes a caller's local by
+  reference down a recursion: MSVC's constant evaluation reports it as
+  uninitialized (valid on GCC and Clang). Take such accumulators by value.
 - No code copied from attribution-licensed sources (MIT/BSD/Apache/CC-BY
   included): cite the reference in a comment, implement independently.
 

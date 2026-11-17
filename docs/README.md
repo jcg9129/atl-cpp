@@ -25,3 +25,15 @@ where to put guide prose, executable examples and API comments.
 - [Weighted disjoint sets](weighted-dsu.md): `weighted_dsu` and `rollback_weighted_dsu` with group potentials.
 - [Persistent arrays](persistent-array.md): `persistent_array` and `semi_persistent_array`.
 - [Time divide and conquer](time-divide-and-conquer.md): offline add/remove over time with `time_divide_and_conquer`.
+- [Fenwick trees](fenwick-tree.md): point updates and prefix aggregates in one or more dimensions.
+- [Difference Fenwick](difference-fenwick.md): commutative group range updates and point reads.
+- [Sparse tables](sparse-table.md): constant-time folds of static data.
+- [Range minimum queries](rmq.md): borrowed arrays and leftmost argmin.
+- [Wavelet matrix](wavelet-matrix.md): static range order statistics.
+- [Li Chao trees](li-chao-tree.md): line and segment envelopes over fixed or online domains.
+- [Segment tree](segment-tree.md): point updates and range folds.
+- [Lazy segment tree](lazy-segment-tree.md): range actions and range folds.
+- [Dual segment tree](dual-segment-tree.md): range actions and point reads.
+- [Segment tree beats](segment-tree-beats.md): conditional range actions.
+- [Dynamic segment tree](dynamic-segment-tree.md): sparse point updates and folds.
+- [Dynamic lazy segment tree](dynamic-lazy-segment-tree.md): sparse range actions and folds.

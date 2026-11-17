@@ -601,3 +601,139 @@ TEST_CASE("approved interfaces: experimental weighted constructors store explici
 		REQUIRE(!dsu->same(0, 1));
 	}
 }
+
+#include <atl/ds/binary_indexed_tree.hpp>
+#include <atl/ds/difference_fenwick.hpp>
+#include <atl/ds/direct_rmq.hpp>
+#include <atl/ds/dynamic_li_chao_tree.hpp>
+#include <atl/ds/li_chao_tree.hpp>
+#include <atl/ds/sparse_table.hpp>
+#include <atl/ds/wavelet_matrix.hpp>
+#include <forward_list>
+
+namespace ds2_boundaries {
+	struct not_callable {};
+
+	struct bad_result {
+		void operator()(int, int) const {}
+	};
+
+	template<typename Op>
+	concept fenwick_operation = requires { typename atl::binary_indexed_tree<int, 1, Op>; };
+	template<typename Op>
+	concept sparse_operation = requires { typename atl::sparse_table<int, Op>; typename atl::disjoint_sparse_table<int, Op>; };
+	template<typename Op>
+	concept difference_operation = requires { typename atl::difference_fenwick<int, Op>; };
+	template<typename Function>
+	concept envelope = requires { typename atl::li_chao_tree<int, std::less<>, Function>; typename atl::dynamic_li_chao_tree<int, std::less<>, Function>; };
+	template<typename Tree, typename Predicate>
+	concept can_search = requires(Tree const &tree, Predicate pred) { tree.max_right(pred); };
+
+	struct rvalue_number {
+		constexpr operator unsigned() && { return 1; }
+	};
+
+	using rvalue_numbers = std::array<rvalue_number, 2>;
+	static_assert(!std::constructible_from<atl::binary_indexed_tree<unsigned>, std::array<std::size_t, 1>, rvalue_numbers &>);
+	static_assert(!std::constructible_from<atl::wavelet_matrix<unsigned>, rvalue_numbers &>);
+	static_assert(!std::constructible_from<atl::binary_indexed_tree<int>, std::array<std::size_t, 1>, std::vector<std::string>>);
+
+	struct nonconst_size_range {
+		int values[2]{};
+
+		constexpr int *begin() { return values; }
+
+		constexpr int *end() { return values + 2; }
+
+		constexpr std::size_t size() { return 2; }
+	};
+
+	static_assert(std::ranges::sized_range<nonconst_size_range>);
+	static_assert(!std::constructible_from<atl::binary_indexed_tree<int>, nonconst_size_range &>);
+	using mutable_rows = decltype(std::views::iota(0, 2) | std::views::transform([offset = 0](int x) mutable { return std::array{x + offset, x}; }));
+	static_assert(!std::constructible_from<atl::binary_indexed_tree<int, 2>, mutable_rows &>);
+
+	static_assert(!fenwick_operation<not_callable> && !fenwick_operation<bad_result>);
+	static_assert(!sparse_operation<not_callable> && !sparse_operation<bad_result>);
+	static_assert(!difference_operation<not_callable> && !difference_operation<bad_result>);
+	static_assert(!envelope<not_callable>);
+	static_assert(!can_search<atl::binary_indexed_tree<int>, not_callable>);
+	static_assert(!std::constructible_from<atl::binary_indexed_tree<int, 2>, std::vector<std::forward_list<int>>>);
+	static_assert(!std::constructible_from<atl::binary_indexed_tree<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::sparse_table<int, std::plus<>>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::disjoint_sparse_table<int, std::plus<>>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::wavelet_matrix<unsigned>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::direct_rmq<int>, std::vector<int>>);
+	static_assert(!std::constructible_from<atl::direct_rmq<int>, std::vector<short> &>);
+	static_assert(!std::constructible_from<atl::direct_rmq<int>, std::span<int volatile>>);
+	static_assert(!atl::line_value<std::string>);
+}
+
+#include <atl/ds/dual_segment_tree.hpp>
+#include <atl/ds/dynamic_lazy_segment_tree.hpp>
+#include <atl/ds/dynamic_segment_tree.hpp>
+#include <atl/ds/lazy_segment_tree.hpp>
+#include <atl/ds/segment_tree.hpp>
+#include <atl/ds/segment_tree_beats.hpp>
+
+namespace segment_family_boundaries {
+	using dense = atl::segment_tree<int, std::plus<>>;
+	using lazy = atl::lazy_segment_tree<int, int, std::plus<>, std::plus<>, std::plus<>>;
+	using dual = atl::dual_segment_tree<int, int, std::plus<>, std::plus<>>;
+	using commuting = atl::dual_segment_tree<int, int, std::plus<>, std::plus<>, atl::commutative_tags_t>;
+	using engine = atl::segment_tree_beats<atl::beats::extremes<int>, atl::beats::clamp_add<int>>;
+	using beats = atl::beats_segment_tree<int>;
+
+	struct invalid_fill {
+		int operator()(std::size_t) const;
+		void *operator()(std::size_t, std::size_t) const;
+	};
+
+	template<typename Fill>
+	concept sparse_lazy_fill = requires { typename atl::dynamic_lazy_segment_tree<int, int, std::plus<>, std::plus<>, std::plus<>, Fill>; };
+	static_assert(!sparse_lazy_fill<invalid_fill>);
+	static_assert(!std::constructible_from<dense, std::vector<std::string>, int>);
+	static_assert(!std::constructible_from<lazy, std::vector<std::string>, int, int>);
+	static_assert(!std::constructible_from<dual, std::vector<std::string>, int>);
+	static_assert(!std::constructible_from<commuting, atl::commutative_tags_t, std::vector<std::string>, int>);
+	static_assert(!std::constructible_from<engine, std::vector<std::string>>);
+	static_assert(!std::constructible_from<engine, std::vector<std::string>, atl::beats::extremes<int>, atl::beats::clamp_add<int>>);
+	static_assert(!std::constructible_from<beats, std::vector<std::string>>);
+
+	struct bad_update {
+		void operator()(int) const;
+	};
+
+	template<typename Tree, typename Update>
+	concept can_update = requires(Tree &tree, Update update) { tree.update(0, update); };
+	static_assert(!can_update<dense, bad_update>);
+	static_assert(!can_update<atl::dynamic_segment_tree<int, std::plus<>>, bad_update>);
+}
+
+#include <atl/experimental/ds/segment_tree_beats_variants.hpp>
+
+namespace segment_family_boundaries {
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_recursive_compact_nodes<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_explicit_stack<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_fixed_clamp_add<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_three_adds<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_optional_mapping<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_unconditional_push<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_no_collapse<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_tagless_layout<int>, std::vector<std::string>>);
+	static_assert(!std::constructible_from<atl::experimental::beats_segment_tree_by_tagless_layout<int, int, atl::experimental::beats_layout::soa>, std::vector<std::string>>);
+}
+
+namespace segment_family_boundaries {
+	struct not_callable {};
+
+	template<typename Tree, typename Predicate>
+	concept can_search = requires(Tree &tree, Predicate predicate) { tree.max_right(0, predicate); };
+	template<typename Tree, typename Rule>
+	concept can_derive = requires(Tree &tree, Rule rule) { tree.apply_derived(0, 1, rule); };
+	static_assert(!can_search<dense, not_callable>);
+	static_assert(!can_search<lazy, not_callable>);
+	static_assert(!can_search<engine, not_callable>);
+	static_assert(!can_search<beats, not_callable>);
+	static_assert(!can_derive<engine, not_callable>);
+}
