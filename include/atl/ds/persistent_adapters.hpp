@@ -258,9 +258,8 @@ namespace atl {
 		 */
 		[[nodiscard]] T const &back() const {
 			atl_assert(count_ > 0);
-			std::size_t cap = data_.size(), idx = head_ + count_ - 1;
-			if (idx >= cap) idx -= cap;
-			return data_[idx];
+			std::size_t const gap = data_.size() - head_, last = count_ - 1;
+			return data_[last >= gap ? last - gap : head_ + last];
 		}
 
 		/**

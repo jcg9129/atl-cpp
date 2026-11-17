@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <span>
 #include <string>
 #include <string_view>
@@ -917,7 +918,9 @@ namespace treap_proof {
 
 	static_assert([] {
 		using base = atl::detail::treap_base;
-		array_store store;
+		// On the heap: MSVC rejects a caller's local passed by reference down a recursion (docs/conventions.md).
+		auto const owned = std::make_unique<array_store>();
+		array_store &store = *owned;
 		constexpr std::array<atl::uint32, 8> priorities{5, 1, 7, 3, 8, 2, 6, 4};
 		atl::uint32 root = 0;
 		for (atl::uint32 id = 1; id <= 8; ++id) {
@@ -939,7 +942,8 @@ namespace treap_proof {
 		// Every cut on both spine directions exercises the recursive result's two fields.
 		for (bool is_left_spine : std::array{false, true}) {
 			for (atl::uint32 k = 0; k <= 8; ++k) {
-				array_store store;
+				auto const owned = std::make_unique<array_store>();
+				array_store &store = *owned;
 				atl::uint32 root = 0;
 				for (atl::uint32 id = 1; id <= 8; ++id) {
 					store.nodes[id] = {0, 0, 1, is_left_spine ? id : 9 - id};

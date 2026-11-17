@@ -529,14 +529,16 @@ namespace atl::experimental {
 		template<typename... Args>
 			requires std::constructible_from<T, Args...>
 		constexpr uint32 allocate(Args &&...args) {
-			if (IsRecycling && free_ != 0) {
-				uint32 const x = free_;
-				node &n = at(x);
-				free_ = n.child;
-				n.value = T(std::forward<Args>(args)...);
-				n.tag = shift_identity_;
-				n.child = n.sibling = 0;
-				return x;
+			if constexpr (IsRecycling) {
+				if (free_ != 0) {
+					uint32 const x = free_;
+					node &n = at(x);
+					free_ = n.child;
+					n.value = T(std::forward<Args>(args)...);
+					n.tag = shift_identity_;
+					n.child = n.sibling = 0;
+					return x;
+				}
 			}
 			atl_assert(nodes_.size() + 1 < (std::numeric_limits<uint32>::max)());
 			nodes_.push_back(node{T(std::forward<Args>(args)...), shift_identity_});
