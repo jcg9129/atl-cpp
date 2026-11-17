@@ -62,23 +62,22 @@ transactional rollback if a callable or allocation throws.
 `benchmarks/ds/dynamic_segment_tree.cpp` measures a mixed affine-composition
 stream. Materialized paths allocate a full descent per point, while the library
 compresses a subtree containing one touched position. Offline compression uses
-a dense tree. The fold comparison visits both children unconditionally.
+a dense tree; the treap map keeps only touched keys. The fold comparison visits
+both children unconditionally.
 
 Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off,
 2026-10-15. Milliseconds, plain `-O2` / `-O2 -march=native`; both also use
 `-g -DNDEBUG -std=c++23`, minimum of three run means.
 
-| workload | library | by materialized paths | by offline compression |
-|---|---:|---:|---:|
-| 500,000 mixed steps, domain 10^9 | 263 / 271 | 430 / 427 | 174 / 189 |
+| workload | library | by materialized paths | by treap map | by offline compression |
+|---|---:|---:|---:|---:|
+| 500,000 mixed steps, domain 10^9 | 263 / 271 | 430 / 427 | 604 / 633 | 174 / 189 |
 
 | 1,000,000 folds, domain 10^9 | library | by two-child fold |
 |---|---:|---:|
 | affine, lengths 1–64 | 404 / 445 | 508 / 539 |
 | int64 sum, lengths 1–64 | 360 / 400 | 404 / 421 |
 | affine, uniform ranges | 831 / 850 | 882 / 923 |
-
-The keyed-map comparison returns with that structure's page.
 
 ## Pitfalls and notes
 

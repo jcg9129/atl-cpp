@@ -1,4 +1,5 @@
 #include <atl/ds/coordinate_compression.hpp>
+#include <atl/ds/detail/algebra.hpp>
 #include <atl/ds/detail/forward_element.hpp>
 #include <atl/ds/detail/hash_table.hpp>
 #include <atl/ds/detail/hashed_child_pool.hpp>
@@ -866,3 +867,689 @@ namespace dynamic_segment_checks {
 static_assert(dynamic_segment_checks::wrapping_pending_add<signed char, long long>());
 static_assert(dynamic_segment_checks::wrapping_pending_add<long long, atl::int128>());
 static_assert(dynamic_segment_checks::wrapping_pending_add<atl::detail::software_int128, atl::detail::software_int128>());
+
+#include <atl/ds/detail/splay_layout.hpp>
+#include <atl/ds/detail/treap_base.hpp>
+#include <atl/ds/splay_engine.hpp>
+
+namespace treap_proof {
+	struct array_store {
+		struct node {
+			atl::uint32 left = 0, right = 0, size = 0, priority = 0;
+		};
+
+		std::array<node, 9> nodes{};
+		atl::uint64 draw = 0;
+		std::array<atl::uint32, 8> traversal{};
+
+		constexpr atl::uint32 left(atl::uint32 x) const { return nodes[x].left; }
+
+		constexpr atl::uint32 right(atl::uint32 x) const { return nodes[x].right; }
+
+		constexpr atl::uint32 size(atl::uint32 x) const { return nodes[x].size; }
+
+		constexpr atl::uint32 priority(atl::uint32 x) const { return nodes[x].priority; }
+
+		constexpr atl::uint32 push(atl::uint32 x) { return x; }
+
+		constexpr atl::uint32 rebind(atl::uint32 x, atl::uint32 l, atl::uint32 r) {
+			nodes[x].left = l;
+			nodes[x].right = r;
+			nodes[x].size = 1 + nodes[l].size + nodes[r].size;
+			return x;
+		}
+
+		// Return the cursor by value: recursive constexpr accumulators must not alias a caller's local.
+		constexpr std::size_t in_order(atl::uint32 x, std::size_t cursor) {
+			if (x == 0) return cursor;
+			cursor = in_order(nodes[x].left, cursor);
+			traversal[cursor++] = x;
+			return in_order(nodes[x].right, cursor);
+		}
+	};
+
+	constexpr bool is_in_order(array_store &store, atl::uint32 root, atl::uint32 first, atl::uint32 count) {
+		if (store.in_order(root, 0) != count || store.size(root) != count) return false;
+		for (atl::uint32 i = 0; i < count; ++i)
+			if (store.traversal[i] != first + i) return false;
+		return true;
+	}
+
+	static_assert([] {
+		using base = atl::detail::treap_base;
+		array_store store;
+		constexpr std::array<atl::uint32, 8> priorities{5, 1, 7, 3, 8, 2, 6, 4};
+		atl::uint32 root = 0;
+		for (atl::uint32 id = 1; id <= 8; ++id) {
+			store.nodes[id] = {0, 0, 1, priorities[id - 1]};
+			root = base::merge(store, root, id);
+		}
+		bool const is_merged = is_in_order(store, root, 1, 8);
+		auto const [a, b] = base::split_at(store, root, 3);
+		bool const is_split = is_in_order(store, a, 1, 3) && is_in_order(store, b, 4, 5);
+		auto const random_draw = [&store] { return store.draw += 0x9e3779b97f4a7c15ULL; };
+		auto const weighted = base::merge_weighted(store, a, b, std::ref(random_draw));
+		bool const is_weighted = is_in_order(store, weighted, 1, 8);
+		auto const [c, d] = base::split_at(store, weighted, 5);
+		return is_merged && is_split && is_weighted && is_in_order(store, base::merge_spines(store, c, d), 1, 8);
+	}());
+
+	static_assert([] {
+		using base = atl::detail::treap_base;
+		// Every cut on both spine directions exercises the recursive result's two fields.
+		for (bool is_left_spine : std::array{false, true}) {
+			for (atl::uint32 k = 0; k <= 8; ++k) {
+				array_store store;
+				atl::uint32 root = 0;
+				for (atl::uint32 id = 1; id <= 8; ++id) {
+					store.nodes[id] = {0, 0, 1, is_left_spine ? id : 9 - id};
+					root = base::merge(store, root, id);
+				}
+				auto const parts = base::split_at(store, root, k);
+				if (!is_in_order(store, parts.first, 1, k) || !is_in_order(store, parts.second, k + 1, 8 - k)) return false;
+				root = base::merge(store, parts.first, parts.second);
+				auto const keyed = base::split(store, root, [k](array_store &, atl::uint32 id) { return id <= k; });
+				if (!is_in_order(store, keyed.first, 1, k) || !is_in_order(store, keyed.second, k + 1, 8 - k)) return false;
+			}
+		}
+		return true;
+	}());
+}
+
+namespace splay_engine_checks {
+	struct sum_rope : atl::sized_splay_links {
+		std::vector<long long> values{0}, sums{0};
+		std::vector<bool> is_marked{false};
+
+		constexpr atl::uint32 make(long long value) {
+			values.push_back(value);
+			sums.push_back(value);
+			is_marked.push_back(false);
+			return add_node();
+		}
+
+		constexpr long long const &value(atl::uint32 x) const { return values[x]; }
+
+		constexpr long long const &aggregate(atl::uint32 x) const { return sums[x]; }
+
+		constexpr void pull(atl::uint32 x) {
+			pull_size(x);
+			sums[x] = sums[child(x, 0)] + values[x] + sums[child(x, 1)];
+		}
+
+		constexpr void push(atl::uint32 x) {
+			if (!is_marked[x]) return;
+			auto const left = child(x, 0), right = child(x, 1);
+			set_child(x, 0, right);
+			set_child(x, 1, left);
+			if (left != 0) is_marked[left] = !is_marked[left];
+			if (right != 0) is_marked[right] = !is_marked[right];
+			is_marked[x] = false;
+		}
+	};
+
+	constexpr bool reversible_rope() {
+		using engine = atl::splay_engine;
+		sum_rope store;
+		store.reserve(8);
+		atl::uint32 root = 0;
+		for (long long value = 1; value <= 6; ++value) root = engine::insert_at(store, root, atl::uint32(value - 1), store.make(value));
+		auto const [a, bc] = engine::split_at(store, root, 1);
+		auto const [b, c] = engine::split_at(store, bc, 4);
+		store.is_marked[b] = true;
+		root = engine::join(store, engine::join(store, a, b), c);
+		engine::splay(store, 3);
+		root = engine::erase(store, 3);
+		std::vector<long long> order;
+		engine::for_each(store, root, [&](atl::uint32 x) { order.push_back(store.values[x]); });
+		auto const [top, length] = engine::max_right(store, engine::splay_at(store, root, 0), 0LL, std::plus<>{}, [](long long value) { return value <= 10; });
+		return order == std::vector<long long>{1, 5, 4, 2, 6} && store.sums[top] == 18 && length == 3;
+	}
+
+	static_assert(reversible_rope());
+	static_assert([] {
+		atl::splay_links links;
+		links.reserve(3);
+		auto const a = links.add_node(), b = links.add_node(), c = links.add_node();
+		std::array ids{a, b, c};
+		auto root = atl::splay_engine::build_balanced(links, ids);
+		atl::splay_engine::rotate(links, a);
+		if (links.parent(a) != 0) return false;
+		atl::splay_engine::splay_pushed(links, c);
+		auto const [prefix, suffix] = atl::splay_engine::split_before(links, b);
+		if (prefix != a || suffix != b) return false;
+		root = atl::splay_engine::join(links, prefix, suffix);
+		auto const [part, rest] = atl::splay_engine::split_after(links, b);
+		return links.node_count() == 3 && part == b && rest == c && root != 0;
+	}());
+}
+
+#include <atl/experimental/ds/splay_engine_variants.hpp>
+
+namespace splay_engine_checks {
+	static_assert([] {
+		atl::experimental::reversible_fold_rope<long long, std::plus<>> store(0, std::plus<>{});
+		auto const a = store.make(2), b = store.make(3);
+		auto const root = atl::splay_engine::join(store, a, b);
+		store.flip(root);
+		store.push(root);
+		store.pull(root);
+		auto &scratch = store.splay_scratch();
+		scratch.push_back(a);
+		bool const is_sum = store.aggregate(root) == 5 && store.value(a) == 2;
+		store.clear_reversed(root);
+		return is_sum && !store.is_reversed(root) && scratch.front() == a;
+	}());
+}
+
+namespace treap_proof {
+	struct parent_store : array_store {
+		std::array<atl::uint32, 9> parents{};
+
+		constexpr atl::uint32 parent(atl::uint32 x) const { return parents[x]; }
+
+		constexpr void set_parent(atl::uint32 x, atl::uint32 p) { parents[x] = p; }
+
+		constexpr void pull(atl::uint32 x) { nodes[x].size = 1 + size(left(x)) + size(right(x)); }
+
+		constexpr atl::uint32 rebind(atl::uint32 x, atl::uint32 l, atl::uint32 r) {
+			array_store::rebind(x, l, r);
+			parents[l] = parents[r] = x;
+			return x;
+		}
+	};
+
+	static_assert([] {
+		using base = atl::detail::treap_base;
+		parent_store store;
+		for (atl::uint32 id = 1; id <= 4; ++id) store.nodes[id] = {0, 0, 1, 10 - id};
+		auto root = base::merge(store, base::merge(store, 1, 2), 3);
+		if (base::root_of(store, 3) != root) return false;
+		auto const [a, b] = base::split_at_node(store, 2, atl::detail::treap_split_place::right);
+		if (a != 1 || store.parent(a) != 0 || store.parent(b) != 0) return false;
+		root = base::merge(store, a, b);
+		base::insert_before_node(store, 3, 4);
+		auto const [prefix, suffix] = base::split_at_node(store, 4, atl::detail::treap_split_place::excluded);
+		return store.size(prefix) == 2 && store.size(suffix) == 1 && store.size(4) == 1
+			&& base::root_of(store, 2) == prefix && root == 1;
+	}());
+}
+
+namespace splay_engine_checks {
+	using constexpr_rope = atl::experimental::reversible_fold_rope<int, std::plus<>>;
+
+	template<typename Engine>
+		requires atl::detail::splay_sequence_engine<Engine, constexpr_rope>
+			  && requires(constexpr_rope &store) { Engine::push_path(store, atl::uint32{}); }
+	constexpr bool strategy_case() {
+		constexpr_rope store(0, std::plus<>{});
+		auto const a = store.make(1), b = store.make(2), c = store.make(3);
+		auto root = Engine::build_balanced(store, std::array{a, b, c});
+		store.flip(root);
+		Engine::push_path(store, c);
+		Engine::splay(store, c);
+		root = Engine::descend(store, c, [](atl::uint32) { return atl::splay_step::right; });
+		int total = 0;
+		Engine::for_each(store, root, [&total, &store](atl::uint32 x) { total += store.value(x); });
+		if constexpr (requires { Engine::read_at(store, root, 0); }) {
+			auto const [top, first] = Engine::read_at(store, root, 0);
+			return total == 6 && store.value(first) == 3 && store.aggregate(top) == 6;
+		} else {
+			return total == 6 && store.aggregate(root) == 6;
+		}
+	}
+
+	template<atl::experimental::splay_shape Shape>
+	constexpr bool push_strategy_cases() {
+		using atl::experimental::splay_engine_by_strategy;
+		using atl::experimental::splay_path_push;
+		return strategy_case<splay_engine_by_strategy<Shape, splay_path_push::ancestor_stack>>()
+			&& strategy_case<splay_engine_by_strategy<Shape, splay_path_push::store_buffer>>()
+			&& strategy_case<splay_engine_by_strategy<Shape, splay_path_push::pointer_reversal>>()
+			&& strategy_case<splay_engine_by_strategy<Shape, splay_path_push::parity_walk>>();
+	}
+
+	static_assert(push_strategy_cases<atl::experimental::splay_shape::top_down>());
+	static_assert(push_strategy_cases<atl::experimental::splay_shape::bottom_up>());
+	static_assert(push_strategy_cases<atl::experimental::splay_shape::bottom_up_repush>());
+	static_assert(push_strategy_cases<atl::experimental::splay_shape::semi>());
+	static_assert(atl::detail::splay_selectable_layout<atl::splay_layout_interleaved>);
+	static_assert(atl::detail::splay_selectable_layout<atl::splay_layout_split>);
+	static_assert(!atl::detail::splay_selectable_layout<atl::detail::splay_layout_columnar>);
+}
+
+#include <atl/ds/euler_tour_tree.hpp>
+#include <atl/ds/link_cut_tree.hpp>
+#include <atl/ds/subtree_link_cut_tree.hpp>
+#include <atl/ds/top_tree.hpp>
+#include <atl/experimental/ds/euler_tour_tree_variants.hpp>
+
+namespace link_cut_tree_checks {
+	using atl::uint32;
+
+	/** @brief Affine composition modulo 97 detects reversed path aggregates. */
+	struct affine {
+		long long a = 1, b = 0;
+		constexpr bool operator==(affine const &) const = default;
+	};
+
+	struct affine_then {
+		constexpr affine operator()(affine const &f, affine const &g) const { return {g.a * f.a % 97, (g.a * f.b + g.b) % 97}; }
+	};
+
+	constexpr bool forest_queries() {
+		constexpr uint32 none = atl::graph::none;
+		atl::link_cut_tree t(6);
+		t.link(0, 1);
+		t.link(1, 2);
+		t.link(2, 3);
+		t.link(5, 3);
+		bool const is_rooted = t.root(0) == 3 && t.parent(0) == 1 && t.depth(0) == 3 && t.lca(0, 5) == 3
+							&& t.distance(0, 5) == 4 && t.ancestor(0, 2) == 2 && t.path_vertex(0, 5, 3) == 3
+							&& t.lca(0, 4) == none && !t.connected(0, 4);
+		t.make_root(0);
+		bool const is_rerooted = t.root(5) == 0 && t.depth(5) == 4 && t.parent(1) == 0;
+		t.cut(2, 3);
+		t.cut_from_parent(2);
+		atl::link_cut_tree u(4);
+		u.assign_parents(std::vector<uint32>{none, 0, 1, 1});
+		return is_rooted && is_rerooted && t.root(5) == 3 && t.root(2) == 2 && !t.connected(1, 2) && u.lca(2, 3) == 1
+			&& u.depth(3) == 2;
+	}
+
+	static_assert(forest_queries());
+
+	constexpr bool path_folds() {
+		std::vector<affine> const values{{2, 1}, {3, 4}, {5, 6}, {7, 8}};
+		atl::link_cut_tree t(values, affine{}, affine_then{});
+		t.link(0, 1);
+		t.link(2, 1);
+		t.link(3, 2);
+		affine_then const combine;
+		affine const forward = combine(combine(combine(values[0], values[1]), values[2]), values[3]);
+		affine const backward = combine(combine(combine(values[3], values[2]), values[1]), values[0]);
+		bool const is_ordered = t.fold(0, 3) == forward && t.fold(3, 0) == backward;
+		t.make_root(1);
+		t.set(2, affine{1, 1});
+		return is_ordered && t.fold(0, 2) == combine(combine(values[0], values[1]), affine{1, 1}) && t.at(2) == affine{1, 1};
+	}
+
+	static_assert(path_folds());
+
+	struct sized_sum {
+		long long sum = 0, count = 0;
+	};
+
+	struct sized_add {
+		constexpr sized_sum operator()(sized_sum x, sized_sum y) const { return {x.sum + y.sum, x.count + y.count}; }
+	};
+
+	struct add_to_each {
+		constexpr sized_sum operator()(long long c, sized_sum x) const { return {x.sum + c * x.count, x.count}; }
+	};
+
+	struct larger {
+		constexpr long long operator()(long long a, long long b) const { return a < b ? b : a; }
+	};
+
+	constexpr bool lazy_paths_and_edges() {
+		atl::link_cut_tree t(std::vector<sized_sum>(4, {1, 1}), sized_sum{}, 0LL, sized_add{}, add_to_each{}, std::plus<>{});
+		t.link(0, 1);
+		t.link(1, 2);
+		t.link(3, 1);
+		t.apply(0, 2, 10);
+		t.apply(3, 0, 1);
+		bool const is_lazy = t.fold(2, 3).sum == 3 + 10 * 2 + 1 * 2 && t.at(0).sum == 12 && t.at(3).sum == 2;
+		atl::link_cut_tree e(atl::edge_values, atl::commutative_fold, 4, 0LL, larger{});
+		uint32 const e01 = e.link(0, 1, 5);
+		e.link(1, 2, 9);
+		e.link(3, 1, 2);
+		bool const is_weighted = e.fold(0, 2) == 9 && e.fold(0, 3) == 5 && e.depth(0) == 2 && e.parent(3) == 1;
+		e.cut(1, 2);
+		e.cut(e01);
+		bool const is_tried = e.try_fold(1, 3) == 2 && !e.try_fold(0, 3).has_value() && t.try_fold(0, 0).has_value();
+		return is_lazy && is_weighted && is_tried && e.edge_count() == 1 && e.edge(3, 1) != atl::graph::none && !e.connected(0, 3);
+	}
+
+	static_assert(lazy_paths_and_edges());
+}
+
+namespace subtree_link_cut_tree_checks {
+	constexpr bool subtree_queries() {
+		atl::subtree_link_cut_tree t(std::vector<long long>{1, 2, 4, 8}, 0LL, std::plus<>{}, std::negate<>{});
+		t.link(0, 1);
+		t.link(2, 1);
+		t.link(3, 1);
+		bool const is_rooted = t.subtree_fold(1) == 15 && t.subtree_fold(2) == 4 && t.subtree_size(1) == 4
+							&& t.subtree_fold(1, 2) == 11 && t.subtree_size(1, 3) == 3 && t.component_size(0) == 4;
+		t.make_root(0);
+		t.update(3, [](long long a) { return a + 16; });
+		bool const is_rerooted = t.subtree_fold(1) == 2 + 4 + 24 && t.fold(0, 3) == 1 + 2 + 24 && t.subtree_fold(2, 1) == 4;
+		t.cut(1, 2);
+		atl::subtree_link_cut_tree u(std::vector<long long>{1, 1, 1}, 0LL, std::plus<>{}, std::negate<>{});
+		u.assign_parents(std::vector<atl::uint32>{atl::graph::none, 0, 0});
+		return is_rooted && is_rerooted && t.component_size(0) == 3 && t.subtree_fold(2) == 4 && u.subtree_fold(0) == 3
+			&& u.subtree_size(2, 0) == 1;
+	}
+
+	static_assert(subtree_queries());
+}
+
+namespace euler_tour_tree_checks {
+	struct sized_sum {
+		long long sum = 0, count = 0;
+		constexpr bool operator==(sized_sum const &) const = default;
+	};
+
+	struct sized_add {
+		constexpr sized_sum operator()(sized_sum const &x, sized_sum const &y) const { return {x.sum + y.sum, x.count + y.count}; }
+	};
+
+	struct add_to_each {
+		constexpr sized_sum operator()(long long c, sized_sum const &x) const { return {x.sum + c * x.count, x.count}; }
+	};
+
+	constexpr bool tours() {
+		atl::euler_tour_tree t(std::vector<sized_sum>{{1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1}}, sized_sum{}, 0LL,
+							   sized_add{}, add_to_each{}, std::plus<>{});
+		t.link(0, 1);
+		t.link(2, 1);
+		t.link(3, 0);
+		bool ok = t.connected(2, 3) && !t.connected(4, 0) && t.component_size(1) == 4;
+		t.subtree_apply(1, 0, 10);
+		ok = ok && t.subtree_fold(0, 1) == sized_sum{5, 2} && t.subtree_fold(1, 0) == sized_sum{25, 2};
+		t.cut(1, 0);
+		t.link(4, 2);
+		t.component_apply(4, 1);
+		ok = ok && t.component_fold(2) == sized_sum{13 + 14 + 6, 3} && t.at(0) == sized_sum{1, 1};
+		t.cut(2, 4);
+		t.link(3, 2);
+		return ok && t.component_size(0) == 4 && t.subtree_fold(2, 3) == sized_sum{14 + 13, 2};
+	}
+
+	static_assert(tours());
+
+	constexpr bool structure_only() {
+		atl::euler_tour_tree t(3);
+		t.link(0, 1);
+		bool const was_connected = t.connected(1, 0);
+		t.cut(0, 1);
+		return was_connected && !t.connected(0, 1) && t.component_size(2) == 1;
+	}
+
+	static_assert(structure_only());
+}
+
+namespace top_tree_checks {
+	constexpr bool clusters() {
+		atl::extremes_top_tree<long long> t(std::vector<long long>{1, 2, 4, 8});
+		t.link(0, 1);
+		t.link(2, 1);
+		t.link(3, 1);
+		t.subtree_add(1, 10);
+		t.path_assign(0, 2, 5);
+		bool const is_lazy = t.subtree_sum(1) == 5 + 5 + 5 + 18 && t.subtree_max(1, 2) == 18 && t.path_min(3, 0) == 5
+						  && t.subtree_size(1) == 4 && t.root(0) == 1;
+		t.make_root(3);
+		t.cut(1, 2);
+		bool const is_cut = t.component_sum(0) == 5 + 5 + 18 && t.component_size(2) == 1 && t.parent(0) == 1 && t.depth(0) == 2;
+		atl::diameter_top_tree<long long> d(4);
+		atl::uint32 const e01 = d.link(0, 1, 5);
+		d.link(1, 2, 3);
+		d.link(1, 3, 4);
+		bool const is_diameter = d.diameter(2) == 9 && d.eccentricity(2) == 8 && d.farthest(3).vertex == 0 && d.path_length(2, 3) == 7;
+		d.set(e01, 1);
+		atl::marked_distance_top_tree<long long> m(3);
+		m.link(0, 1, 2);
+		m.link(1, 2, 3);
+		m.set_marked(0, true);
+		m.set_marked(2, true);
+		auto compress = [](long long a, long long b) { return a + b; };
+		auto add_vertex = [](long long light, long long v) { return light + v; };
+		auto add_edge = [](long long child) { return child; };
+		atl::top_tree g(3, 1LL, 0LL, 0LL, compress, compress, add_vertex, add_edge);
+		g.link(0, 1);
+		g.link(2, 1);
+		return is_lazy && is_cut && is_diameter && d.diameter(0) == 7 && m.marked_distance_sum(1) == 5 && m.marked_count(0) == 2
+			&& g.component_fold(0) == 3 && g.subtree_fold(0, 1) == 1;
+	}
+
+	static_assert(clusters());
+
+	// Bulk construction reaches balanced rake builds through caller-local views.
+	static_assert([] {
+		atl::sum_top_tree<atl::int128> t(std::vector<atl::int128>{1, 2, 3, 4, 5});
+		t.assign_parents(std::vector<atl::uint32>{atl::graph::none, 0, 0, 0, 3});
+		t.path_add(1, 4, 2);
+		return t.component_sum(0) == 23 && t.subtree_sum(3) == 13;
+	}());
+}
+
+namespace euler_tour_tree_u1_checks {
+	using euler_tour_tree_checks::add_to_each;
+	using euler_tour_tree_checks::sized_add;
+	using euler_tour_tree_checks::sized_sum;
+
+	template<typename Tree>
+		requires std::constructible_from<Tree, std::vector<sized_sum>, sized_sum, long long, sized_add, add_to_each, std::plus<>>
+			  && requires(Tree &t) {
+					 t.link(0, 1);
+					 t.cut(0, 1);
+					 t.subtree_apply(0, 1, 1LL);
+					 t.component_apply(0, 1LL);
+					 { t.connected(0, 1) } -> std::same_as<bool>;
+					 { t.component_size(0) } -> std::convertible_to<atl::uint32>;
+					 { t.subtree_fold(0, 1) } -> std::same_as<sized_sum>;
+					 { t.component_fold(0) } -> std::same_as<sized_sum>;
+					 { t.at(0) } -> std::same_as<sized_sum>;
+				 }
+	constexpr bool tours() {
+		Tree t(std::vector<sized_sum>{{1, 1}, {2, 1}, {3, 1}, {4, 1}, {5, 1}}, sized_sum{}, 0LL, sized_add{}, add_to_each{}, std::plus<>{});
+		t.link(0, 1);
+		t.link(2, 1);
+		t.link(3, 0);
+		bool ok = t.connected(2, 3) && !t.connected(4, 0) && t.component_size(1) == 4;
+		t.subtree_apply(1, 0, 10);
+		ok = ok && t.subtree_fold(0, 1) == sized_sum{5, 2} && t.subtree_fold(1, 0) == sized_sum{25, 2};
+		t.cut(1, 0);
+		t.link(4, 2);
+		t.component_apply(4, 1);
+		ok = ok && t.component_fold(2) == sized_sum{13 + 14 + 6, 3} && t.at(0) == sized_sum{1, 1};
+		t.cut(2, 4);
+		t.link(3, 2);
+		return ok && t.component_size(0) == 4 && t.subtree_fold(2, 3) == sized_sum{14 + 13, 2};
+	}
+
+	static_assert(tours<atl::euler_tour_tree<sized_sum, sized_add, long long, add_to_each, std::plus<>>>());
+	static_assert(tours<atl::experimental::euler_tour_tree_by_splay<sized_sum, sized_add, long long, add_to_each, std::plus<>>>());
+
+	template<typename Tree>
+		requires std::constructible_from<Tree, std::size_t> && requires(Tree &t, std::vector<atl::uint32> const &parents) {
+			t.assign_parents(parents);
+			t.cut(0, 1);
+			{ t.connected(0, 1) } -> std::same_as<bool>;
+			{ t.component_size(0) } -> std::convertible_to<atl::uint32>;
+		}
+	constexpr bool structure_only() {
+		Tree t(4);
+		t.assign_parents(std::vector<atl::uint32>{atl::graph::none, 0, 0, 2});
+		bool const was_connected = t.connected(3, 1) && t.component_size(0) == 4;
+		t.cut(0, 2);
+		return was_connected && !t.connected(0, 3) && t.component_size(2) == 2;
+	}
+
+	static_assert(structure_only<atl::euler_tour_tree<>>());
+	static_assert(structure_only<atl::experimental::euler_tour_tree_by_splay<>>());
+}
+
+namespace dynamic_forest_int128_checks {
+	static_assert([] {
+		std::vector<atl::int128> values{1, 2, 4};
+		atl::link_cut_tree path(values, atl::int128{}, std::plus<>{});
+		atl::subtree_link_cut_tree subtree(values, atl::int128{}, std::plus<>{}, std::negate<>{});
+		atl::euler_tour_tree tour(values, atl::int128{}, std::plus<>{});
+		std::array<atl::uint32, 3> parents{atl::graph::none, 0, 0};
+		path.assign_parents(parents);
+		subtree.assign_parents(parents);
+		tour.assign_parents(parents);
+		path.update(0, [](atl::int128 value) { return value + 8; });
+		return path.fold(1, 2) == 15 && subtree.subtree_fold(0) == 7 && tour.component_fold(0) == 7;
+	}());
+}
+
+#include <atl/ds/meldable_heap_forest.hpp>
+#include <atl/ds/persistent_heap.hpp>
+#include <atl/experimental/ds/meldable_heap_variants.hpp>
+
+namespace publication_heap_checks {
+	template<typename Forest>
+		requires std::constructible_from<Forest, std::size_t> && requires(Forest &forest) {
+			forest.push(0, 1LL);
+			forest.add_to_all(0, 1LL);
+			forest.meld(0, 1);
+			{ forest.pop(0) } -> std::convertible_to<long long>;
+			{ forest.top(0) } -> std::convertible_to<long long>;
+			{ forest.empty(0) } -> std::convertible_to<bool>;
+			{ forest.size(0) } -> std::convertible_to<std::size_t>;
+		}
+	constexpr bool heap_forest() {
+		Forest forest(3);
+		forest.push(0, 5);
+		forest.push(0, 1);
+		forest.push(1, 4);
+		forest.add_to_all(0, 10);
+		forest.meld(1, 0);
+		forest.push(2, 7);
+		forest.meld(2, 1);
+		if (forest.size(2) != 4 || !forest.empty(0) || forest.top(2) != 15) return false;
+		long long const first = forest.pop(2);
+		forest.add_to_all(2, -1);
+		return first == 15 && forest.pop(2) == 10 && forest.pop(2) == 6 && forest.pop(2) == 3 && forest.empty(2);
+	}
+
+	static_assert(heap_forest<atl::meldable_heap_forest<long long, std::less<>, long long>>());
+	static_assert(heap_forest<atl::experimental::meldable_heap_forest_by_rank_leftist<long long, std::less<>, long long>>());
+	static_assert(heap_forest<atl::experimental::meldable_heap_forest_by_skew<long long, std::less<>, long long>>());
+	static_assert(heap_forest<atl::experimental::meldable_heap_forest_by_pairing<long long, std::less<>, long long>>());
+	static_assert(heap_forest<atl::experimental::meldable_heap_forest_by_split_pairing<long long, std::less<>, long long>>());
+	static_assert(heap_forest<atl::experimental::meldable_heap_forest_by_binary<long long, std::less<>, long long>>());
+
+	static_assert([] {
+		atl::addressable_meldable_heap_forest<long long> forest(2);
+		auto const x = forest.push(0, 5);
+		auto const y = forest.push(1, 3);
+		forest.push(1, 4);
+		forest.meld(1, 0);
+		forest.promote(1, y, 9);
+		return forest.top(1) == 9 && forest.value(y) == 9 && forest.erase(1, x) == 5 && forest.pop(1) == 9
+			&& forest.pop(1) == 4 && forest.empty(1);
+	}());
+
+	struct point {
+		long long key, label;
+	};
+
+	static_assert([] {
+		auto const later = [](point const &a, point const &b) { return a.key > b.key; };
+		auto const move = [](long long shift, point p) { p.key += shift; return p; };
+		auto const combine = [](long long newer, long long older) { return newer + older; };
+		atl::meldable_heap_forest<point, decltype(later), long long, decltype(move), decltype(combine)> forest(1, later, 0, move, combine);
+		forest.reserve(4);
+		std::size_t const second = forest.add_heap();
+		forest.emplace(0, 5, 1);
+		forest.emplace(atl::uint32(second), 2, 2);
+		forest.add_to_all(0, -4);
+		forest.meld(atl::uint32(second), 0);
+		point const first = forest.pop(atl::uint32(second));
+		return forest.heap_count() == 2 && first.key == 1 && first.label == 1 && forest.top(atl::uint32(second)).label == 2;
+	}());
+
+	static_assert([] {
+		atl::meldable_heap_forest<int, std::less<>, int> forest(2);
+		forest.release(0);
+		forest.push(0, 2);
+		forest.push(0, 4);
+		forest.add_to_all(0, 10);
+		forest.push(1, 7);
+		forest.meld(0, 1);
+		forest.release(0);
+		forest.push(0, 3);
+		return forest.empty(1) && forest.size(0) == 1 && forest.pop(0) == 3 && forest.empty(0);
+	}());
+}
+
+namespace persistent_heap_forest_checks {
+	static_assert([] {
+		atl::persistent_heap_forest<int> forest;
+		auto const e = forest.empty_heap;
+		auto const a = forest.push(forest.push(forest.push(e, 3), 9), 1);
+		auto const b = forest.push(forest.push(e, 7), 5);
+		auto const m = forest.meld(a, b);
+		auto const c = forest.pop(m);
+		auto const d = forest.push_range(c, std::vector<int>{8, 2});
+		if (forest.top(a) != 9 || forest.top(b) != 7 || forest.top(m) != 9 || forest.top(c) != 7 || forest.top(d) != 8) return false;
+		auto h = d;
+		for (int expected : {8, 7, 5, 3, 2, 1}) {
+			if (forest.empty(h) || forest.top(h) != expected) return false;
+			h = forest.pop(h);
+		}
+		return forest.empty(h) && forest.top(a) == 9;
+	}());
+
+	static_assert([] {
+		for (int const n : {0, 1, 2, 3, 4, 7, 8, 9, 16, 17}) {
+			atl::persistent_heap_forest<int, std::greater<>> forest;
+			std::vector<int> values;
+			for (int i = n; i > 0; --i) values.push_back(i);
+			auto const base = forest.push(forest.empty_heap, -1);
+			auto unsized = values | std::views::filter([](int) { return true; });
+			auto h = forest.push_range(base, unsized);
+			if (forest.top(h) != -1) return false;
+			h = forest.pop(h);
+			for (int i = 1; i <= n; ++i) {
+				if (forest.empty(h) || forest.top(h) != i) return false;
+				h = forest.pop(h);
+			}
+			if (!forest.empty(h) || forest.top(base) != -1) return false;
+		}
+		return true;
+	}());
+
+	static_assert([] {
+		atl::persistent_heap_forest<atl::int128> forest;
+		auto const a = forest.push_range(forest.empty_heap, std::array<atl::int128, 3>{1, atl::int128(1) << 90, 3});
+		return forest.top(a) == (atl::int128(1) << 90) && forest.top(forest.pop(a)) == 3;
+	}());
+}
+
+namespace algebra_forwarding_checks {
+	struct reference_max {
+		constexpr int const &operator()(int const &a, int const &b) const { return a >= b ? a : b; }
+
+		void operator()(int &, int &) const = delete;
+	};
+
+	struct value_category {
+		constexpr int operator()(int const &a, int const &b) const { return a + b; }
+
+		constexpr int operator()(int &&a, int &&b) const { return a + b + 10; }
+	};
+
+	struct copy_only {
+		constexpr copy_only() = default;
+
+		constexpr copy_only(copy_only const &) = default;
+
+		copy_only(copy_only &&) = delete;
+	};
+
+	static_assert([] {
+		int left = 3, right = 2;
+		copy_only callable;
+		copy_only copied(atl::detail::move_or_copy(callable));
+		(void)copied;
+		return &atl::detail::invoke_algebra<int>(reference_max{}, left, right) == &left
+			&& atl::detail::invoke_algebra<int>(value_category{}, 1, 2) == 13
+			&& atl::detail::invoke_algebra<int>(value_category{}, left, right) == 5;
+	}());
+}

@@ -146,6 +146,12 @@ Document new conventions here alongside their technical rationale.
 - Constexpr code that MSVC must evaluate never passes a caller's local by
   reference down a recursion: MSVC's constant evaluation reports it as
   uninitialized (valid on GCC and Clang). Take such accumulators by value.
+  The same holds for a class-type result (a `std::pair`) returned through a
+  recursion: recurse on a scalar (two 32-bit ids packed into one `uint64`)
+  and build the class once at the top.
+- Never rely on a braced list's left-to-right order when one element copies
+  an object and a later one moves from it (`{T(pool_, a), T(std::move(pool_),
+  b)}`): MSVC may move first. Copy in a separate statement.
 - No code copied from attribution-licensed sources (MIT/BSD/Apache/CC-BY
   included): cite the reference in a comment, implement independently.
 

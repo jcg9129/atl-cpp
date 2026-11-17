@@ -37,3 +37,20 @@ where to put guide prose, executable examples and API comments.
 - [Segment tree beats](segment-tree-beats.md): conditional range actions.
 - [Dynamic segment tree](dynamic-segment-tree.md): sparse point updates and folds.
 - [Dynamic lazy segment tree](dynamic-lazy-segment-tree.md): sparse range actions and folds.
+- [Treap map](treap-map.md): ordered keys, order statistics and value folds.
+- [Treap sequence](treap-sequence.md): positional surgery, folds, lazy tags and reversal.
+- [Splay engine](splay-engine.md): structural algorithms over caller-owned nodes.
+- [Splay map](splay-map.md): self-adjusting ordered keys and value folds.
+- [Splay sequence](splay-sequence.md): self-adjusting positional surgery and range operations.
+- [Link-cut tree](link-cut-tree.md): dynamic path folds and lazy updates.
+- [Subtree link-cut tree](subtree-link-cut-tree.md): commutative group subtree folds.
+- [Euler tour tree](euler-tour-tree.md): dynamic component and edge-side updates.
+- [Top tree](top-tree.md): cluster algebras for mixed path and subtree queries.
+- [Meldable heaps](meldable-heap-forest.md): pool-backed priority queues, lazy shifts and handles.
+- [Persistent heaps](persistent-heap.md): branching meldable priority queues.
+- [Persistent lists](persistent-list.md): front operations and random access.
+- [Persistent queue and deque](persistent-queue-deque.md): FIFO and fixed-capacity circular adapters.
+- [Persistent vectors](persistent-vector.md): full and partial persistence with indexed growth.
+- [Persistent segment tree](persistent-segment-tree.md): point updates, folds and prefix-version descent.
+- [Persistent lazy segment tree](persistent-lazy-segment-tree.md): range actions and cross-version range copies.
+- [Persistent treap sequence](persistent-treap-sequence.md): branching sequence surgery and folds.
