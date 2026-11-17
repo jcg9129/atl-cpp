@@ -87,5 +87,9 @@ TEST_CASE("msvc probe fenwick layout", "[msvc_probe]") {
 	msvc_probe::show<msvc_probe::plain_init>("plain_init");
 	msvc_probe::show<msvc_probe::nua_uninit>("nua_uninit");
 	msvc_probe::show<msvc_probe::nua_no_assign>("nua_no_assign");
+#if defined(_M_ARM64)
+	FAIL("print the probe output on MSVC ARM64");
+#else
 	SUCCEED();
+#endif
 }
