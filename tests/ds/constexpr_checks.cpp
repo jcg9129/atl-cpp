@@ -28,7 +28,6 @@
 #include <cstddef>
 #include <functional>
 #include <limits>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -766,12 +765,18 @@ namespace dynamic_segment_checks {
 			&& view.node_count() == count;
 	}());
 
+	// Explicit construction avoids MSVC constexpr aggregate-temporary initialization failures.
 	struct sum_width {
 		int sum = 0, width = 0;
+
+		constexpr sum_width(int total = 0, int count = 0) : sum(total), width(count) {}
 	};
 
 	struct affine {
 		int scale = 1, bias = 0;
+
+		constexpr affine(int factor = 1, int offset = 0) : scale(factor), bias(offset) {}
+
 		constexpr bool operator==(affine const &) const = default;
 	};
 
@@ -781,7 +786,7 @@ namespace dynamic_segment_checks {
 		auto compose = [](affine f, affine g) { return affine{f.scale * g.scale, f.scale * g.bias + f.bias}; };
 		auto fill = [](std::size_t width) { return sum_width{int(width), int(width)}; };
 		atl::dynamic_lazy_segment_tree st(7, sum_width{}, affine{}, op, mapping, compose, fill);
-		decltype(st) empty;
+		decltype(st) empty{};
 		empty.reserve(1);
 		empty.reserve_nodes(20);
 		empty.apply(0, 0, affine{2, 1});
@@ -807,10 +812,20 @@ namespace dynamic_segment_checks {
 
 	static_assert([] {
 		int const identity = (std::numeric_limits<int>::max)();
-		using tag = std::optional<int>;
+		// MSVC constexpr evaluation loses std::optional's engagement flag during tag copies.
+		struct tag {
+			int value = 0;
+			bool has_value = false;
+
+			constexpr tag() = default;
+
+			constexpr explicit tag(int assigned) : value(assigned), has_value(true) {}
+
+			constexpr bool operator==(tag const &) const = default;
+		};
 		auto min = [](int x, int y) { return (std::min)(x, y); };
-		auto mapping = [](tag f, int x) { return f.value_or(x); };
-		auto compose = [](tag f, tag g) { return f ? f : g; };
+		auto mapping = [](tag f, int x) { return f.has_value ? f.value : x; };
+		auto compose = [](tag f, tag g) { return f.has_value ? f : g; };
 		auto fill = [](std::size_t lo, std::size_t hi) { return lo == hi ? (std::numeric_limits<int>::max)() : int(lo) + 10; };
 		atl::lazy_segment_tree dense(std::array{10, 11, 12, 13, 14}, identity, tag{}, min, mapping, compose);
 		atl::dynamic_lazy_segment_tree sparse(5, identity, tag{}, min, mapping, compose, fill);

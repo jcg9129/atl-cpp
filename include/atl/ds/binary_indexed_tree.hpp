@@ -108,8 +108,8 @@ namespace atl {
 	 *      its extent. Index conversion to size_t must be exact (asserted).
 	 * @complexity Storage O(product of extents); build O(Dim * product of extents).
 	 *
-	 * @link https://en.wikipedia.org/wiki/Fenwick_tree
-	 * @link https://cp-algorithms.com/data_structures/fenwick.html
+	 * [Fenwick tree](https://en.wikipedia.org/wiki/Fenwick_tree)
+	 * [Fenwick tree algorithms](https://cp-algorithms.com/data_structures/fenwick.html)
 	 */
 	template<std::copyable T, std::size_t Dim = 1, binary_operation<T> Op = std::plus<>>
 	class binary_indexed_tree {

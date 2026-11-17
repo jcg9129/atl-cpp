@@ -9,10 +9,10 @@
 
 using atl::uint64;
 
-std::vector<int> generateRandomVector(std::mt19937 &rng, atl::uint32 size, int min, int max) {
+std::vector<int> generateRandomVector(std::mt19937 &rng, atl::uint32 size, int lower, int upper) {
 	std::vector<int> randomValues(size);
 
-	std::uniform_int_distribution<> dist(min, max);
+	std::uniform_int_distribution<> dist(lower, upper);
 
 	for (auto &value : randomValues) {
 		value = dist(rng);
@@ -24,7 +24,7 @@ std::vector<int> generateRandomVector(std::mt19937 &rng, atl::uint32 size, int m
 std::vector<std::pair<std::size_t, std::size_t>> generateIntervals(std::mt19937 &rng, std::size_t size) {
 	std::vector<std::pair<std::size_t, std::size_t>> randomValues(size);
 
-	std::uniform_int_distribution<> dist(0, size - 1);
+	std::uniform_int_distribution<std::size_t> dist(0, size - 1);
 
 	for (auto &value : randomValues) {
 		value = {dist(rng), dist(rng)};

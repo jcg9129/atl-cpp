@@ -232,7 +232,7 @@ TEST_CASE("segment_tree_beats: contenders agree with the library tree on long ru
 	atl::experimental::beats_segment_tree_by_fixed_clamp_add<int64> v4(a);
 	atl::experimental::beats_segment_tree_by_three_adds<int64> v6(a);
 	for (int s = 0; s < 20000; ++s) {
-		auto [l, r] = std::pair{rng() % (n + 1), rng() % (n + 1)};
+		auto [l, r] = std::pair{std::size_t(rng() % (n + 1)), std::size_t(rng() % (n + 1))};
 		if (l > r) std::swap(l, r);
 		int64 const x = uniform<int64>(rng, -1000, 1000);
 		auto const each = [&](auto &&f) {
@@ -662,19 +662,19 @@ TEST_CASE("segment_tree_beats: adds on a clamped-flat range, up to the sentinels
 // Each chmin fits Sum at the root, but the leaf's whole way down does not: its difference must never be computed.
 TEMPLATE_TEST_CASE("segment_tree_beats: a stale single value far from the parent's extreme, narrow Sum", "[segment_tree_beats]",
 				   (atl::beats_segment_tree<atl::int32>), (clamp_add_engine<atl::int32>)) {
-	atl::int32 const far = 2'100'000'000, near = 1'070'000'000;
-	TestType falling(std::array{far, atl::int32(-near)});
+	atl::int32 const far_value = 2'100'000'000, near_value = 1'070'000'000;
+	TestType falling(std::array{far_value, atl::int32(-near_value)});
 	falling.chmin(0, 2, 500'000'000);
 	falling.chmin(0, 2, -1'000'000'000);
 	REQUIRE(falling.element(0) == -1'000'000'000);
-	REQUIRE(falling.element(1) == -near);
-	REQUIRE(falling.sum(0, 2) == -1'000'000'000 - near);
-	TestType rising(std::array{atl::int32(-far), near});
+	REQUIRE(falling.element(1) == -near_value);
+	REQUIRE(falling.sum(0, 2) == -1'000'000'000 - near_value);
+	TestType rising(std::array{atl::int32(-far_value), near_value});
 	rising.chmax(0, 2, -500'000'000);
 	rising.chmax(0, 2, 1'000'000'000);
 	REQUIRE(rising.element(0) == 1'000'000'000);
-	REQUIRE(rising.element(1) == near);
-	REQUIRE(rising.sum(0, 2) == 1'000'000'000 + near);
+	REQUIRE(rising.element(1) == near_value);
+	REQUIRE(rising.sum(0, 2) == 1'000'000'000 + near_value);
 }
 
 TEST_CASE("segment_tree_beats: engine fold and point apply and max_right / min_left", "[segment_tree_beats]") {
@@ -1040,7 +1040,7 @@ TEMPLATE_TEST_CASE("segment_tree_beats: preconditions of the named members abort
 	REQUIRE(atl_test::aborts([] { tree_type(std::vector<int64>{(std::numeric_limits<int64>::lowest)()}); }));
 	REQUIRE(atl_test::aborts([] { tree_type(std::vector<int64>{(std::numeric_limits<int64>::max)() - 1}).add(0, 1, 1); }));
 	REQUIRE(atl_test::aborts([&] { tree_type(a).set(0, (std::numeric_limits<int64>::max)()); }));
-	REQUIRE(atl_test::aborts([] { tree_type((std::numeric_limits<std::size_t>::max)()); }));
+	REQUIRE(atl_test::aborts([] { tree_type oversized{(std::numeric_limits<std::size_t>::max)()}; }));
 	REQUIRE(atl_test::aborts([&] { (void)tree_type(a).max_right(5, [](auto const &) { return true; }); }));
 	REQUIRE(atl_test::aborts([&] { (void)tree_type(a).min_left(5, [](auto const &) { return true; }); }));
 	REQUIRE(atl_test::aborts([&] { (void)tree_type(a).max_right(0, [](auto const &) { return false; }); }));

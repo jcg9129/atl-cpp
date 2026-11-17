@@ -31,7 +31,8 @@ namespace {
 TEST_CASE("sparse_table: all idempotent ops match brute folds on all ranges", "[ds]") {
 	auto seed = GENERATE(take(30, random(std::uint64_t(0), std::numeric_limits<std::uint64_t>::max())));
 	std::mt19937_64 rng(seed);
-	std::size_t const n = 1 + rng() % 64;
+	// Keep the same one-block sizes without exposing a fixed allocation bound to GCC's speculative RMQ-path analysis.
+	std::size_t const n = GENERATE(take(1, random(std::size_t(1), std::size_t(64))));
 	std::vector<std::uint64_t> v(n);
 	for (auto &x : v) x = rng() % 1000;
 

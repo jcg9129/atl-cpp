@@ -68,7 +68,7 @@ TEST_CASE("wavelet_matrix: a length past uint32 trips the entry assert", "[wavel
 	if constexpr (sizeof(std::size_t) > sizeof(uint32)) {
 		auto const too_long = std::views::iota(uint64(0), (uint64(1) << 32) + 1);
 		REQUIRE(atl_test::aborts([&] { atl::wavelet_matrix<uint64> wm(too_long); }));
-		REQUIRE(atl_test::aborts([] { atl::detail::bit_vector bv(std::size_t((uint64(1) << 32) + 1)); }));
+		REQUIRE(atl_test::aborts([&] { atl::detail::bit_vector bv(std::size_t(too_long.size())); }));
 	}
 }
 

@@ -26,24 +26,24 @@ namespace {
 		bool operator==(aff const &) const = default;
 	};
 
-	auto const op = [](item const &x, item const &y) { return item{(x.s + y.s) % mod, x.w + y.w}; };
-	auto const mp = [](aff const &f, item const &s) { return item{(f.a * s.s + f.b * s.w) % mod, s.w}; };
-	auto const cp = [](aff const &f, aff const &g) { return aff{f.a * g.a % mod, (f.a * g.b + f.b) % mod}; };
-	auto const fill = [](std::size_t w) { return item{0, ll(w)}; };
+	auto const sum_op = [](item const &x, item const &y) { return item{(x.s + y.s) % mod, x.w + y.w}; };
+	auto const affine_mapping = [](aff const &f, item const &s) { return item{(f.a * s.s + f.b * s.w) % mod, s.w}; };
+	auto const affine_compose = [](aff const &f, aff const &g) { return aff{f.a * g.a % mod, (f.a * g.b + f.b) % mod}; };
+	auto const zero_fill = [](std::size_t w) { return item{0, ll(w)}; };
 
 	/** @brief Whether the class constraints accept `Fill` as the default-fold callable. */
 	template<typename Fill>
 	constexpr bool accepts_fill = requires {
-		typename atl::dynamic_lazy_segment_tree<item, aff, decltype(op), decltype(mp), decltype(cp), Fill>;
+		typename atl::dynamic_lazy_segment_tree<item, aff, decltype(sum_op), decltype(affine_mapping), decltype(affine_compose), Fill>;
 	};
 
-	// fill is only ever invoked through a const reference, so both arities are
+	// Fill is only ever invoked through a const reference, so both arities are
 	// checked as `Fill const &`: a mutable (caching) callable is rejected at the
 	// class boundary instead of failing inside the body
-	static_assert(accepts_fill<decltype(fill)>);
+	static_assert(accepts_fill<decltype(zero_fill)>);
 	static_assert(accepts_fill<decltype([](std::size_t lo, std::size_t hi) { return item{0, ll(hi - lo)}; })>);
 	static_assert(!accepts_fill<decltype([n = 0](std::size_t w) mutable { return item{++n, ll(w)}; })>);
-	static_assert(atl::fill_function<decltype(fill), item>);
+	static_assert(atl::fill_function<decltype(zero_fill), item>);
 	static_assert(!atl::fill_function<decltype([](std::size_t, std::size_t, std::size_t) { return item{}; }), item>);
 }
 
@@ -52,7 +52,7 @@ TEST_CASE("dynamic_lazy_segment_tree: vs brute force", "[dynamic_lazy_segment_tr
 	std::mt19937_64 rng(seed);
 	std::size_t const n = 1 + rng() % 60;
 
-	atl::dynamic_lazy_segment_tree t(n, item{0, 0}, aff{1, 0}, op, mp, cp, fill);
+	atl::dynamic_lazy_segment_tree t(n, item{0, 0}, aff{1, 0}, sum_op, affine_mapping, affine_compose, zero_fill);
 	std::vector<ll> ref(n, 0);
 
 	for (int step = 0; step < 400; ++step) {
@@ -98,7 +98,7 @@ TEST_CASE("dynamic_lazy_segment_tree: vs brute force", "[dynamic_lazy_segment_tr
 
 TEST_CASE("dynamic_lazy_segment_tree: huge domain stays sparse", "[dynamic_lazy_segment_tree]") {
 	std::size_t const n = std::size_t((std::min)(1'000'000'000'000ull, static_cast<unsigned long long>((std::numeric_limits<std::size_t>::max)())));
-	atl::dynamic_lazy_segment_tree t(n, item{0, 0}, aff{1, 0}, op, mp, cp, fill);
+	atl::dynamic_lazy_segment_tree t(n, item{0, 0}, aff{1, 0}, sum_op, affine_mapping, affine_compose, zero_fill);
 
 	t.apply(0, n, {1, 5}); // += 5 everywhere: one node touched
 	REQUIRE(t.node_count() <= 3);
@@ -129,7 +129,7 @@ TEST_CASE("dynamic_lazy_segment_tree: tag type without operator==", "[dynamic_la
 	};
 	std::mt19937_64 rng(5);
 	std::size_t const n = 40;
-	atl::dynamic_lazy_segment_tree t(n, item{0, 0}, opaque{1, 0}, op, mp2, cp2, fill);
+	atl::dynamic_lazy_segment_tree t(n, item{0, 0}, opaque{1, 0}, sum_op, mp2, cp2, zero_fill);
 	std::vector<ll> ref(n, 0);
 	for (int step = 0; step < 200; ++step) {
 		std::size_t const l = rng() % (n + 1), r = l + rng() % (n - l + 1);
@@ -206,8 +206,8 @@ TEST_CASE("dynamic_lazy_segment_tree: max_right vs brute", "[dynamic_lazy_segmen
 }
 
 TEST_CASE("dynamic_lazy_segment_tree: default construction and defaulted callables", "[dynamic_lazy_segment_tree]") {
-	using tree = atl::dynamic_lazy_segment_tree<item, aff, std::remove_cvref_t<decltype(op)>, std::remove_cvref_t<decltype(mp)>,
-												std::remove_cvref_t<decltype(cp)>, std::remove_cvref_t<decltype(fill)>>;
+	using tree = atl::dynamic_lazy_segment_tree<item, aff, std::remove_cvref_t<decltype(sum_op)>, std::remove_cvref_t<decltype(affine_mapping)>,
+												std::remove_cvref_t<decltype(affine_compose)>, std::remove_cvref_t<decltype(zero_fill)>>;
 	tree t;
 	REQUIRE(t.empty());
 	REQUIRE(t.size() == 0);
@@ -279,7 +279,7 @@ TEST_CASE("dynamic_lazy_segment_tree: fill selection follows invocable position 
 
 TEST_CASE("dynamic_lazy_segment_tree: overflowing reserve estimate aborts", "[dynamic_lazy_segment_tree]") {
 	REQUIRE(atl_test::aborts([] {
-		atl::dynamic_lazy_segment_tree library(8, item{0, 0}, aff{1, 0}, op, mp, cp, fill);
+		atl::dynamic_lazy_segment_tree library(8, item{0, 0}, aff{1, 0}, sum_op, affine_mapping, affine_compose, zero_fill);
 		library.reserve((std::numeric_limits<std::size_t>::max)());
 	}));
 }

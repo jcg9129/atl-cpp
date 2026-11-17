@@ -241,7 +241,7 @@ namespace atl {
 		 *        here (id 0 is the null sentinel).
 		 */
 		constexpr uint32 make_node() {
-			atl_assert(nodes_.size() < std::size_t(std::numeric_limits<uint32>::max()));
+			atl_assert(nodes_.size() < std::size_t((std::numeric_limits<uint32>::max)()));
 			nodes_.emplace_back();
 			return uint32(nodes_.size() - 1);
 		}

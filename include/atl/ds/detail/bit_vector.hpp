@@ -35,7 +35,7 @@ namespace atl::detail {
 		 *      checked before anything is allocated.
 		 */
 		static constexpr std::size_t word_count(std::size_t n) {
-			atl_assert(n <= std::numeric_limits<uint32>::max());
+			atl_assert(n <= (std::numeric_limits<uint32>::max)());
 			return n / 64 + (n % 64 != 0) + 1;
 		}
 

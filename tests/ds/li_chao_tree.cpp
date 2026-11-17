@@ -177,9 +177,9 @@ TEST_CASE("dynamic_li_chao_tree matches the brute force", "[li_chao_tree]") {
 		for (std::size_t i = 0, count = 1 + rng() % 30; i < count; ++i) points.push_back(int64(rng() % 201) - 100);
 		std::ranges::sort(points);
 		points.erase(std::ranges::unique(points).begin(), points.end());
-		int64 const far = int64(1) << 58;
+		int64 const far_x = int64(1) << 58;
 		bool const has_segments = iter % 3 != 0, is_wide = iter % 4 < 2;
-		int64 const lo = is_wide ? -far : points.front(), hi = is_wide ? far : points.back() + 1;
+		int64 const lo = is_wide ? -far_x : points.front(), hi = is_wide ? far_x : points.back() + 1;
 		auto const check = [&]<envelope_tree Tree, std::strict_weak_order<int64, int64> Compare>(Compare comp) {
 			Tree tree(lo, hi, comp);
 			stress(tree, points, rng, 150, has_segments, comp);
@@ -383,7 +383,7 @@ namespace {
 					if (int64 const v = p.f(x); !best || comp(v, *best)) best = v;
 			return best;
 		};
-		int64 const far = std::numeric_limits<int64>::max();
+		int64 const far_x = std::numeric_limits<int64>::max();
 		for (int op = 0; op < 120; ++op) {
 			if (op % 3 == 0) {
 				int64 const x = points[rng() % points.size()];
@@ -393,11 +393,11 @@ namespace {
 			Function const f = draw();
 			if (op % 10 == 1) {
 				tree.insert(f);
-				pieces.push_back({f, std::numeric_limits<int64>::min(), far});
+				pieces.push_back({f, std::numeric_limits<int64>::min(), far_x});
 				continue;
 			}
 			int64 const l = op % 5 == 2 ? points.front() - int64(rng() % 3) : points[rng() % points.size()];
-			int64 const ends[] = {hi, hi + 1 + int64(rng() % 5), far, points.back(), points.back() + 1,
+			int64 const ends[] = {hi, hi + 1 + int64(rng() % 5), far_x, points.back(), points.back() + 1,
 								  points[rng() % points.size()]};
 			int64 const r = ends[rng() % std::size(ends)];
 			tree.insert(f, l, r);

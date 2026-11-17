@@ -208,7 +208,7 @@ TEST_CASE("segment_tree: default construction and defaulted operation", "[segmen
 	seg = atl::segment_tree<long long, std::plus<>>(5, 0);
 	seg.update(4, [](long long x) { return x + 7; });
 	REQUIRE(seg.fold(3, 5) == 7);
-	int const offset = 0;
+	int offset = 0;
 	auto const capturing = [offset](int x, int y) { return x + y + offset; };
 	static_assert(!std::default_initializable<atl::segment_tree<int, decltype(capturing)>>);
 }
@@ -238,7 +238,7 @@ TEST_CASE("segment_tree: point transformations run exactly once", "[segment_tree
 
 TEST_CASE("segment family: oversized dense geometry aborts before allocation", "[segment_family]") {
 	std::size_t const count = (std::numeric_limits<std::size_t>::max)();
-	REQUIRE(atl_test::aborts([count] { atl::segment_tree<int, std::plus<>> library(count, 0); }));
-	REQUIRE(atl_test::aborts([count] { atl::lazy_segment_tree<int, int, std::plus<>, std::plus<>, std::plus<>> library(count, 0, 0); }));
-	REQUIRE(atl_test::aborts([count] { atl::dual_segment_tree<int, int, std::plus<>, std::plus<>> library(count, 0, 0); }));
+	REQUIRE(atl_test::aborts([] { atl::segment_tree<int, std::plus<>> library(count, 0); }));
+	REQUIRE(atl_test::aborts([] { atl::lazy_segment_tree<int, int, std::plus<>, std::plus<>, std::plus<>> library(count, 0, 0); }));
+	REQUIRE(atl_test::aborts([] { atl::dual_segment_tree<int, int, std::plus<>, std::plus<>> library(count, 0, 0); }));
 }

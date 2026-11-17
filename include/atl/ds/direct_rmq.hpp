@@ -42,7 +42,7 @@ namespace atl {
 	 *       stores positions as uint32 to halve its footprint (a measurable
 	 *       constant-factor win on query throughput).
 	 *
-	 * @link https://en.wikipedia.org/wiki/Range_minimum_query
+	 * [Range minimum query](https://en.wikipedia.org/wiki/Range_minimum_query)
 	 */
 	template<typename T, typename Compare = std::less<>>
 		requires std::strict_weak_order<Compare const &, T const &, T const &>

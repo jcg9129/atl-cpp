@@ -259,7 +259,7 @@ namespace ds2_accepted {
 		atl::binary_indexed_tree<int, 1, Op> nested(values, 0, std::ref(sum));
 		atl::binary_indexed_tree<int, 1, Op> flat(std::array<std::size_t, 1>{3}, std::span(values), 0, std::ref(sum));
 		sized.update(6, 1);
-		int const limit = 3;
+		int limit = 3;
 		auto pred = [limit](int x) mutable { return x <= limit; };
 		auto factory = atl::make_binary_indexed_tree(0, 3);
 		auto from = atl::make_binary_indexed_tree_from(values);
@@ -269,7 +269,7 @@ namespace ds2_accepted {
 			&& factory.prefix_fold(3) == 0 && from.prefix_fold(3) == 6 && from_flat.prefix_fold(3) == 6 && product.prefix_fold(3) == 6;
 	}());
 	static_assert([] {
-		int const extra = 0;
+		int extra = 0;
 		auto min = [extra](int x, int y) { return (x < y ? x : y) + extra; };
 		nonconst_min mutable_min;
 		std::array values{3, 1, 2};
@@ -479,7 +479,8 @@ TEMPLATE_TEST_CASE("segment family: experimental ranges accept explicit elements
 }
 
 namespace segment_member_calls {
-	struct value {
+	// GCC can diagnose the possible vtable read in std::invoke on smaller objects, even for nonvirtual members.
+	struct alignas(void *) value {
 		int sum = 0;
 
 		constexpr value merge(value const &other) const { return {sum + other.sum}; }
