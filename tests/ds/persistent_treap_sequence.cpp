@@ -419,13 +419,17 @@ TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and
 		return seen == r;
 	};
 	tree moved(init, node{0, 0}, aff{1, 0}, op, mp, cp);
+	std::fprintf(stderr, "PROBE rvalue constructed\n"); std::fflush(stderr); // PROBE
 	tree copied = moved;
+	std::fprintf(stderr, "PROBE rvalue copied\n"); std::fflush(stderr); // PROBE
 	std::vector<std::pair<tree, std::vector<ll>>> kept;
 	for (int step = 0; step < 250; ++step) {
 		if (rng() % 15 == 0) kept.emplace_back(moved, ref);
 		ll const v = ll(rng() % mod);
 		std::size_t const sz = ref.size();
-		switch (sz == 0 ? rng() % 3 : rng() % 12) {
+		std::uint64_t const which = sz == 0 ? rng() % 3 : rng() % 12; // PROBE
+		std::fprintf(stderr, "PROBE rvalue step %d case %d size %d\n", step, int(which), int(sz)); std::fflush(stderr); // PROBE
+		switch (which) { // PROBE
 		case 0: {
 			std::size_t const i = rng() % (sz + 1);
 			moved = std::move(moved).insert(i, {v, 1});
@@ -499,6 +503,7 @@ TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and
 		REQUIRE(same(copied, ref));
 	}
 	for (auto const &[t, r] : kept) REQUIRE(same(t, r));
+	std::fprintf(stderr, "PROBE rvalue loop done\n"); std::fflush(stderr); // PROBE
 	tree a = moved;
 	auto b = std::move(a).push_back({7, 1});
 	a = b; // assignment into a moved-from sequence
