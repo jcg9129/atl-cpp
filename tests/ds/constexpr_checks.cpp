@@ -825,10 +825,7 @@ namespace dynamic_segment_checks {
 		};
 		auto min = [](int x, int y) { return (std::min)(x, y); };
 		auto mapping = [](tag f, int x) { return f.has_value ? f.value : x; };
-		auto compose = [](tag f, tag g) {
-			if (f.has_value) return f; // an if: see dynamic_lazy_segment_tree's max_right_descend
-			return g;
-		};
+		auto compose = [](tag f, tag g) { return f.has_value ? f : g; };
 		auto fill = [](std::size_t lo, std::size_t hi) { return lo == hi ? (std::numeric_limits<int>::max)() : int(lo) + 10; };
 		atl::lazy_segment_tree dense(std::array{10, 11, 12, 13, 14}, identity, tag{}, min, mapping, compose);
 		atl::dynamic_lazy_segment_tree sparse(5, identity, tag{}, min, mapping, compose, fill);

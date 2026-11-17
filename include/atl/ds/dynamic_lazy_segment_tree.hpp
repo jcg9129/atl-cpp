@@ -147,8 +147,11 @@ namespace atl {
 		/**
 		 * @brief Fold of the overlap with `[l, r)` under @p acc, the composition of
 		 * pending tags above @p x. Pure — untouched subtrees answer via fill.
+		 * @p acc is taken by value, here and in max_right_descend: MSVC's constant
+		 * evaluation reports a caller's local passed down this recursion by reference
+		 * as uninitialized.
 		 */
-		[[nodiscard]] constexpr Value fold(uint32 x, std::size_t lo, std::size_t hi, std::size_t l, std::size_t r, Tag const &acc) const {
+		[[nodiscard]] constexpr Value fold(uint32 x, std::size_t lo, std::size_t hi, std::size_t l, std::size_t r, Tag acc) const {
 			if (r <= lo || hi <= l) return element_identity_;
 			std::size_t const olo = lo < l ? l : lo, ohi = hi < r ? hi : r;
 			if (x == 0) return std::invoke(std::as_const(mapping_), acc, filled(olo, ohi));
@@ -174,7 +177,7 @@ namespace atl {
 		 * fits (then @p sm folds it in). @p acc carries ancestor tags.
 		 */
 		template<std::predicate<Value const &> Pred>
-		constexpr std::size_t max_right_descend(uint32 x, std::size_t lo, std::size_t hi, std::size_t l, Tag const &acc, Value &sm,
+		constexpr std::size_t max_right_descend(uint32 x, std::size_t lo, std::size_t hi, std::size_t l, Tag acc, Value &sm,
 												Pred &pred) const {
 			if (l <= lo) {
 				Value whole = std::invoke(std::as_const(op_), sm, aggregate_under(x, lo, hi, acc));
@@ -185,12 +188,7 @@ namespace atl {
 				if (hi - lo == 1) return lo;
 			}
 			std::size_t const mid = lo + (hi - lo) / 2;
-			// An if, not `x == 0 ? acc : compose(...)`: MSVC's constant evaluation loses the
-			// members of a class-type conditional-operator result.
-			Tag const acc2 = [&]() -> Tag {
-				if (x == 0) return acc;
-				return std::invoke(std::as_const(compose_), acc, nodes_[x].tag);
-			}();
+			Tag const acc2 = x == 0 ? acc : Tag(std::invoke(std::as_const(compose_), acc, nodes_[x].tag));
 			uint32 const lc = x == 0 ? 0 : nodes_[x].left, rc = x == 0 ? 0 : nodes_[x].right;
 			if (l < mid) {
 				std::size_t const b = max_right_descend(lc, lo, mid, l, acc2, sm, pred);
