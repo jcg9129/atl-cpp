@@ -4,6 +4,12 @@
 #include <cstddef>
 #include <type_traits>
 
+namespace atl::detail {
+	/** @brief Select the position form whenever it is callable, independently of its result type. */
+	template<typename Fill>
+	concept position_fill = std::invocable<Fill const &, std::size_t, std::size_t>;
+}
+
 namespace atl {
 	/**
 	 * @brief A binary operation `op(a, b)` on two `T`s whose result is convertible
@@ -104,16 +110,18 @@ namespace atl {
 	 *
 	 * Checked on `Fill const &` (the structure calls it from const members), so a
 	 * `mutable` lambda is rejected here rather than failing inside the body.
-	 * When both arities are present, the position-aware one is used.
+	 * The position-aware form wins whenever it is invocable; its result must
+	 * convert to `S`, otherwise the callable is rejected. The width form is
+	 * considered only when the position-aware form is not invocable.
 	 *
 	 * @tparam Fill The callable type.
 	 * @tparam S    The element (aggregate) type.
 	 */
 	template<typename Fill, typename S>
-	concept fill_function = (std::regular_invocable<Fill const &, std::size_t>
-							 && std::convertible_to<std::invoke_result_t<Fill const &, std::size_t>, S>)
-						 || (std::regular_invocable<Fill const &, std::size_t, std::size_t>
-							 && std::convertible_to<std::invoke_result_t<Fill const &, std::size_t, std::size_t>, S>);
+	concept fill_function = (detail::position_fill<Fill>
+							 && std::convertible_to<std::invoke_result_t<Fill const &, std::size_t, std::size_t>, S>)
+						 || (!detail::position_fill<Fill> && std::regular_invocable<Fill const &, std::size_t>
+							 && std::convertible_to<std::invoke_result_t<Fill const &, std::size_t>, S>);
 
 	/**
 	 * @brief Tag selecting the commutative-tag mode of `dual_segment_tree` and

@@ -55,3 +55,20 @@ TEST_CASE("algebraic concepts: the documented callable contracts", "[types]") {
 	REQUIRE(absorb{}(3, s));
 	REQUIRE(s == 5);
 }
+
+namespace {
+	struct both_fills {
+		int operator()(std::size_t width) const { return int(width); }
+
+		int operator()(std::size_t lo, std::size_t hi) const { return int(hi - lo); }
+	};
+
+	struct invalid_position_fill {
+		int operator()(std::size_t) const { return 0; }
+
+		void *operator()(std::size_t, std::size_t) const { return nullptr; }
+	};
+
+	static_assert(atl::fill_function<both_fills, int>);
+	static_assert(!atl::fill_function<invalid_position_fill, int>);
+}

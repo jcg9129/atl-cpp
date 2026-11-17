@@ -232,6 +232,14 @@ Expected stdout:
 
 \verbinclude types-and-utilities/composite-key.out
 
+## Default folds
+
+`atl::fill_function<Fill, S>` checks a const callable for the default aggregate
+of an untouched interval. If `fill(lo, hi)` is invocable, that form is selected
+and its result must convert to `S`; an invalid result rejects the callable even
+when `fill(width)` would be valid. Only when the position form is not invocable
+does the width form participate.
+
 ## See also
 
 - [counting sort](counting-sort.md) — `atl::counting_sort` (`<atl/utils/counting_sort.hpp>`)

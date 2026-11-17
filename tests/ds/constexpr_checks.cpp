@@ -20,6 +20,7 @@
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
 #include <atl/utils/hash.hpp>
+#include <algorithm>
 #include <array>
 #include <catch2/catch.hpp>
 #include <compare>
@@ -27,6 +28,7 @@
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -366,3 +368,486 @@ static_assert([] {
 	bool const is_found = map.at(lookup{7}) == 14 && map.contains(lookup{7}) && set.find(lookup{7}) != set.end();
 	return is_found && map.erase(lookup{7}) && set.erase(lookup{7}) && !map.contains(lookup{7});
 }());
+
+#include <atl/ds/binary_indexed_tree.hpp>
+#include <atl/ds/detail/bit_vector.hpp>
+#include <atl/ds/difference_fenwick.hpp>
+#include <atl/ds/direct_rmq.hpp>
+#include <atl/ds/dynamic_li_chao_tree.hpp>
+#include <atl/ds/li_chao_tree.hpp>
+#include <atl/ds/linear_function.hpp>
+#include <atl/ds/sparse_table.hpp>
+#include <atl/ds/wavelet_matrix.hpp>
+#include <atl/experimental/ds/dynamic_li_chao_tree_variants.hpp>
+#include <atl/experimental/ds/li_chao_tree_variants.hpp>
+#include <atl/utils/floor_midpoint.hpp>
+
+namespace ds2_checks {
+	static_assert([] {
+		atl::binary_indexed_tree<int> bit(5);
+		bit.update(3, 0);
+		bit.update(5, 2);
+		return bit.prefix_fold(3) == 8 && bit.size() == 5;
+	}());
+	static_assert([] {
+		atl::binary_indexed_tree<int, 2> bit({3, 3});
+		bit.update(5, 1, 1);
+		bit.update(2, 2, 0);
+		return bit.prefix_fold(3, 3) + bit.prefix_fold(2, 2) == 12;
+	}());
+	static_assert([] {
+		auto bit = atl::make_binary_indexed_tree(0LL, 3, 3);
+		bit.update(5, 1, 1);
+		return bit.prefix_fold(3, 3) == 5;
+	}());
+	static_assert([] {
+		std::array<int, 5> vals{3, 1, 4, 1, 5};
+		auto bit = atl::make_binary_indexed_tree_from(vals);
+		return bit.prefix_fold(5) == 14 && bit.size() == 5
+			&& bit.max_right([](int s) { return s <= 8; }) == 3
+			&& bit.max_right([](int s) { return s < 100; }) == 5;
+	}());
+	static_assert([] {
+		std::array<std::array<int, 2>, 2> grid{{{1, 2}, {3, 4}}};
+		auto bit = atl::make_binary_indexed_tree_from(grid);
+		atl::binary_indexed_tree<int, 2> sized({3, 4});
+		return bit.prefix_fold(2, 2) == 10 && sized.sizes()[0] == 3 && sized.sizes()[1] == 4;
+	}());
+	static_assert([] {
+		std::array<int, 5> a{4, 2, 3, 1, 5};
+		atl::direct_rmq rmq(a);
+		atl::direct_rmq<int> assigned;
+		bool const was_empty = assigned.empty() && assigned.size() == 0;
+		assigned = atl::direct_rmq<int>(std::span<int const>(a));
+		return rmq.position(0, 5) == 3 && rmq.fold(0, 5) == 1
+			&& was_empty && assigned.size() == 5 && assigned.position(1, 3) == 1;
+	}());
+	static_assert([] {
+		std::array const a{4, 2, 7, 1, 9};
+		atl::sparse_table const st(a, [](int x, int y) { return x < y ? x : y; });
+		atl::disjoint_sparse_table const dst(a, [](int x, int y) { return x + y; });
+		atl::sparse_table<int, std::plus<>> empty;
+		atl::disjoint_sparse_table<int, std::plus<>> empty_disjoint;
+		return st.fold(0, 5) == 1 && st.fold(1, 3) == 2 && dst.fold(0, 5) == 23 && dst.fold(2, 4) == 8
+			&& st.size() == 5 && !st.empty() && dst.size() == 5 && !dst.empty()
+			&& empty.empty() && empty.size() == 0 && empty_disjoint.empty() && empty_disjoint.size() == 0;
+	}());
+	static_assert([] {
+		std::array const a{1, 2, 3, 4};
+		atl::difference_fenwick<int> fen(a, 0);
+		fen.apply(0, 3, 5);
+		fen.apply(2, 1);
+		fen.apply(0, 4, 1);
+		atl::difference_fenwick<int> filled(std::size_t(3), 2, 0);
+		filled.apply(1, 3, 4);
+		return fen.at(0) == 7 && fen.at(1) == 8 && fen.at(2) == 10 && fen.at(3) == 5
+			&& filled.at(0) == 2 && filled.at(1) == 6 && filled.at(2) == 6;
+	}());
+	static_assert([] {
+		using tree = atl::difference_fenwick<int, std::bit_xor<>, std::identity>;
+		tree empty(std::size_t(0), 0, 0);
+		empty.apply(0, 0, 1);
+		tree bits(std::array{1, 2, 3}, 0);
+		bits.apply(0, 3, 4);
+		bits.apply(2, 4);
+		return empty.empty() && empty.size() == 0 && bits.size() == 3 && !bits.empty()
+			&& bits.at(0) == 5 && bits.at(1) == 6 && bits.at(2) == 3;
+	}());
+	static_assert([] {
+		std::array<atl::uint32, 6> const a{5, 1, 4, 1, 7, 0};
+		atl::wavelet_matrix const wm(a);
+		atl::wavelet_matrix<atl::uint32> empty;
+		return wm.size() == 6 && !wm.empty() && wm.at(4) == 7 && wm.kth(1, 5, 2) == 4
+			&& wm.count_less(1, 5, 4) == 2 && wm.count(0, 6, 1, 5) == 3 && empty.empty() && empty.size() == 0;
+	}());
+	static_assert([] {
+		atl::detail::bit_vector bv(130);
+		bv.set(0);
+		bv.set_word(1, 1);
+		bv.set(129);
+		bv.finish();
+		return bv.size() == 130 && bv.at(64) && !bv.at(65) && bv.rank1(65) == 2 && bv.rank0(130) == 127 && bv.zeros() == 127;
+	}());
+
+	template<typename Tree>
+		requires requires(Tree &tree) { tree.insert(1, 0, 0, 10); tree.insert(0, 4); { tree.query(7) == 3 } -> std::convertible_to<bool>; }
+	constexpr bool envelope(Tree tree) {
+		tree.insert(1, 0, 0, 10);
+		tree.insert(-1, 10, 3, 8);
+		if (*tree.query(7) != 3 || *tree.query(9) != 9) return false;
+		tree.insert(0, 4);
+		return *tree.query(9) == 4 && *tree.query(7) == 3 && *tree.query(1) == 1;
+	}
+
+	static_assert(envelope(atl::li_chao_tree<long long>(0, 10)));
+	static_assert(envelope(atl::li_chao_tree<long long>(std::vector<long long>{1, 7, 9})));
+	static_assert(envelope(atl::experimental::li_chao_tree_by_inline_flags<long long>(0, 10)));
+	static_assert(envelope(atl::experimental::li_chao_tree_by_endpoint_carry_and_coordinate_search<long long>(0, 10)));
+	static_assert(envelope(atl::experimental::li_chao_tree_by_endpoint_carry_and_coordinate_search<long long>(std::vector<long long>{1, 7, 9})));
+	static_assert(envelope(atl::experimental::li_chao_tree_by_endpoint_carry_and_coordinate_search<long long, std::less<>, atl::linear_function<long long>, false, atl::experimental::coordinate_search::branchless>(std::vector<long long>{1, 7, 9})));
+	static_assert(envelope(atl::dynamic_li_chao_tree<long long>(-1000, 1000)));
+	static_assert(envelope(atl::dynamic_li_chao_tree<atl::int128>(-1000, 1000)));
+	static_assert(envelope(atl::experimental::dynamic_li_chao_tree_by_materialized_paths<long long>(-1000, 1000)));
+	static_assert(envelope(atl::experimental::dynamic_li_chao_tree_by_two_bound_clips<long long>(-1000, 1000)));
+	static_assert(envelope(atl::experimental::dynamic_li_chao_tree_by_query_order_and_clip_overwrite<long long, std::less<>, atl::linear_function<long long>, true, true>(-1000, 1000)));
+	static_assert(envelope(atl::experimental::dynamic_li_chao_tree_by_optional_dominated_exit<long long>(-1000, 1000)));
+
+	struct parabola {
+		long long shift = 0, lift = 0;
+
+		constexpr long long operator()(long long x) const { return (x - shift) * (x - shift) + lift; }
+	};
+
+	template<typename Tree>
+		requires requires(Tree &tree) { tree.insert(parabola{}); tree.insert(parabola{}, 3, 10); { tree.query(4) == 4 } -> std::convertible_to<bool>; }
+	constexpr bool parabolas(Tree tree) {
+		tree.insert(parabola{2, 0});
+		tree.insert(parabola{6, 1}, 3, 10);
+		return *tree.query(4) == 4 && *tree.query(5) == 2 && *tree.query(0) == 4;
+	}
+
+	static_assert(parabolas(atl::li_chao_tree<long long, std::less<>, parabola>(0, 10)));
+	static_assert(parabolas(atl::dynamic_li_chao_tree<long long, std::less<>, parabola>(-100, 100)));
+	static_assert(atl::detail::floor_midpoint(-7LL, 4LL) == -2);
+	static_assert(atl::detail::floor_midpoint((std::numeric_limits<long long>::min)(), (std::numeric_limits<long long>::max)()) == -1);
+	static_assert([] {
+		atl::dynamic_li_chao_tree<atl::int64> tree(0, 1'000'000);
+		tree.reserve(8);
+		tree.insert(0, 1);
+		tree.insert(0, 1, 1, 999'999);
+		if (tree.node_count() != 1) return false;
+		tree.insert(0, 0, 5, 6);
+		return !tree.empty() && tree.query(4) == 1 && tree.query(5) == 0 && tree.query(6) == 1;
+	}());
+
+	// Exercise both concrete software classes even on native-int128 targets.
+	template<atl::integral Value>
+	constexpr bool overflow_boundaries() {
+		constexpr Value low = (std::numeric_limits<Value>::lowest)();
+		constexpr Value high = (std::numeric_limits<Value>::max)();
+		if (!atl::detail::fits_on(atl::linear_function<Value>{1, 0}, low, high)) return false;
+		if (atl::detail::fits_on(atl::linear_function<Value>{1, 1}, high, high)) return false;
+		if (atl::detail::fits_on(atl::linear_function<Value>{2, 0}, high, high)) return false;
+		if constexpr (atl::signed_integral<Value>) {
+			if (atl::detail::fits_on(atl::linear_function<Value>{-1, 0}, low, low)) return false;
+			if (atl::detail::fits_on(atl::linear_function<Value>{1, -1}, low, low)) return false;
+			if (!atl::detail::fits_on(atl::linear_function<Value>{-1, -1}, high, high)) return false;
+		}
+		return true;
+	}
+
+	static_assert(overflow_boundaries<int>() && overflow_boundaries<unsigned>());
+	static_assert(overflow_boundaries<atl::int64>() && overflow_boundaries<atl::uint64>());
+	static_assert(overflow_boundaries<atl::int128>() && overflow_boundaries<atl::uint128>());
+	static_assert(overflow_boundaries<atl::detail::software_int128>() && overflow_boundaries<atl::detail::software_uint128>());
+	static_assert([] {
+		using Value = atl::detail::software_uint128;
+		std::array const a{Value(1) << 100, Value(0), (Value(1) << 100) + 1};
+		atl::wavelet_matrix const wm(a);
+		return wm.at(2) == a[2] && wm.kth(0, 3, 1) == a[0] && wm.count_less(0, 3, a[2]) == 2;
+	}());
+	static_assert(atl::linear_function<int>{2, 3}(4) == 11 && atl::linear_function<int>{2, 3} == atl::linear_function<int>{2, 3});
+}
+
+static_assert([] {
+	atl::detail::bit_vector empty;
+	empty.finish();
+	return empty.size() == 0 && empty.rank1(0) == 0 && empty.rank0(0) == 0 && empty.zeros() == 0;
+}());
+static_assert(atl::detail::li_chao_width(-7, 4) == 11);
+static_assert(atl::detail::li_chao_width(0u, 2147483647u) == 2147483647u);
+static_assert([] {
+	using Wide = atl::detail::software_int128;
+	atl::li_chao_tree<Wide> points(std::vector<Wide>{Wide(1) << 70, (Wide(1) << 70) + 1});
+	points.insert(2, 3);
+	return points.query(Wide(1) << 70) == (Wide(1) << 71) + 3;
+}());
+static_assert([] {
+	atl::li_chao_tree<int> array;
+	atl::dynamic_li_chao_tree<int> dynamic;
+	array.insert(1, 2);
+	dynamic.insert(1, 2);
+	return array.empty() && array.size() == 0 && dynamic.empty() && dynamic.node_count() == 0;
+}());
+
+#include <atl/ds/dual_segment_tree.hpp>
+#include <atl/ds/dynamic_lazy_segment_tree.hpp>
+#include <atl/ds/dynamic_segment_tree.hpp>
+#include <atl/ds/lazy_segment_tree.hpp>
+#include <atl/ds/segment_tree.hpp>
+#include <atl/ds/segment_tree_beats.hpp>
+
+namespace segment_family_checks {
+	static_assert([] {
+		std::array const a{4, 2, 7, 1, 9};
+		atl::segment_tree st(a, 0, [](int x, int y) { return x + y; });
+		st.set(3, 6);
+		int segments = 0;
+		st.for_each_segment(1, 5, [&](int) { ++segments; });
+		return st.fold(1, 4) == 15 && st.fold() == 28 && st.at(3) == 6
+			&& st.max_right(0, [](int x) { return x <= 13; }) == 3
+			&& st.min_left(5, [](int x) { return x <= 15; }) == 3 && segments == 3;
+	}());
+	static_assert([] {
+		atl::segment_tree st(std::size_t(3), 0, [](int x, int y) { return x > y ? x : y; });
+		st.set(1, 5);
+		return st.fold(0, 3) == 5 && st.fold(2, 3) == 0;
+	}());
+	static_assert([] {
+		struct node {
+			long long sum, width;
+		};
+		std::array<node, 5> const a{{{4, 1}, {2, 1}, {7, 1}, {1, 1}, {9, 1}}};
+		atl::lazy_segment_tree st(a, node{0, 0}, 0LL, [](node x, node y) { return node{x.sum + y.sum, x.width + y.width}; }, [](long long f, node x) { return node{x.sum + f * x.width, x.width}; }, std::plus<>{});
+		st.apply(1, 4, 10);
+		st.apply(4, 1);
+		return st.fold(0, 5).sum == 54 && st.fold(2, 4).sum == 28 && st.at(1).sum == 12 && st.fold().sum == 54
+			&& st.max_right(0, [](node x) { return x.sum <= 33; }) == 3
+			&& st.min_left(5, [](node x) { return x.sum <= 21; }) == 3;
+	}());
+	static_assert([] {
+		atl::dual_segment_tree st(std::array{1, 2, 3, 4}, 0, std::plus<>{}, std::plus<>{});
+		st.apply(0, 3, 5);
+		st.apply(2, 1);
+		st.set(0, 0);
+		return st.at(0) == 0 && st.at(1) == 7 && st.at(2) == 9 && st.at(3) == 4 && st.size() == 4;
+	}());
+	static_assert([] {
+		atl::dual_segment_tree st(atl::commutative_tags, std::array{1, 2, 3, 4}, 0, std::plus<>{}, std::plus<>{});
+		st.apply(0, 3, 5);
+		st.apply(2, 1);
+		st.set(0, 0);
+		st.apply(0, 4, 1);
+		return st.at(0) == 1 && st.at(1) == 8 && st.at(2) == 10 && st.at(3) == 5;
+	}());
+	static_assert([] {
+		atl::segment_tree<int, std::plus<>> st;
+		bool const was_empty = st.empty() && st.fold() == 0;
+		st = atl::segment_tree<int, std::plus<>>(std::array{4, 2, 7}, 0);
+		int calls = 0;
+		st.update(1, [&calls](int x) { ++calls; return x * 10; });
+		return was_empty && st.fold() == 31 && st.at(1) == 20 && calls == 1;
+	}());
+	static_assert([] {
+		using tree = atl::lazy_segment_tree<int, int, std::plus<>, std::plus<>, std::plus<>>;
+		tree st;
+		bool const was_empty = st.empty();
+		st = tree(std::size_t(3), 0, 0);
+		st.apply(0, 2, 5);
+		return was_empty && st.fold(0, 1) == 5 && st.at(2) == 0;
+	}());
+	static_assert([] {
+		using tree = atl::dual_segment_tree<int, int, std::plus<>, std::plus<>>;
+		tree st;
+		bool const was_empty = st.empty() && st.values().empty();
+		st = tree(std::array{1, 2, 3, 4}, 0);
+		st.apply(1, 4, 3);
+		st.apply(0, 2, 1);
+		return was_empty && st.values() == std::vector{2, 6, 6, 7};
+	}());
+	static_assert([] {
+		atl::beats_segment_tree<long long> st(std::array<long long, 5>{4, 2, 7, 1, 9});
+		st.chmin(0, 5, 5);
+		st.chmax(1, 4, 3);
+		st.add(0, 2, 10);
+		st.assign(4, 5, 0);
+		st.set(2, 6);
+		return st.sum(0, 5) == 36 && st.min(0, 5) == 0 && st.max(1, 4) == 13 && st.element(1) == 13
+			&& st.max_right(0, [](auto const &v) { return v.sum <= 27; }) == 2
+			&& st.min_left(5, [](auto const &v) { return v.max <= 6; }) == 2
+			&& st.max_right(1, [](auto const &v) { return v.max_count <= 1 && v.second_min >= 6; }) == 4;
+	}());
+	static_assert([] {
+		atl::beats_segment_tree<int> st;
+		bool const was_empty = st.empty() && st.sum(0, 0) == 0;
+		st = atl::beats_segment_tree<int>(std::size_t(3));
+		st.add(0, 3, 2);
+		st.chmin(1, 2, -1);
+		return was_empty && st.sum(0, 3) == 3 && st.min(0, 3) == -1 && st.size() == 3;
+	}());
+	static_assert([] {
+		int const top = (std::numeric_limits<int>::max)() - 1;
+		atl::beats_segment_tree<int, long long> st(std::array{top, 1, top, 2, 3});
+		st.chmin(0, 5, 2);
+		st.assign(0, 5, -top);
+		st.add(0, 5, top);
+		st.add(0, 5, top);
+		return st.element(3) == top && st.sum(1, 4) == 3LL * top;
+	}());
+	static_assert([] {
+		using tree = atl::segment_tree_beats<atl::beats::extremes<long long>, atl::beats::clamp_add<long long>>;
+		tree st(std::array<long long, 5>{4, 2, 7, 1, 9});
+		st.chmin(0, 5, 5);
+		st.chmax(1, 4, 3);
+		st.add(0, 2, 10);
+		st.assign(4, 5, 0);
+		st.set(2, 6);
+		auto const f = st.fold(1, 4);
+		tree none;
+		return st.sum(0, 5) == 36 && st.min(0, 5) == 0 && st.max(1, 4) == 13 && st.element(1) == 13
+			&& f.max_count == 1 && f.second_min == 6 && st.fold().second_max == 13
+			&& st.max_right(0, [](auto const &v) { return v.sum <= 27; }) == 2
+			&& st.min_left(5, [](auto const &v) { return v.max <= 6; }) == 2 && none.empty();
+	}());
+	static_assert([] {
+		atl::segment_tree_beats<atl::beats::mod_sum<int>, atl::beats::assign<int>> st(std::array{9, 4, 15, 7});
+		st.modulo(0, 4, 5);
+		st.assign(1, 3, 8);
+		st.modulo(0, 4, 3);
+		return st.sum(0, 4) == 7 && st.max(0, 4) == 2 && st.min(0, 4) == 1;
+	}());
+	static_assert([] {
+		atl::segment_tree_beats<atl::beats::sqrt_add_sum<long long>, atl::beats::add<long long>> st(std::array<long long, 4>{16, 17, 100, 3});
+		st.floor_sqrt(0, 4);
+		st.add(0, 2, 5);
+		st.divide(0, 4, 2);
+		return st.sum(0, 4) == 13 && st.max(0, 4) == 5 && st.element(3) == 0;
+	}());
+	static_assert([] {
+		atl::segment_tree_beats<atl::beats::bits_max<unsigned>, atl::beats::bit_mask<unsigned>> st(std::array{12u, 5u, 9u});
+		st.bit_and(0, 3, 6u);
+		st.bit_or(1, 3, 3u);
+		return st.max(0, 3) == 7 && st.element(0) == 4 && st.max(2, 3) == 3;
+	}());
+	static_assert([] {
+		struct node {
+			int max, second, count, sum;
+		};
+		std::array<node, 4> const a{{{5, -1000, 1, 5}, {3, -1000, 1, 3}, {8, -1000, 1, 8}, {1, -1000, 1, 1}}};
+		atl::segment_tree_beats st(a, node{-1000, -1000, 0, 0}, 1000, [](node x, node y) {
+				if (x.max == y.max) return node{x.max, (std::max)(x.second, y.second), x.count + y.count, x.sum + y.sum};
+				node const &hi = x.max > y.max ? x : y, &lo = x.max > y.max ? y : x;
+				return node{hi.max, (std::max)(hi.second, lo.max), hi.count, x.sum + y.sum}; }, [](int const &c, node &v) {
+				if (v.max <= c) return true;
+				if (c <= v.second) return false;
+				v.sum -= (v.max - c) * v.count; v.max = c; return true; }, [](int x, int y) { return (std::min)(x, y); });
+		st.apply(0, 4, 4);
+		return st.fold().sum == 12 && st.fold(1, 3).sum == 7;
+	}());
+	static_assert([] {
+		using wide = atl::int128;
+		wide const top = wide(1) << 100;
+		atl::beats_segment_tree<wide> st(std::array{top, top - 1});
+		st.assign(0, 2, -top);
+		st.add(0, 2, top);
+		st.add(0, 2, top);
+		return st.sum(0, 2) == top * 2 && atl::detail::beats_floor_sqrt(wide(1) << 100) == wide(1) << 50;
+	}());
+	static_assert(atl::update_function<decltype([](int x) { return x + 1; }), int>);
+	static_assert(std::same_as<atl::dynamic_segment_tree<int, std::plus<>>::value_type, int>);
+	static_assert(atl::fill_function<decltype([](std::size_t lo, std::size_t hi) { return int(hi - lo); }), int>);
+}
+
+namespace dynamic_segment_checks {
+	static_assert([] {
+		using tree = atl::dynamic_segment_tree<int, std::plus<>>;
+		tree empty;
+		if (!empty.empty() || empty.size() != 0 || empty.node_count() != 1 || empty.fold() != 0 || empty.fold(0, 0) != 0) return false;
+		if (empty.max_right(0, [](int x) { return x == 0; }) != 0 || empty.min_left(0, [](int x) { return x == 0; }) != 0) return false;
+		empty.reserve(1);
+		tree st(9, 0);
+		if (st.empty() || st.size() != 9 || st.node_count() != 1 || st.at(4) != 0) return false;
+		st.set(6, 7);
+		if (st.node_count() != 2 || st.at(6) != 7 || st.at(5) != 0) return false;
+		st.set(1, 3);
+		int calls = 0;
+		st.update(1, [&calls](int x) { ++calls; return x * 2; });
+		st.update(3, [&calls](int x) { ++calls; return x + 4; });
+		st.set(6, 9);
+		auto const count = st.node_count();
+		st.reserve(50);
+		auto const &view = st;
+		return calls == 2 && count > 2 && view.node_count() == count && view.fold() == 19
+			&& view.fold(1, 6) == 10 && view.fold(4, 4) == 0 && view.at(3) == 4 && view.at(0) == 0
+			&& view.max_right(0, [](int x) { return x <= 10; }) == 6
+			&& view.max_right(7, [](int x) { return x == 0; }) == 9
+			&& view.min_left(9, [](int x) { return x <= 13; }) == 2
+			&& view.min_left(1, [](int x) { return x == 0; }) == 0
+			&& view.node_count() == count;
+	}());
+
+	struct sum_width {
+		int sum = 0, width = 0;
+	};
+
+	struct affine {
+		int scale = 1, bias = 0;
+		constexpr bool operator==(affine const &) const = default;
+	};
+
+	static_assert([] {
+		auto op = [](sum_width x, sum_width y) { return sum_width{x.sum + y.sum, x.width + y.width}; };
+		auto mapping = [](affine f, sum_width x) { return sum_width{f.scale * x.sum + f.bias * x.width, x.width}; };
+		auto compose = [](affine f, affine g) { return affine{f.scale * g.scale, f.scale * g.bias + f.bias}; };
+		auto fill = [](std::size_t width) { return sum_width{int(width), int(width)}; };
+		atl::dynamic_lazy_segment_tree st(7, sum_width{}, affine{}, op, mapping, compose, fill);
+		decltype(st) empty;
+		empty.reserve(1);
+		empty.reserve_nodes(20);
+		empty.apply(0, 0, affine{2, 1});
+		if (!empty.empty() || empty.size() != 0 || empty.node_count() != 1 || empty.fold().sum != 0 || empty.fold(0, 0).sum != 0) return false;
+		if (empty.max_right(0, [](sum_width x) { return x.sum == 0; }) != 0) return false;
+		if (st.empty() || st.size() != 7 || st.node_count() != 2 || st.fold().sum != 7) return false;
+		st.apply(0, 7, affine{2, 1});
+		if (st.fold(1, 6).sum != 15 || st.at(2).sum != 3 || st.max_right(0, [](sum_width x) { return x.sum <= 10; }) != 3 || st.node_count() != 2) return false;
+		st.apply(1, 6, affine{1, 2});
+		st.apply(2, affine{2, 0});
+		st.set(4, sum_width{1, 1});
+		auto const count = st.node_count();
+		st.reserve(5);
+		st.reserve_nodes(256);
+		auto const &view = st;
+		return count > 2 && view.size() == 7 && view.fold().sum == 32 && view.fold().width == 7
+			&& view.fold(1, 5).sum == 21 && view.fold(3, 3).sum == 0 && view.at(2).sum == 10
+			&& view.max_right(0, [](sum_width x) { return x.sum <= 18; }) == 3
+			&& view.max_right(3, [](sum_width x) { return x.sum <= 11; }) == 6
+			&& view.max_right(7, [](sum_width x) { return x.sum == 0; }) == 7
+			&& view.node_count() == count;
+	}());
+
+	static_assert([] {
+		int const identity = (std::numeric_limits<int>::max)();
+		using tag = std::optional<int>;
+		auto min = [](int x, int y) { return (std::min)(x, y); };
+		auto mapping = [](tag f, int x) { return f.value_or(x); };
+		auto compose = [](tag f, tag g) { return f ? f : g; };
+		auto fill = [](std::size_t lo, std::size_t hi) { return lo == hi ? (std::numeric_limits<int>::max)() : int(lo) + 10; };
+		atl::lazy_segment_tree dense(std::array{10, 11, 12, 13, 14}, identity, tag{}, min, mapping, compose);
+		atl::dynamic_lazy_segment_tree sparse(5, identity, tag{}, min, mapping, compose, fill);
+		// Assignment maps the element identity to a value; only nonempty intervals receive tags.
+		if (mapping(tag{7}, identity) != 7) return false;
+		sparse.apply(0, 5, tag{7});
+		dense.apply(0, 5, tag{7});
+		sparse.apply(1, 4, tag{3});
+		dense.apply(1, 4, tag{3});
+		sparse.apply(2, tag{9});
+		dense.apply(2, tag{9});
+		sparse.set(3, 8);
+		dense.set(3, 8);
+		return sparse.fold() == 3 && dense.fold() == 3 && sparse.fold(2, 4) == 8 && dense.fold(2, 4) == 8
+			&& sparse.at(4) == 7 && dense.at(4) == 7 && sparse.fold(3, 3) == identity && dense.fold(3, 3) == identity
+			&& sparse.max_right(0, [](int x) { return x >= 7; }) == 1 && dense.max_right(0, [](int x) { return x >= 7; }) == 1;
+	}());
+
+	template<atl::signed_integral Element, atl::signed_integral Sum>
+	constexpr bool wrapping_pending_add() {
+		Element const top = (std::numeric_limits<Element>::max)() / 4;
+		atl::beats_segment_tree<Element, Sum> st(std::array<Element, 2>{Element(-top), top});
+		st.assign(0, 2, Element(-top));
+		for (int i = 0; i < 6; ++i) {
+			st.add(0, 2, top);
+			st.chmin(0, 2, Element(-top));
+		}
+		if (st.element(1) != -top || st.sum(0, 2) != Sum(-top) * 2) return false;
+		st.assign(0, 2, top);
+		for (int i = 0; i < 6; ++i) {
+			st.add(0, 2, Element(-top));
+			st.chmax(0, 2, top);
+		}
+		return st.element(0) == top && st.sum(0, 2) == Sum(top) * 2;
+	}
+}
+
+static_assert(dynamic_segment_checks::wrapping_pending_add<signed char, long long>());
+static_assert(dynamic_segment_checks::wrapping_pending_add<long long, atl::int128>());
+static_assert(dynamic_segment_checks::wrapping_pending_add<atl::detail::software_int128, atl::detail::software_int128>());
