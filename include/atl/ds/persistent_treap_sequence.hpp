@@ -752,7 +752,9 @@ namespace atl {
 		[[nodiscard]] std::pair<persistent_treap_sequence, persistent_treap_sequence> split_first() && {
 			atl_assert(pool_ && !empty());
 			auto [f, rest] = split_off_end(root_, true);
-			return {persistent_treap_sequence(pool_, f), persistent_treap_sequence(std::move(pool_), rest)};
+			// Copy the pool before moving it: MSVC does not keep the braced list's left-to-right order here.
+			persistent_treap_sequence first(pool_, f);
+			return {std::move(first), persistent_treap_sequence(std::move(pool_), rest)};
 		}
 
 		/**
@@ -769,7 +771,9 @@ namespace atl {
 		[[nodiscard]] std::pair<persistent_treap_sequence, persistent_treap_sequence> split_last() && {
 			atl_assert(pool_ && !empty());
 			auto [l, rest] = split_off_end(root_, false);
-			return {persistent_treap_sequence(pool_, rest), persistent_treap_sequence(std::move(pool_), l)};
+			// Copy the pool before moving it: MSVC does not keep the braced list's left-to-right order here.
+			persistent_treap_sequence first(pool_, rest);
+			return {std::move(first), persistent_treap_sequence(std::move(pool_), l)};
 		}
 
 		/**
@@ -788,7 +792,9 @@ namespace atl {
 			atl_assert(pool_ && i <= size());
 			atl_assert(!is_saturated());
 			auto [l, r] = cut(root_, i);
-			return {persistent_treap_sequence(pool_, l), persistent_treap_sequence(std::move(pool_), r)};
+			// Copy the pool before moving it: MSVC does not keep the braced list's left-to-right order here.
+			persistent_treap_sequence first(pool_, l);
+			return {std::move(first), persistent_treap_sequence(std::move(pool_), r)};
 		}
 
 		/** @brief The version `this ++ other`. @pre same arena. @complexity O(log n) */

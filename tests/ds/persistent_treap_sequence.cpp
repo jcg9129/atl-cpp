@@ -1,4 +1,3 @@
-#include <cstdio> // PROBE
 #include <atl/ds/persistent_treap_sequence.hpp>
 #include <atl/types/alias.hpp>
 #include <catch2/catch.hpp>
@@ -351,7 +350,6 @@ TEST_CASE("persistent_treap_sequence: for_each and compacted on the plain tier",
 }
 
 TEST_CASE("persistent_treap_sequence: positional ops assert on a saturated size", "[persistent_treap_sequence]") {
-	{ // PROBE scope
 	atl::persistent_treap_sequence<int> v(std::vector{0, 1, 2, 3, 4, 5, 6, 7});
 	for (int i = 0; i < 40; ++i) v = v.concat(v);
 	REQUIRE(v.size() == (std::numeric_limits<atl::uint32>::max)());
@@ -362,13 +360,9 @@ TEST_CASE("persistent_treap_sequence: positional ops assert on a saturated size"
 	CHECK(atl_test::aborts([&] { (void)v.split(5); }));
 	CHECK(atl_test::aborts([&] { (void)v.compacted(); }));
 	REQUIRE(v.split_first().first.at(0) == 0); // structural end-splits stay valid
-	std::fprintf(stderr, "PROBE saturated body done\n"); std::fflush(stderr); // PROBE
-	} // PROBE scope
-	std::fprintf(stderr, "PROBE saturated v destroyed\n"); std::fflush(stderr); // PROBE
 }
 
 TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and leave other versions intact", "[persistent_treap_sequence]") {
-	std::fprintf(stderr, "PROBE rvalue start\n"); std::fflush(stderr); // PROBE
 	auto seed = GENERATE(take(4, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
 	constexpr ll mod = 1'000'003;
@@ -419,17 +413,13 @@ TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and
 		return seen == r;
 	};
 	tree moved(init, node{0, 0}, aff{1, 0}, op, mp, cp);
-	std::fprintf(stderr, "PROBE rvalue constructed\n"); std::fflush(stderr); // PROBE
 	tree copied = moved;
-	std::fprintf(stderr, "PROBE rvalue copied\n"); std::fflush(stderr); // PROBE
 	std::vector<std::pair<tree, std::vector<ll>>> kept;
 	for (int step = 0; step < 250; ++step) {
 		if (rng() % 15 == 0) kept.emplace_back(moved, ref);
 		ll const v = ll(rng() % mod);
 		std::size_t const sz = ref.size();
-		std::uint64_t const which = sz == 0 ? rng() % 3 : rng() % 12; // PROBE
-		std::fprintf(stderr, "PROBE rvalue step %d case %d size %d\n", step, int(which), int(sz)); std::fflush(stderr); // PROBE
-		switch (which) { // PROBE
+		switch (sz == 0 ? rng() % 3 : rng() % 12) {
 		case 0: {
 			std::size_t const i = rng() % (sz + 1);
 			moved = std::move(moved).insert(i, {v, 1});
@@ -503,7 +493,6 @@ TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and
 		REQUIRE(same(copied, ref));
 	}
 	for (auto const &[t, r] : kept) REQUIRE(same(t, r));
-	std::fprintf(stderr, "PROBE rvalue loop done\n"); std::fflush(stderr); // PROBE
 	tree a = moved;
 	auto b = std::move(a).push_back({7, 1});
 	a = b; // assignment into a moved-from sequence
@@ -513,14 +502,11 @@ TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and
 }
 
 TEST_CASE("persistent_treap_sequence: sized input ranges can have move-only iterators", "[persistent_treap_sequence]") {
-	std::fprintf(stderr, "PROBE moveonly start\n"); std::fflush(stderr); // PROBE
 	std::istringstream source("1 2 3 4 5");
 	auto input = std::views::istream<int>(source);
 	static_assert(!std::copy_constructible<decltype(input.begin())>);
 	auto values = std::ranges::subrange(input.begin(), std::default_sentinel, std::size_t(5));
-	std::fprintf(stderr, "PROBE moveonly before build\n"); std::fflush(stderr); // PROBE
 	atl::persistent_treap_sequence<int> tree(std::move(values));
-	std::fprintf(stderr, "PROBE moveonly built\n"); std::fflush(stderr); // PROBE
 	REQUIRE(tree.size() == 5);
 	for (std::size_t i = 0; i < tree.size(); ++i) REQUIRE(tree.at(i) == int(i + 1));
 }
