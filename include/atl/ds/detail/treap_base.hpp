@@ -122,16 +122,8 @@ namespace atl::detail {
 		template<treap_store S, typename GoesLeft>
 			requires std::predicate<GoesLeft &, S &, uint32>
 		static constexpr std::pair<uint32, uint32> split(S &s, uint32 t, GoesLeft &&goes_left) {
-			if (t == 0) return {0, 0};
-			t = s.push(t);
-			if (std::invoke(goes_left, s, t)) {
-				auto const parts = split(s, s.right(t), goes_left);
-				uint32 const middle = parts.first, right = parts.second;
-				return {rebind_right(s, t, middle), right};
-			}
-			auto const parts = split(s, s.left(t), goes_left);
-			uint32 const left = parts.first, middle = parts.second;
-			return {left, rebind_left(s, t, middle)};
+			uint64 const parts = split_packed(s, t, goes_left);
+			return {first_of(parts), second_of(parts)};
 		}
 
 		/**
@@ -349,17 +341,43 @@ namespace atl::detail {
 		 */
 		template<treap_store S>
 		static constexpr std::pair<uint32, uint32> split_at(S &s, uint32 t, uint32 k) {
-			if (t == 0) return {0, 0};
+			uint64 const parts = split_at_packed(s, t, k);
+			return {first_of(parts), second_of(parts)};
+		}
+
+	private:
+		// The recursive splits return both roots packed in one scalar: MSVC's constant evaluator reports a class-type
+		// result built in the caller's return slot down a recursion as uninitialized (docs/conventions.md). Two ids fit
+		// one register either way, so the packing costs nothing at run time.
+		static constexpr uint64 pack(uint32 first, uint32 second) { return uint64(first) << 32 | second; }
+
+		static constexpr uint32 first_of(uint64 parts) { return uint32(parts >> 32); }
+
+		static constexpr uint32 second_of(uint64 parts) { return uint32(parts); }
+
+		template<treap_store S, typename GoesLeft>
+		static constexpr uint64 split_packed(S &s, uint32 t, GoesLeft &goes_left) {
+			if (t == 0) return 0;
+			t = s.push(t);
+			if (std::invoke(goes_left, s, t)) {
+				uint64 const parts = split_packed(s, s.right(t), goes_left);
+				return pack(rebind_right(s, t, first_of(parts)), second_of(parts));
+			}
+			uint64 const parts = split_packed(s, s.left(t), goes_left);
+			return pack(first_of(parts), rebind_left(s, t, second_of(parts)));
+		}
+
+		template<treap_store S>
+		static constexpr uint64 split_at_packed(S &s, uint32 t, uint32 k) {
+			if (t == 0) return 0;
 			t = s.push(t);
 			uint32 const left_size = s.size(s.left(t));
 			if (left_size < k) {
-				auto const parts = split_at(s, s.right(t), k - left_size - 1);
-				uint32 const middle = parts.first, right = parts.second;
-				return {rebind_right(s, t, middle), right};
+				uint64 const parts = split_at_packed(s, s.right(t), k - left_size - 1);
+				return pack(rebind_right(s, t, first_of(parts)), second_of(parts));
 			}
-			auto const parts = split_at(s, s.left(t), k);
-			uint32 const left = parts.first, middle = parts.second;
-			return {left, rebind_left(s, t, middle)};
+			uint64 const parts = split_at_packed(s, s.left(t), k);
+			return pack(first_of(parts), rebind_left(s, t, second_of(parts)));
 		}
 	};
 }
