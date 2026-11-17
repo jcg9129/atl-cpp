@@ -74,6 +74,19 @@ namespace atl {
 				atl_assert(size <= Size((std::numeric_limits<std::size_t>::max)()));
 			return std::size_t(size);
 		}
+
+		/**
+		 * @brief The checked extents of a pack, in order. Filled element by element:
+		 *        MSVC ARM64 (14.44) miscompiles `std::array{checked_extent(sizes)...}`,
+		 *        leaving the first of two extents 0.
+		 */
+		template<integral... Sizes>
+		constexpr std::array<std::size_t, sizeof...(Sizes)> checked_extents(Sizes... sizes) {
+			std::array<std::size_t, sizeof...(Sizes)> extents{};
+			std::size_t d = 0;
+			((extents[d++] = checked_extent(sizes)), ...);
+			return extents;
+		}
 	}
 
 	/**
@@ -270,7 +283,7 @@ namespace atl {
 		template<integral... Indices>
 			requires(sizeof...(Indices) == Dim)
 		constexpr void update(T const &value, Indices... indices) {
-			std::array<std::size_t, Dim> const idx{detail::checked_extent(indices)...};
+			std::array<std::size_t, Dim> const idx = detail::checked_extents(indices...);
 			for (std::size_t d = 0; d < Dim; ++d) atl_assert(idx[d] < sizes_[d]);
 			update_impl<0>(value, idx, 0);
 		}
@@ -286,7 +299,7 @@ namespace atl {
 			requires(sizeof...(Indices) == Dim)
 		constexpr T prefix_fold(Indices... indices) const {
 			T result = identity_;
-			std::array<std::size_t, Dim> const idx{detail::checked_extent(indices)...};
+			std::array<std::size_t, Dim> const idx = detail::checked_extents(indices...);
 			for (std::size_t d = 0; d < Dim; ++d) atl_assert(idx[d] <= sizes_[d]);
 			prefix_fold_impl<0>(idx, 0, result);
 			return result;
@@ -365,7 +378,7 @@ namespace atl {
 		requires binary_operation<Op, T>
 	constexpr auto make_binary_indexed_tree(T identity, Sizes... sizes) {
 		return binary_indexed_tree<T, sizeof...(Sizes), Op>(
-			std::array<std::size_t, sizeof...(Sizes)>{detail::checked_extent(sizes)...}, std::move(identity));
+			detail::checked_extents(sizes...), std::move(identity));
 	}
 
 	/**
@@ -390,7 +403,7 @@ namespace atl {
 				std::forward<Range>(values));
 		else
 			return binary_indexed_tree<std::ranges::range_value_t<Range>, sizeof...(Sizes), Op>(
-				std::array<std::size_t, sizeof...(Sizes)>{detail::checked_extent(sizes)...}, std::forward<Range>(values));
+				detail::checked_extents(sizes...), std::forward<Range>(values));
 	}
 
 	/**
@@ -410,7 +423,7 @@ namespace atl {
 																		   T(std::move(identity)));
 		else
 			return binary_indexed_tree<T, sizeof...(Sizes), Op>(
-				std::array<std::size_t, sizeof...(Sizes)>{detail::checked_extent(sizes)...}, std::forward<Range>(values),
+				detail::checked_extents(sizes...), std::forward<Range>(values),
 				T(std::move(identity)));
 	}
 }

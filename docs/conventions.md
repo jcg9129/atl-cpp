@@ -146,6 +146,9 @@ Document new conventions here alongside their technical rationale.
 - Constexpr code that MSVC must evaluate never passes a caller's local by
   reference down a recursion: MSVC's constant evaluation reports it as
   uninitialized (valid on GCC and Clang). Take such accumulators by value.
+- MSVC ARM64 (14.44) miscompiles a braced pack of calls such as
+  `std::array{checked_extent(sizes)...}` (an element comes out 0). Fill such
+  arrays element by element with a fold expression.
 - No code copied from attribution-licensed sources (MIT/BSD/Apache/CC-BY
   included): cite the reference in a comment, implement independently.
 
