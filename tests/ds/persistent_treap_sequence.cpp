@@ -351,29 +351,24 @@ TEST_CASE("persistent_treap_sequence: for_each and compacted on the plain tier",
 }
 
 TEST_CASE("persistent_treap_sequence: positional ops assert on a saturated size", "[persistent_treap_sequence]") {
+	{ // PROBE scope
 	atl::persistent_treap_sequence<int> v(std::vector{0, 1, 2, 3, 4, 5, 6, 7});
-	std::fprintf(stderr, "PROBE step 1 done\n"); std::fflush(stderr); // PROBE
 	for (int i = 0; i < 40; ++i) v = v.concat(v);
-	std::fprintf(stderr, "PROBE step 2 done\n"); std::fflush(stderr); // PROBE
 	REQUIRE(v.size() == (std::numeric_limits<atl::uint32>::max)());
-	std::fprintf(stderr, "PROBE step 3 done\n"); std::fflush(stderr); // PROBE
 	CHECK(atl_test::aborts([&] { (void)v.insert(1, 9); }));
-	std::fprintf(stderr, "PROBE step 4 done\n"); std::fflush(stderr); // PROBE
 	CHECK(atl_test::aborts([&] { (void)v.at(5); }));
-	std::fprintf(stderr, "PROBE step 5 done\n"); std::fflush(stderr); // PROBE
 	CHECK(atl_test::aborts([&] { (void)v.erase(5); }));
-	std::fprintf(stderr, "PROBE step 6 done\n"); std::fflush(stderr); // PROBE
 	CHECK(atl_test::aborts([&] { (void)v.set(5, 1); }));
-	std::fprintf(stderr, "PROBE step 7 done\n"); std::fflush(stderr); // PROBE
 	CHECK(atl_test::aborts([&] { (void)v.split(5); }));
-	std::fprintf(stderr, "PROBE step 8 done\n"); std::fflush(stderr); // PROBE
 	CHECK(atl_test::aborts([&] { (void)v.compacted(); }));
-	std::fprintf(stderr, "PROBE step 9 done\n"); std::fflush(stderr); // PROBE
 	REQUIRE(v.split_first().first.at(0) == 0); // structural end-splits stay valid
-	std::fprintf(stderr, "PROBE step 10 done\n"); std::fflush(stderr); // PROBE
+	std::fprintf(stderr, "PROBE saturated body done\n"); std::fflush(stderr); // PROBE
+	} // PROBE scope
+	std::fprintf(stderr, "PROBE saturated v destroyed\n"); std::fflush(stderr); // PROBE
 }
 
 TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and leave other versions intact", "[persistent_treap_sequence]") {
+	std::fprintf(stderr, "PROBE rvalue start\n"); std::fflush(stderr); // PROBE
 	auto seed = GENERATE(take(4, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
 	constexpr ll mod = 1'000'003;
@@ -513,11 +508,14 @@ TEST_CASE("persistent_treap_sequence: rvalue overloads match the lvalue ones and
 }
 
 TEST_CASE("persistent_treap_sequence: sized input ranges can have move-only iterators", "[persistent_treap_sequence]") {
+	std::fprintf(stderr, "PROBE moveonly start\n"); std::fflush(stderr); // PROBE
 	std::istringstream source("1 2 3 4 5");
 	auto input = std::views::istream<int>(source);
 	static_assert(!std::copy_constructible<decltype(input.begin())>);
 	auto values = std::ranges::subrange(input.begin(), std::default_sentinel, std::size_t(5));
+	std::fprintf(stderr, "PROBE moveonly before build\n"); std::fflush(stderr); // PROBE
 	atl::persistent_treap_sequence<int> tree(std::move(values));
+	std::fprintf(stderr, "PROBE moveonly built\n"); std::fflush(stderr); // PROBE
 	REQUIRE(tree.size() == 5);
 	for (std::size_t i = 0; i < tree.size(); ++i) REQUIRE(tree.at(i) == int(i + 1));
 }
