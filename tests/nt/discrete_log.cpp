@@ -1,4 +1,5 @@
 #include <atl/experimental/nt/discrete_log_variants.hpp>
+#include <atl/nt/basic.hpp>
 #include <atl/nt/discrete_log.hpp>
 #include <atl/nt/modular.hpp>
 #include <atl/types/alias.hpp>
@@ -34,6 +35,35 @@ namespace {
 	}
 
 	uint64 pow_mod(uint64 a, uint64 e, uint64 m) { return atl::pow_mod(a, e, m); }
+}
+
+TEST_CASE("PROBE2 intermediate values at 29*2^57+1", "[discrete_log]") {
+	{
+		using atl::uint64;
+		using atl::uint128;
+		uint64 const m = 4179340454199820289ull;
+		auto pr = [](char const *name, unsigned long long v) { std::fprintf(stderr, "PROBE2 %s %llu\n", name, v); std::fflush(stderr); };
+		uint64 const r = (uint64(0) - m) % m;
+		pr("r", r);
+		uint128 const sq = uint128(r) * r;
+		pr("sq_lo", (unsigned long long)uint64(sq));
+		pr("sq_hi", (unsigned long long)uint64(sq >> 64));
+		pr("sq_mod", (unsigned long long)uint64(sq % m));
+		pr("mulhi", atl::detail::multiply_high(uint64(0x9E3779B97F4A7C15ull), uint64(0xC2B2AE3D27D4EB4Full)));
+		atl::detail::montgomery64 const e(m);
+		uint64 const x = e.to_form(123456789123ull), y = e.to_form(987654321987ull);
+		pr("mont_mul", e.from_form(e.mul(x, y)));
+		pr("mulmod", atl::mul_mod<uint64>(123456789123ull, 987654321987ull, m));
+		pr("one", e.from_form(e.one()));
+		pr("fermat3", e.from_form(atl::detail::engine_power(e, e.to_form(3), m - 1)));
+		for (auto const &f : atl::detail::carmichael_factorization(m)) { pr("lambda_p", f.prime); pr("lambda_e", f.exponent); }
+		for (auto const &f : atl::detail::order_factorization(e, e.to_form(3))) { pr("ord_p", f.prime); pr("ord_e", f.exponent); }
+		pr("order3", atl::multiplicative_order(3, m));
+		auto const ph = atl::detail::pohlig_hellman(e, e.to_form(3), e.to_form(atl::pow_mod<uint64>(3, 1234567890123ull, m)));
+		pr("ph_has", ph.has_value());
+		if (ph) pr("ph", *ph);
+		pr("dlog_has", atl::discrete_log(3, atl::pow_mod<uint64>(3, 1234567890123ull, m), m).has_value());
+	}
 }
 
 TEST_CASE("discrete_log matches the brute force on every small modulus", "[discrete_log]") {
