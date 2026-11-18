@@ -18,6 +18,3 @@ endforeach()
 
 add_dependencies(${ATL_TARGET_PREFIX}tests ${ATL_TARGET_PREFIX}headers-odr)
 add_test(NAME tests/headers-odr COMMAND ${ATL_TARGET_PREFIX}headers-odr)
-
-# PROBE (revert before merge): keep the output of a hang on MSVC x86
-set_tests_properties(tests/nt-discrete_log PROPERTIES TIMEOUT 180)

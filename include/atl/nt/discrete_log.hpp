@@ -102,6 +102,8 @@ namespace atl {
 		template<modular_multiplier Engine>
 		constexpr uint64 engine_power(Engine const &engine, uint64 x, uint64 e) {
 			uint64 result = engine.one();
+			// Shift before deciding to square: MSVC 14.44 x86 miscompiled the `for (; e > 0; e >>= 1)` form with a
+			// trailing `if (e > 1)` square, returning one() for every exponent of 2^33 and up (montgomery64 engine).
 			while (e != 0) {
 				if (e & 1) result = engine.mul(result, x);
 				e >>= 1;
