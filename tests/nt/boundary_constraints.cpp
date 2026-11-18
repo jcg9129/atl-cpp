@@ -10,6 +10,7 @@
 #include <atl/nt/multiplicative.hpp>
 #include <atl/nt/power.hpp>
 #include <atl/nt/static_modulus.hpp>
+#include <catch2/catch.hpp>
 #include <concepts>
 #include <ostream>
 #include <string>
@@ -198,4 +199,9 @@ namespace x2_boundaries {
 namespace {
 	// Constraint-only arithmetic needs a definition to stay warning-free across compilers.
 	[[maybe_unused]] no_assignment operator*(no_assignment const &value, no_assignment const &) { return value; }
+}
+
+TEST_CASE("nt constraints reject unsupported calls", "[constraints]") {
+	STATIC_REQUIRE(!atl::congruence_range<std::vector<unsigned>>);
+	STATIC_REQUIRE(atl::congruence_range<std::vector<atl::congruence<atl::uint128>>>);
 }

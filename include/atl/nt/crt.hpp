@@ -48,7 +48,7 @@ namespace atl {
 	/**
 	 * @brief An input range of `congruence<U>` (for one unsigned `U`), the systems
 	 *        @ref atl::chinese_remainder and @ref atl::chinese_remainder_mod take.
-	 * @tparam R Input range with values congruence<U> and references convertible to values.
+	 * @tparam R Input range with values `congruence<U>` and references convertible to values.
 	 */
 	template<typename R>
 	concept congruence_range =
@@ -135,7 +135,7 @@ namespace atl {
 	 * Folds the pairwise @ref atl::chinese_remainder left to right, stopping at the first
 	 * inconsistency.
 	 *
-	 * @tparam R Input range whose values are congruence<U>, with references convertible to values.
+	 * @tparam R Input range whose values are `congruence<U>`, with references convertible to values.
 	 * @param congruences Classes to intersect, consumed once.
 	 * @return The class modulo the lcm of all the moduli (`{0, 1}` for an empty
 	 *         list), or `std::nullopt` when the system is inconsistent.
@@ -165,7 +165,7 @@ namespace atl {
 	 * product of the moduli is never formed, so it may be arbitrarily large: this is
 	 * the recombination step of multi-prime convolution under an arbitrary modulus.
 	 *
-	 * @tparam R Input range of congruence<U>, with references convertible to values.
+	 * @tparam R Input range of `congruence<U>`, with references convertible to values.
 	 * @param congruences The residue classes `{rᵢ, mᵢ}`.
 	 * @param target      The modulus of the answer.
 	 * @return `x mod target` (0 for an empty list).

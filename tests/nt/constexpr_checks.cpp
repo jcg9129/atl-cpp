@@ -15,6 +15,7 @@
 #include <atl/nt/static_modulus.hpp>
 #include <atl/types/alias.hpp>
 #include <array>
+#include <catch2/catch.hpp>
 #include <limits>
 #include <vector>
 
@@ -249,4 +250,10 @@ namespace x2_checks {
 	static_assert(atl::first_residue_in_range(31, 6, 0, 11, 19) == 2);
 	static_assert(!atl::first_residue_in_range(10, 2, 0, 3, 3));
 	static_assert(atl::first_residue_in_range(~atl::uint64(0), ~atl::uint64(0) - 1, 0, 1, 1) == ~atl::uint64(0) - 1);
+}
+
+TEST_CASE("nt interfaces constant-evaluate", "[constexpr]") {
+	STATIC_REQUIRE(atl::mod_int<atl::uint32, 7>(3).inverse().value() == 5);
+	STATIC_REQUIRE(atl::extended_gcd(atl::uint32(12), atl::uint32(18)).gcd == 6);
+	STATIC_REQUIRE(atl::dynamic_mod_int<>{}.value() == 0);
 }

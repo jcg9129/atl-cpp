@@ -69,7 +69,7 @@ namespace atl::experimental {
 			if (!composite[i]) {
 				uint64 const p = 2 * uint64(i) + 1;
 				primes.push_back(uint32(p));
-				for (uint64 j = (p * p) / 2; j < m; j += p) composite[j] = 1;
+				for (uint64 j = (p * p) / 2; j < m; j += p) composite[std::size_t(j)] = 1;
 			}
 		return primes;
 	}
