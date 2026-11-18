@@ -10,6 +10,7 @@
 #include <bit>
 #include <cstddef>
 #include <numeric>
+#include <span>
 #include <vector>
 
 namespace atl {
@@ -19,8 +20,7 @@ namespace atl {
 		 *        prime factor up to 37: true iff no base in @p bases witnesses
 		 *        compositeness (a base ≡ 0 mod n is skipped, as it proves nothing).
 		 */
-		template<std::size_t Count>
-		constexpr bool miller_rabin(uint64 n, uint64 const (&bases)[Count]) {
+		constexpr bool miller_rabin(uint64 n, std::span<uint64 const> bases) {
 			montgomery64 const mg(n);
 			int const s = std::countr_zero(n - 1);
 			uint64 const d = (n - 1) >> s;
