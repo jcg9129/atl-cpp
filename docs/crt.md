@@ -82,8 +82,10 @@ These records measure native 128-bit arithmetic; software-wide timings are not m
 ## Pitfalls and notes
 
 Garner allocates a copy of the input system and two scratch vectors per call.
-Fixed-prime application loops can avoid those allocations. A specialized
-recombination comparison returns with the later pages.
+The arbitrary-modulus
+[convolution](convolution.md) keeps a three-prime Garner specialized to its fixed
+primes, avoiding runtime-modulus setup and those allocations. The generic
+runtime-moduli function does not replace that specialized loop.
 
 ## How it works
 
@@ -101,3 +103,4 @@ The Art of Computer Programming, Volume 2 (modular arithmetic).
 
 - [Extended gcd](gcd.md)
 - [Discrete logarithms](discrete-log.md)
+- [Convolution](convolution.md) — fixed three-prime Garner for polynomial products.

@@ -86,6 +86,8 @@ construction from `int64` and `uint64`, matching unsigned modulus/representative
 types, arithmetic and compound operators, negation, equality, inverse and power.
 `atl::static_mod_int<Z>` additionally requires a constant-expression modulus.
 Both modular classes satisfy `modular_integer`; only `mod_int` satisfies `static_mod_int`.
+[Convolution](convolution.md) accepts static modular integers; its NTT engines
+further require supported prime moduli and sufficient transform order.
 They also satisfy the addition/multiplication `binary_operation` and negation
 `inverse_operation` concepts in `<atl/types/algebraic.hpp>`. Inversion and division
 still require units; these types do not imply that the modulus is prime.
@@ -274,8 +276,10 @@ software-backend performance is not measured yet.
 
 Engine words carry a representation, unlike ordinary residues. Stay in one
 engine form throughout a calculation. Montgomery lazy results require tightening
-prior to a tight operation. A Mersenne modulus need not be prime. Comparisons
-that require transform headers return with the later pages.
+prior to a tight operation. A Mersenne modulus need not be prime.
+The [convolution transform engines](convolution.md) use Montgomery twiddles with
+plain lazy residues; their prime-modulus and range constraints are stricter than
+those of general modular arithmetic.
 
 ## Raw arithmetic and runtime reducers
 
@@ -390,3 +394,4 @@ exponentiation keeps values in their engine form until `value()` is requested.
 - [128-bit integers](int128.md): portable arithmetic and platform backends.
 - [Fast I/O](fast-io.md): buffered modular value input and output.
 - [Types and utilities](types-and-utilities.md): aliases and concepts.
+- [Convolution](convolution.md) — static-modulus products and transform engines.

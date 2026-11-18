@@ -1,15 +1,19 @@
 #include <atl/experimental/nt/factorization_trial.hpp>
 #include <atl/nt/basic.hpp>
+#include <atl/nt/bitwise_convolution.hpp>
 #include <atl/nt/constants.hpp>
+#include <atl/nt/convolution.hpp>
 #include <atl/nt/crt.hpp>
 #include <atl/nt/discrete_log.hpp>
 #include <atl/nt/dynamic_mod_int.hpp>
+#include <atl/nt/fft.hpp>
 #include <atl/nt/floor_sum.hpp>
 #include <atl/nt/gcd.hpp>
 #include <atl/nt/mod_int.hpp>
 #include <atl/nt/modular.hpp>
 #include <atl/nt/montgomery.hpp>
 #include <atl/nt/multiplicative.hpp>
+#include <atl/nt/ntt_engine.hpp>
 #include <atl/nt/power.hpp>
 #include <atl/nt/sieve.hpp>
 #include <atl/nt/static_modulus.hpp>
@@ -256,4 +260,169 @@ TEST_CASE("nt interfaces constant-evaluate", "[constexpr]") {
 	STATIC_REQUIRE(atl::mod_int<atl::uint32, 7>(3).inverse().value() == 5);
 	STATIC_REQUIRE(atl::extended_gcd(atl::uint32(12), atl::uint32(18)).gcd == 6);
 	STATIC_REQUIRE(atl::dynamic_mod_int<>{}.value() == 0);
+}
+
+namespace {
+	using TransformZ = atl::mod_int<atl::uint32, 998244353>;
+	static_assert(atl::detail::primitive_root<TransformZ>() == TransformZ(3));
+	static_assert(atl::scalar_ntt::supports<TransformZ>());
+	static_assert(!atl::scalar_ntt::supports<atl::mod_int<atl::uint32, 4294967291u>>());
+
+	static_assert([] {
+		auto const holds = []<atl::static_mod_int Element>(std::size_t n, std::size_t m, Element) {
+			auto const c = atl::convolution(std::vector<Element>(n, Element(1)), std::vector<Element>(m, Element(2)));
+			if (c.size() != n + m - 1) return false;
+			for (std::size_t k = 0; k < c.size(); ++k) {
+				std::size_t const pairs = (std::min)(k, n - 1) - (k >= m ? k - m + 1 : 0) + 1;
+				if (c[k] != Element(2 * pairs)) return false;
+			}
+			return true;
+		};
+		return holds(60, 70, TransformZ()) && holds(49, 400, TransformZ()) && holds(5, 3, TransformZ())
+			&& holds(60, 60, atl::mod_int<atl::uint32, 1000000007>());
+	}());
+	static_assert([] {
+		auto const c = atl::convolution_uint64(std::vector<atl::uint32>(50, 3), std::vector<atl::uint32>(60, 5));
+		return c.size() == 109 && c[0] == 15 && c[49] == 750 && c[108] == 15;
+	}());
+	static_assert([] {
+		constexpr atl::uint64 largest = (std::numeric_limits<atl::uint64>::max)();
+		auto const c = atl::convolution_uint64(std::vector<atl::uint64>(49, largest / 49), std::vector<unsigned>(49, 1));
+		if (c.size() != 97) return false;
+		for (std::size_t k = 0; k < c.size(); ++k) {
+			std::size_t const pairs = k < 49 ? k + 1 : 97 - k;
+			if (atl::uint128(c[k]) != atl::uint128(largest / 49) * pairs) return false;
+		}
+		return true;
+	}());
+	static_assert([] {
+		std::vector<TransformZ> a{1, 2, 3, 4, 5, 6, 7, 8};
+		auto const original = a;
+		atl::ntt(a);
+		atl::inverse_ntt(a);
+		return a == original;
+	}());
+	static_assert([] {
+		atl::cplx const a{1, 2}, b{3, -1};
+		atl::cplx const p = a * b, sum = a + b, difference = a - b, conjugate = a.conj();
+		return p.re == 5 && p.im == 5 && sum.re == 4 && sum.im == 1 && difference.re == -2
+			&& difference.im == 3 && conjugate.im == -2;
+	}());
+	static_assert([] {
+		std::vector<long long> f{1, 2, 3, 4};
+		atl::subset_zeta(f);
+		bool has_expected_values = f == std::vector<long long>{1, 3, 4, 10};
+		atl::subset_mobius(f);
+		atl::superset_zeta(f);
+		has_expected_values = has_expected_values && f == std::vector<long long>{10, 6, 7, 4};
+		atl::superset_mobius(f);
+		atl::walsh_hadamard(f);
+		atl::inverse_walsh_hadamard(f);
+		return has_expected_values && f == std::vector<long long>{1, 2, 3, 4};
+	}());
+	static_assert([] {
+		std::vector<TransformZ> const a{1, 2, 3, 4}, b{5, 6, 7, 8};
+		auto const o = atl::or_convolution(a, b);
+		auto const n = atl::and_convolution(a, b);
+		auto const x = atl::xor_convolution(a, b);
+		auto const subset = atl::subset_convolution(a, b);
+		return o[3] == TransformZ(184) && n[3] == TransformZ(32) && x[0] == TransformZ(70) && subset[3] == TransformZ(60);
+	}());
+	static_assert([] {
+		atl::uint32 a[]{1, 2, 3, 4}, b[]{5, 6, 7, 8};
+		atl::scalar_ntt::convolve<TransformZ>(a, b, 2);
+		atl::uint32 c[]{1, 2, 3, 4};
+		atl::scalar_ntt::square<TransformZ>(c, 2);
+		return a[0] == 66 && a[1] == 68 && a[2] == 66 && a[3] == 60
+			&& c[0] == 26 && c[1] == 28 && c[2] == 26 && c[3] == 20;
+	}());
+}
+
+static_assert([] {
+	std::array<atl::uint128, 2> const a{2, 3};
+	std::array<unsigned, 1> const b{5};
+	return atl::convolution_uint64(a, b) == std::vector<atl::uint64>{10, 15};
+}());
+
+#include <atl/nt/bit_matrix.hpp>
+#include <atl/nt/gaussian_elimination.hpp>
+#include <atl/nt/linear_recurrence.hpp>
+#include <atl/nt/matrix.hpp>
+#include <span>
+#include <utility>
+
+namespace linear_algebra_checks {
+	using mint = atl::mod_int32<998244353>;
+	static_assert([] {
+		atl::matrix<mint> const fib{{1, 1}, {1, 0}};
+		auto const p = atl::power(fib, 10u);
+		atl::matrix<atl::int64, atl::min_plus_semiring<atl::int64>> w{{0, 4}, {1, 0}};
+		auto const two = atl::power(w, 2u);
+		atl::matrix<int> m{{1, 2}, {3, 4}};
+		std::vector<int> const v{1, 1};
+		m.row(0)[0] = 1;
+		m.entries()[3] = 4;
+		m += atl::matrix<int>(2, 2);
+		m *= atl::matrix<int>::identity(2);
+		return p(0, 1) == mint(55) && two(0, 1) == 4 && two(1, 0) == 1
+			&& (m * std::span<int const>(v)) == std::vector<int>{3, 7} && m.transpose()(0, 1) == 3
+			&& (m + m)(1, 1) == 8 && atl::matrix<int>::identity(2) * m == m
+			&& m.rows() == 2 && m.columns() == 2 && std::as_const(m).row(1)[0] == 3
+			&& std::as_const(m).entries().size() == 4 && atl::matrix<int>().entries().empty();
+	}());
+	static_assert([] {
+		atl::matrix<mint> const a{{2, 1, 1}, {1, 3, 2}, {1, 0, 0}};
+		auto const inv = atl::inverse(a);
+		auto const s = atl::solve_linear_system(atl::matrix<mint>{{1, 1, 1}, {2, 2, 2}}, {3, 6});
+		using z12 = atl::mod_int32<12>;
+		double const det = atl::determinant(atl::matrix<double>{{0, 2}, {3, 0}});
+		auto const floating_inverse = atl::inverse(atl::matrix<double>{{2}}, 1e-9);
+		auto const floating_solution = atl::solve_linear_system(atl::matrix<double>{{2}}, {4.0}, 1e-9);
+		return atl::determinant(a) == mint(-1) && inv && *inv * a == atl::matrix<mint>::identity(3)
+			&& atl::rank(atl::matrix<mint>{{1, 2}, {2, 4}}) == 1 && s.is_solvable && !s.is_unique()
+			&& s.null_space.rows() == 2
+			&& atl::determinant_any_modulus(atl::matrix<z12>{{2, 3}, {4, 3}}).value() == 6
+			&& det > -6.000000001 && det < -5.999999999
+			&& atl::rank(atl::matrix<double>{{1, 2}, {2, 4}}, 1e-9) == 1
+			&& floating_inverse && (*floating_inverse)(0, 0) > 0.499999999
+			&& (*floating_inverse)(0, 0) < 0.500000001 && floating_solution.is_unique()
+			&& floating_solution.particular[0] > 1.999999999 && floating_solution.particular[0] < 2.000000001;
+	}());
+	static_assert([] {
+		atl::bit_matrix a(2, 3);
+		a.set(0, 0), a.set(0, 1), a.set(1, 1), a.set(1, 2);
+		a.flip(0, 2);
+		a.set(0, 2, false);
+		a.row_words(1)[0] = 6;
+		auto const s = atl::solve_linear_system(a, {true, false});
+		return atl::rank(a) == 2 && s.is_solvable && !s.is_unique() && s.null_space.rows() == 1
+			&& (s.particular[0] != s.particular[1]) && s.particular[1] == s.particular[2]
+			&& a.columns() == 3 && std::as_const(a).row_words(0)[0] == 3 && a.test(1, 2)
+			&& atl::bit_matrix() == atl::bit_matrix(0, 0);
+	}());
+	static_assert([] {
+		std::vector<mint> const fib{0, 1, 1, 2, 3, 5, 8, 13};
+		auto const c = atl::berlekamp_massey(fib);
+		return c == std::vector<mint>{1, 1} && atl::linear_recurrence_term(c, fib, 90u) == mint(2880067194370816120ull)
+			&& atl::rational_series_coefficient(std::vector<mint>{1}, std::vector<mint>{1, -2}, 10u) == mint(1024);
+	}());
+	static_assert([] {
+		std::vector<mint> numerator(64), denominator(65);
+		denominator[0] = mint(1);
+		denominator[64] = mint(-1);
+		for (int i = 0; i < 64; ++i) numerator[std::size_t(i)] = mint(i);
+		return atl::rational_series_coefficient(numerator, denominator, 1u) == mint(1);
+	}());
+	static_assert([] {
+		using wide = atl::mod_int64<18446744073709551557ull>;
+		atl::matrix<wide> const a{{-1, -2}, {-3, -4}};
+		auto const square = a * a;
+		return square(0, 0) == wide(7) && square(1, 1) == wide(22)
+			&& atl::determinant(a) == wide(-2) && atl::determinant_any_modulus(a) == wide(-2);
+	}());
+	static_assert(atl::max_plus_semiring<int>::multiply(2, 3) == 5);
+	static_assert(atl::max_plus_semiring<int>::multiply(atl::max_plus_semiring<int>::zero(), 3) == atl::max_plus_semiring<int>::zero());
+	static_assert(atl::max_min_semiring<int>::multiply(2, 3) == 2);
+	static_assert(atl::max_min_semiring<int>::add(2, 3) == 3);
+	static_assert(atl::max_min_semiring<int>::one() > atl::max_min_semiring<int>::zero());
 }
