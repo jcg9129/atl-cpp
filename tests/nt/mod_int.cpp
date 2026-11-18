@@ -256,7 +256,9 @@ TEST_CASE("mod_int uint128 insertion honors integer formatting", "[modint][strea
 	output << std::oct << Wide(01234567);
 	REQUIRE(output.str() == "01,234,567");
 
-	for (auto const &pattern : {std::string("\1"), std::string("\3\2"), std::string("\3\0\2", 3), std::string("\3") + char(CHAR_MAX)}) {
+	// A zero entry in the grouping string is read differently by libc++ (no further grouping) and
+	// libstdc++ (repeat the previous group), so only portable patterns are compared.
+	for (auto const &pattern : {std::string("\1"), std::string("\3\2"), std::string("\3") + char(CHAR_MAX)}) {
 		for (auto base : {std::ios_base::dec, std::ios_base::hex, std::ios_base::oct}) {
 			std::ostringstream actual, expected;
 			std::locale const locale(std::locale::classic(), new grouping_facet(pattern));
