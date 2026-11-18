@@ -13,9 +13,9 @@
  * before choosing it.
  */
 
+#include <atl/config.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
-#include <atl/types/int128.hpp>
 #include <atl/types/traits/integral.hpp>
 #include <atl/utils/assert.hpp>
 #include <array>
@@ -30,6 +30,11 @@
 #include <string_view>
 #include <system_error>
 #include <type_traits>
+
+#if !ATL_HAS_INT128
+#include <atl/types/detail/wide_arithmetic.hpp>
+#include <atl/types/int128.hpp>
+#endif
 
 namespace atl::io {
 	namespace detail {
@@ -539,6 +544,7 @@ namespace atl::io {
 		 */
 		template<atl::unsigned_integral U>
 		void put_uint(U x) {
+#if !ATL_HAS_INT128
 			if constexpr (std::same_as<std::remove_cv_t<U>, atl::detail::software_uint128>) {
 				constexpr uint64 chunk = 10'000'000'000'000'000'000ull;
 				if (x.high == 0 && x.low < chunk) return put_uint(x.low);
@@ -553,7 +559,9 @@ namespace atl::io {
 					put_padded19(top.remainder);
 				}
 				put_padded19(split.remainder);
-			} else if constexpr (sizeof(U) > sizeof(uint64)) {
+			} else
+#endif
+				if constexpr (sizeof(U) > sizeof(uint64)) {
 				constexpr uint64 chunk = 10'000'000'000'000'000'000ull; // 10^19
 				if (x < chunk) return put_uint(uint64(x));
 				uint64 const low = uint64(x % chunk);

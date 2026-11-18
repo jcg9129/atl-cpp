@@ -7,7 +7,14 @@ foreach(header IN LISTS atl_public_headers)
     file(RELATIVE_PATH relative "${PROJECT_SOURCE_DIR}/include" "${header}")
     string(APPEND ATL_ALL_HEADERS_INCLUDES "#include <${relative}>\n")
     set(source "${CMAKE_CURRENT_BINARY_DIR}/headers/${relative}.cpp")
-    file(WRITE "${source}" "#include <${relative}>\n")
+    set(content "#include <${relative}>\n")
+    # Outside the software 128-bit headers themselves, no header may compile the
+    # software classes where native 128-bit integers are the aliases.
+    if(NOT relative MATCHES "^atl/types/(int128|detail/software_int128_format)\\.hpp$")
+        string(APPEND content "#include <atl/config.hpp>\n#if ATL_HAS_INT128 && defined(ATL_DETAIL_SOFTWARE_INT128)\n"
+               "#error \"${relative} includes the software 128-bit classes on a native target\"\n#endif\n")
+    endif()
+    file(WRITE "${source}" "${content}")
     list(APPEND header_sources "${source}")
 endforeach()
 foreach(mode IN ITEMS normal no-int128)

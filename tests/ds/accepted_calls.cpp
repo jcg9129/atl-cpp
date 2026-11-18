@@ -3,6 +3,7 @@
 #include <atl/ds/weighted_dsu.hpp>
 #include <atl/experimental/ds/coordinate_compression_variants.hpp>
 #include <atl/experimental/ds/weighted_dsu_variants.hpp>
+#include <atl/types/int128.hpp>
 #include <array>
 #include <catch2/catch.hpp>
 #include <concepts>

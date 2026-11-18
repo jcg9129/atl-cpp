@@ -1,3 +1,4 @@
+#include <atl/types/detail/software_int128_format.hpp>
 #include <atl/types/int128_format.hpp>
 #include <atl/types/traits/integral.hpp>
 #include <atl/types/traits/widen_mul.hpp>
