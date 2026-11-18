@@ -5,6 +5,7 @@
 #include <atl/nt/power.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
+#include <atl/types/detail/wide_arithmetic.hpp>
 #include <atl/types/traits/integral.hpp>
 #include <atl/types/traits/is_one_of.hpp>
 #include <atl/utils/assert.hpp>

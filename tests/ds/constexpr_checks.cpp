@@ -20,6 +20,7 @@
 #include <atl/ds/weighted_dsu.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
+#include <atl/types/int128.hpp>
 #include <atl/utils/hash.hpp>
 #include <algorithm>
 #include <array>

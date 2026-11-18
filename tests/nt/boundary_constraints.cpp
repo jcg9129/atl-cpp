@@ -10,6 +10,7 @@
 #include <atl/nt/multiplicative.hpp>
 #include <atl/nt/power.hpp>
 #include <atl/nt/static_modulus.hpp>
+#include <atl/types/int128.hpp>
 #include <catch2/catch.hpp>
 #include <concepts>
 #include <ostream>

@@ -5,6 +5,7 @@
 #include <atl/experimental/ds/li_chao_tree_variants.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
+#include <atl/types/int128.hpp>
 #include <algorithm>
 #include <array>
 #include <catch2/catch.hpp>

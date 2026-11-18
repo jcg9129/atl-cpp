@@ -1,7 +1,11 @@
 #pragma once
 
+/** @brief Defined once the software 128-bit classes are compiled (checked by the per-header build). */
+#define ATL_DETAIL_SOFTWARE_INT128 1
+
 #include <atl/config.hpp>
 #include <atl/types/detail/wide_arithmetic.hpp>
+#include <atl/types/traits/detail/extended_integer.hpp>
 #include <atl/types/traits/is_one_of.hpp>
 #include <atl/utils/assert.hpp>
 #include <bit>
@@ -931,6 +935,26 @@ namespace atl::detail {
 			}
 			return std::size_t(result);
 		}
+	};
+}
+
+namespace atl::traits::detail {
+	/** @brief Registers the unsigned software class with the integer traits. */
+	template<>
+	struct extended_integer<atl::detail::software_uint128> {
+		static constexpr bool is_signed = false;
+		static constexpr bool is_unsigned = true;
+		using signed_type = atl::detail::software_int128;
+		using unsigned_type = atl::detail::software_uint128;
+	};
+
+	/** @brief Registers the signed software class with the integer traits. */
+	template<>
+	struct extended_integer<atl::detail::software_int128> {
+		static constexpr bool is_signed = true;
+		static constexpr bool is_unsigned = false;
+		using signed_type = atl::detail::software_int128;
+		using unsigned_type = atl::detail::software_uint128;
 	};
 }
 

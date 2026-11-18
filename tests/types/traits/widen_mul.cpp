@@ -1,5 +1,6 @@
 #include <atl/config.hpp>
 #include <atl/types/alias.hpp>
+#include <atl/types/int128.hpp>
 #include <atl/types/traits/widen_mul.hpp>
 #include <catch2/catch.hpp>
 #include <concepts>

@@ -9,8 +9,12 @@
  */
 
 #include <atl/config.hpp>
-#include <atl/types/int128.hpp>
 #include <cstdint>
+
+// The software classes are only compiled where they are the aliases.
+#if !ATL_HAS_INT128
+#include <atl/types/int128.hpp>
+#endif
 
 namespace atl {
 	/** @brief Exactly 8-bit signed integer type. */
