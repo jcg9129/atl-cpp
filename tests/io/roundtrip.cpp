@@ -1,4 +1,6 @@
 #include <atl/io/fast_io.hpp>
+#include <atl/nt/dynamic_mod_int.hpp>
+#include <atl/nt/mod_int.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
 #include <atl/types/traits/integral.hpp>
@@ -91,10 +93,12 @@ TEST_CASE("io: integer writer/reader round trip", "[io]") {
 	using atl::int128;
 	using atl::uint128;
 	uint128 const e19 = 10'000'000'000'000'000'000ull;
-	std::vector<uint128> u128 = {0, 1, uint128(UINT64_MAX) + 1, uint128(-1), e19 - 1, e19, e19 + 1, e19 * e19 - 1, e19 * e19, e19 * e19 + 7, e19 * 10 + 5};
+	std::vector<uint128> u128 = {0, 1, uint128(UINT64_MAX) + 1, uint128(-1), e19 - 1, e19, e19 + 1, e19 * e19 - 1,
+								 e19 * e19, e19 * e19 + 7, e19 * 10 + 5};
 	for (int i = 0; i < 10000; ++i) u128.push_back(((uint128(rng()) << 64) | rng()) >> (rng() % 128));
 	roundtrip(u128);
-	std::vector<int128> i128 = {0, 1, -1, std::numeric_limits<int128>::min(), std::numeric_limits<int128>::max(), -int128(uint128(1) << 100)};
+	std::vector<int128> i128 = {0, 1, -1, std::numeric_limits<int128>::min(), std::numeric_limits<int128>::max(),
+								-int128(uint128(1) << 100)};
 	for (int i = 0; i < 10000; ++i) i128.push_back(int128((uint128(rng()) << 64) | rng()) >> (rng() % 127));
 	roundtrip(i128);
 }
@@ -372,7 +376,8 @@ TEST_CASE("io: fixed formatting handles the full long double exponent range", "[
 	REQUIRE(fp != nullptr);
 	long double const value = (std::numeric_limits<long double>::max)();
 	std::vector<char> expected(std::size_t(std::numeric_limits<long double>::max_exponent10) + 512);
-	auto const converted = std::to_chars(expected.data(), expected.data() + expected.size(), value, std::chars_format::fixed, 400);
+	auto const converted = std::to_chars(
+		expected.data(), expected.data() + expected.size(), value, std::chars_format::fixed, 400);
 	REQUIRE(converted.ec == std::errc{});
 	{
 		atl::io::writer w(fp);
@@ -406,6 +411,46 @@ TEST_CASE("io: long strings and malformed tokens cross refill boundaries", "[io]
 		atl::io::reader r(fp);
 		REQUIRE(r.read<int>() == 0);
 		REQUIRE(r.read<int>() == 7);
+		REQUIRE(r.eof());
+	}
+	std::fclose(fp);
+}
+
+TEST_CASE("io: modular integers and ranges", "[io]") {
+	using Z = atl::mod_int<atl::uint32, 998244353>;
+	using Z64 = atl::mod_int<atl::uint64, (atl::uint64(1) << 61) + 3>;
+	using D = atl::dynamic_mod_int32<5>;
+	D::set_mod(7u);
+	static_assert(atl::io::readable<Z> && atl::io::readable<Z64> && atl::io::readable<D>);
+	static_assert(atl::io::writable<Z> && atl::io::writable<Z64> && atl::io::writable<D>);
+
+	std::FILE *fp = std::tmpfile();
+	REQUIRE(fp != nullptr);
+	{
+		atl::io::writer w(fp);
+		w.writeln(Z(5), Z(-1), D(10));
+		w.writeln(std::vector<Z>{Z(1), Z(2), Z(3)});
+		w.writeln(std::vector<int>{});
+		w.writeln(std::vector<std::string>{"ab", "c"});
+		w.writeln(std::string("verbatim string"));
+		w.put("-1 998244354 10 -1 18446744073709551615\n");
+	}
+	std::rewind(fp);
+	char text[256] = {};
+	REQUIRE(std::fread(text, 1, sizeof text - 1, fp) > 0);
+	REQUIRE(std::string(text)
+			== "5 998244352 3\n1 2 3\n\nab c\nverbatim string\n"
+			   "-1 998244354 10 -1 18446744073709551615\n");
+	std::rewind(fp);
+	{
+		atl::io::reader r(fp);
+		for (int i = 0; i < 10; ++i) (void)r.read<std::string>();
+		REQUIRE(r.read<Z>() == Z(998244352));
+		REQUIRE(r.read<Z>() == Z(1));
+		REQUIRE(r.read<D>().value() == 3u);
+		// Separating sign from magnitude makes -1 the modulus minus one at every width.
+		REQUIRE(r.read<Z64>() == Z64(Z64::mod() - 1));
+		REQUIRE(r.read<Z64>() == Z64((std::numeric_limits<uint64>::max)()));
 		REQUIRE(r.eof());
 	}
 	std::fclose(fp);

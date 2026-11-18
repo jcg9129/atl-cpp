@@ -1,6 +1,7 @@
 #include <atl/ds/rollback_weighted_dsu.hpp>
 #include <atl/ds/weighted_dsu.hpp>
 #include <atl/experimental/ds/weighted_dsu_variants.hpp>
+#include <atl/nt/mod_int.hpp>
 #include <atl/types/algebraic.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
@@ -25,6 +26,26 @@ using atl::uint8;
 using atl::unite_outcome;
 
 namespace {
+	using mint = atl::mod_int32<998244353>;
+
+	/** @brief SL(2) over Z/998244353, a non-commutative group. */
+	struct sl2 {
+		mint a, b, c, d;
+		constexpr bool operator==(sl2 const &) const = default;
+	};
+
+	/** @brief The matrix product. */
+	struct sl2_multiply {
+		constexpr sl2 operator()(sl2 const &x, sl2 const &y) const {
+			return {x.a * y.a + x.b * y.c, x.a * y.b + x.b * y.d, x.c * y.a + x.d * y.c, x.c * y.b + x.d * y.d};
+		}
+	};
+
+	/** @brief The adjugate, which is the inverse at determinant 1. */
+	struct sl2_inverse {
+		constexpr sl2 operator()(sl2 const &x) const { return {x.d, -x.b, -x.c, x.a}; }
+	};
+
 	using permutation = std::array<uint8, 5>;
 
 	/** @brief (p · q)(i) = p(q(i)): non-commutative, so an operand-order bug changes answers. */
@@ -77,6 +98,22 @@ namespace {
 		return group{uint32(0), bit_xor_u32{}, self_inverse{}, [](std::mt19937_64 &rng) { return uint32(rng() & 1); }};
 	}
 
+	auto mod_group() {
+		return group{mint(0), std::plus<>{}, std::negate<>{}, [](std::mt19937_64 &rng) { return mint(rng()); }};
+	}
+
+	auto sl2_group() {
+		return group{sl2{1, 0, 0, 1}, sl2_multiply{}, sl2_inverse{}, [](std::mt19937_64 &rng) {
+						 // Products of these triangular generators always have determinant one.
+						 sl2 m{1, 0, 0, 1};
+						 for (int i = 0; i < 3; ++i) {
+							 mint const t(rng());
+							 m = sl2_multiply{}(m, (rng() & 1) ? sl2{1, t, 0, 1} : sl2{1, 0, t, 1});
+						 }
+						 return m;
+					 }};
+	}
+
 	auto permutation_group() {
 		return group{permutation{0, 1, 2, 3, 4}, compose{}, permutation_inverse{}, [](std::mt19937_64 &rng) {
 						 permutation p{0, 1, 2, 3, 4};
@@ -125,7 +162,8 @@ namespace {
 		}
 
 		unite_outcome unite(std::size_t a, std::size_t b, Potential w) {
-			if (auto const d = difference(a, b)) return *d == w ? unite_outcome::consistent : unite_outcome::contradicts;
+			if (auto const d = difference(a, b))
+				return *d == w ? unite_outcome::consistent : unite_outcome::contradicts;
 			edges.emplace_back(uint32(a), uint32(b), std::move(w));
 			return unite_outcome::merged;
 		}
@@ -162,8 +200,11 @@ namespace {
 	 *        `same`, `size` and `count` on random elements. Rollback types also undo.
 	 */
 	template<template<typename, typename, typename> typename Dsu, sampled_group Group>
-		requires potential_dsu<Dsu<decltype(Group::identity), decltype(Group::op), decltype(Group::inverse)>, decltype(Group::identity)>
-			  && std::constructible_from<Dsu<decltype(Group::identity), decltype(Group::op), decltype(Group::inverse)>, std::size_t, decltype(Group::identity), decltype(Group::op), decltype(Group::inverse)>
+		requires potential_dsu<Dsu<decltype(Group::identity), decltype(Group::op), decltype(Group::inverse)>,
+							   decltype(Group::identity)>
+			  && std::constructible_from<Dsu<decltype(Group::identity), decltype(Group::op), decltype(Group::inverse)>,
+										 std::size_t,
+										 decltype(Group::identity), decltype(Group::op), decltype(Group::inverse)>
 	void check_against_oracle(Group const &g, uint64 seed, std::size_t n, std::size_t steps) {
 		using potential = decltype(g.identity);
 		using op = decltype(g.op);
@@ -190,7 +231,8 @@ namespace {
 				}
 			}
 			std::size_t const a = rng() % n, b = rng() % n;
-			potential w = rng() % 4 ? potential(std::invoke(g.op, std::invoke(g.inverse, hidden[a]), hidden[b])) : g.random(rng);
+			potential w =
+				rng() % 4 ? potential(std::invoke(g.op, std::invoke(g.inverse, hidden[a]), hidden[b])) : g.random(rng);
 			REQUIRE(d.unite(a, b, w) == oracle.unite(a, b, w));
 			REQUIRE(d.count() == n - oracle.edges.size());
 			std::size_t const x = rng() % n, y = rng() % n;
@@ -207,6 +249,8 @@ namespace {
 			check_against_oracle<Dsu>(int64_group(), uint64{}, std::size_t{}, std::size_t{});
 			check_against_oracle<Dsu>(parity_group(), uint64{}, std::size_t{}, std::size_t{});
 			check_against_oracle<Dsu>(permutation_group(), uint64{}, std::size_t{}, std::size_t{});
+			check_against_oracle<Dsu>(mod_group(), uint64{}, std::size_t{}, std::size_t{});
+			check_against_oracle<Dsu>(sl2_group(), uint64{}, std::size_t{}, std::size_t{});
 		}
 	void check_every_group() {
 		auto seed = GENERATE(take(6, random(uint64(0), (std::numeric_limits<uint64>::max)())));
@@ -214,6 +258,8 @@ namespace {
 		check_against_oracle<Dsu>(int64_group(), seed, n, 400);
 		check_against_oracle<Dsu>(parity_group(), seed, n, 400);
 		check_against_oracle<Dsu>(permutation_group(), seed, n, 400);
+		check_against_oracle<Dsu>(mod_group(), seed, n, 400);
+		check_against_oracle<Dsu>(sl2_group(), seed, n, 400);
 	}
 
 	using atl::experimental::weighted_dsu_by_compression_and_layout;
@@ -221,35 +267,65 @@ namespace {
 	using atl::experimental::weighted_dsu_layout;
 
 	template<typename Potential, typename Op, typename Inverse>
-	using buffer_interleaved = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::two_pass_buffer, weighted_dsu_layout::interleaved, Potential, Op, Inverse>;
+	using buffer_interleaved = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::two_pass_buffer, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using buffer_split = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::two_pass_buffer, weighted_dsu_layout::split, Potential, Op, Inverse>;
+	using buffer_split = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::two_pass_buffer, weighted_dsu_layout::split,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using inverse_interleaved = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::two_pass_inverse, weighted_dsu_layout::interleaved, Potential, Op, Inverse>;
+	using inverse_interleaved = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::two_pass_inverse, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using inverse_split = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::two_pass_inverse, weighted_dsu_layout::split, Potential, Op, Inverse>;
+	using inverse_split = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::two_pass_inverse, weighted_dsu_layout::split,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using halving_interleaved = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::halving, weighted_dsu_layout::interleaved, Potential, Op, Inverse>;
+	using halving_interleaved = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::halving, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using halving_split = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::halving, weighted_dsu_layout::split, Potential, Op, Inverse>;
+	using halving_split = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::halving, weighted_dsu_layout::split,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using splitting_interleaved = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::splitting, weighted_dsu_layout::interleaved, Potential, Op, Inverse>;
+	using splitting_interleaved = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::splitting, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using splitting_split = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::splitting, weighted_dsu_layout::split, Potential, Op, Inverse>;
+	using splitting_split = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::splitting, weighted_dsu_layout::split,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using buffer_no_exit = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::two_pass_buffer, weighted_dsu_layout::interleaved, Potential, Op, Inverse, false>;
+	using buffer_no_exit = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::two_pass_buffer, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse, false>;
 	template<typename Potential, typename Op, typename Inverse>
-	using inverse_no_exit = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::two_pass_inverse, weighted_dsu_layout::split, Potential, Op, Inverse, false>;
+	using inverse_no_exit = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::two_pass_inverse, weighted_dsu_layout::split,
+		Potential, Op, Inverse, false>;
 	template<typename Potential, typename Op, typename Inverse>
-	using halving_no_exit = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::halving, weighted_dsu_layout::interleaved, Potential, Op, Inverse, false>;
+	using halving_no_exit = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::halving, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse, false>;
 	template<typename Potential, typename Op, typename Inverse>
-	using splitting_no_exit = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::splitting, weighted_dsu_layout::interleaved, Potential, Op, Inverse, false>;
+	using splitting_no_exit = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::splitting, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse, false>;
 	template<typename Potential, typename Op, typename Inverse>
-	using recursive_no_exit = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::recursive, weighted_dsu_layout::split, Potential, Op, Inverse, false>;
+	using recursive_no_exit = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::recursive, weighted_dsu_layout::split,
+		Potential, Op, Inverse, false>;
 	template<typename Potential, typename Op, typename Inverse>
-	using recursive_interleaved = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::recursive, weighted_dsu_layout::interleaved, Potential, Op, Inverse>;
+	using recursive_interleaved = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::recursive, weighted_dsu_layout::interleaved,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
-	using recursive_split = weighted_dsu_by_compression_and_layout<weighted_dsu_compression::recursive, weighted_dsu_layout::split, Potential, Op, Inverse>;
+	using recursive_split = weighted_dsu_by_compression_and_layout<
+		weighted_dsu_compression::recursive, weighted_dsu_layout::split,
+		Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
 	using rollback_split = atl::rollback_weighted_dsu<Potential, Op, Inverse>;
 	template<typename Potential, typename Op, typename Inverse>
@@ -271,6 +347,46 @@ TEST_CASE("weighted_dsu: additive potential constraints", "[weighted_dsu]") {
 	REQUIRE(d.difference(1, 1) == atl::int64(0));
 	REQUIRE(d.count() == 1);
 	REQUIRE(d.size(3) == 4);
+}
+
+TEST_CASE("weighted_dsu: modular additive potential constraints", "[weighted_dsu]") {
+	// The relation "a_u = a_v + x" is unite(v, u, x); "a_u - a_v" is difference(v, u).
+	atl::weighted_dsu<mint> d(4);
+	REQUIRE(d.unite(0, 1, 9) == unite_outcome::merged);
+	REQUIRE(!d.difference(2, 0));
+	REQUIRE(d.unite(1, 2, 90) == unite_outcome::merged);
+	REQUIRE(d.unite(0, 2, 99) == unite_outcome::consistent);
+	REQUIRE(d.unite(2, 0, 123) == unite_outcome::contradicts);
+	REQUIRE(d.unite(1, 3, 990) == unite_outcome::merged);
+	REQUIRE(d.difference(2, 0) == mint(998244254));
+	REQUIRE(d.difference(0, 2) == mint(99));
+	REQUIRE(d.difference(0, 3) == mint(999));
+	REQUIRE(d.difference(1, 1) == mint(0));
+	REQUIRE(d.count() == 1);
+	REQUIRE(d.size(3) == 4);
+}
+
+TEST_CASE("weighted_dsu: matrix potential constraints, both classes", "[weighted_dsu]") {
+	auto run = []<potential_dsu<sl2> Dsu>(Dsu d) {
+		sl2 const x01{2, 998244350, 998244350, 5};
+		REQUIRE(d.unite(0, 1, x01) == unite_outcome::merged);
+		REQUIRE(!d.difference(2, 0));
+		REQUIRE(d.unite(1, 2, sl2{1, 2, 3, 7}) == unite_outcome::merged);
+		// a_2 = a_0 · x01 · [[1,2],[3,7]].
+		sl2 const x02 = sl2_multiply{}(x01, sl2{1, 2, 3, 7});
+		REQUIRE(x02 == sl2{998244346, 998244336, 12, 29});
+		REQUIRE(d.unite(0, 2, x02) == unite_outcome::consistent);
+		REQUIRE(d.unite(2, 0, sl2{1, 2, 1, 3}) == unite_outcome::contradicts);
+		REQUIRE(d.unite(1, 3, sl2{2, 0, 0, 499122177}) == unite_outcome::merged);
+		REQUIRE(d.difference(0, 2) == x02);
+		REQUIRE(d.difference(2, 0) == sl2_inverse{}(x02));
+		REQUIRE(d.difference(0, 1) == x01);
+		REQUIRE(d.difference(1, 0) == sl2_inverse{}(x01));
+		REQUIRE(d.difference(0, 3) == sl2_multiply{}(x01, sl2{2, 0, 0, 499122177}));
+		REQUIRE(d.difference(1, 1) == sl2{1, 0, 0, 1});
+	};
+	run(atl::weighted_dsu(4, sl2{1, 0, 0, 1}, sl2_multiply{}, sl2_inverse{}));
+	run(atl::rollback_weighted_dsu(4, sl2{1, 0, 0, 1}, sl2_multiply{}, sl2_inverse{}));
 }
 
 TEST_CASE("weighted_dsu: edge cases and CTAD", "[weighted_dsu]") {
@@ -296,7 +412,8 @@ TEST_CASE("weighted_dsu: edge cases and CTAD", "[weighted_dsu]") {
 	REQUIRE(parity.difference(0, 2) == uint32(0));
 
 	atl::rollback_weighted_dsu rollback(2);
-	static_assert(std::is_same_v<decltype(rollback), atl::rollback_weighted_dsu<atl::int64, std::plus<>, std::negate<>>>);
+	static_assert(std::is_same_v<decltype(rollback),
+								 atl::rollback_weighted_dsu<atl::int64, std::plus<>, std::negate<>>>);
 	REQUIRE(rollback.unite(0, 1, 7) == unite_outcome::merged);
 	REQUIRE(rollback.unite(1, 0, -7) == unite_outcome::consistent);
 	REQUIRE(rollback.time() == 1);
@@ -306,8 +423,10 @@ TEST_CASE("weighted_dsu: edge cases and CTAD", "[weighted_dsu]") {
 	REQUIRE(rollback.unite(1, 0, 3) == unite_outcome::merged); // the undone weight is gone
 	REQUIRE(rollback.difference(0, 1) == atl::int64(-3));
 
-	[[maybe_unused]] std::size_t (atl::rollback_weighted_dsu<>::*time)() const noexcept = &atl::rollback_weighted_dsu<>::time;
-	[[maybe_unused]] void (atl::rollback_weighted_dsu<>::*rollback_to)(std::size_t) = &atl::rollback_weighted_dsu<>::rollback;
+	[[maybe_unused]] std::size_t (atl::rollback_weighted_dsu<>::*time)() const noexcept =
+		&atl::rollback_weighted_dsu<>::time;
+	[[maybe_unused]] void (atl::rollback_weighted_dsu<>::*rollback_to)(std::size_t) =
+		&atl::rollback_weighted_dsu<>::rollback;
 	[[maybe_unused]] auto deduced_time = &atl::rollback_weighted_dsu<>::time;
 	[[maybe_unused]] auto deduced_rollback = &atl::rollback_weighted_dsu<>::rollback;
 }
@@ -322,7 +441,9 @@ TEST_CASE("weighted_dsu: deep binomial trees, every variant agrees", "[weighted_
 	auto run = [&]<potential_dsu<permutation> Dsu>(Dsu d) {
 		std::size_t k = 0;
 		for (std::size_t s = 1; s < n; s *= 2)
-			for (std::size_t i = 0; i + s < n; i += 2 * s) REQUIRE(d.unite(i, i + s, plan[k++].second) == unite_outcome::merged);
+			for (std::size_t i = 0; i + s < n; i += 2 * s)
+				REQUIRE(d.unite(i, i + s, plan[k++].second)
+						== unite_outcome::merged);
 		std::vector<permutation> answers;
 		std::mt19937_64 probe(11);
 		for (int q = 0; q < 2000; ++q) answers.push_back(*d.difference(probe() % n, probe() % n));
@@ -331,15 +452,21 @@ TEST_CASE("weighted_dsu: deep binomial trees, every variant agrees", "[weighted_
 	auto const g = permutation_group();
 	auto const expected = run(atl::rollback_weighted_dsu(n, g.identity, g.op, g.inverse));
 	REQUIRE(run(atl::weighted_dsu(n, g.identity, g.op, g.inverse)) == expected);
-	REQUIRE(run(buffer_interleaved<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse)) == expected);
+	REQUIRE(run(buffer_interleaved<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse))
+			== expected);
 	REQUIRE(run(inverse_split<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse)) == expected);
 	REQUIRE(run(halving_split<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse)) == expected);
-	REQUIRE(run(recursive_interleaved<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse)) == expected);
-	REQUIRE(run(splitting_split<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse)) == expected);
-	REQUIRE(run(halving_no_exit<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse)) == expected);
+	REQUIRE(run(recursive_interleaved<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse))
+			== expected);
+	REQUIRE(run(splitting_split<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse))
+			== expected);
+	REQUIRE(run(halving_no_exit<permutation, compose, permutation_inverse>(n, g.identity, g.op, g.inverse))
+			== expected);
 }
 
-TEST_CASE("weighted_dsu: matches the constraint-forest oracle", "[weighted_dsu]") { check_every_group<atl::weighted_dsu>(); }
+TEST_CASE("weighted_dsu: matches the constraint-forest oracle", "[weighted_dsu]") {
+	check_every_group<atl::weighted_dsu>();
+}
 
 TEST_CASE("rollback_weighted_dsu: matches the constraint-forest oracle with rollback", "[weighted_dsu]") {
 	check_every_group<atl::rollback_weighted_dsu>();
@@ -368,7 +495,9 @@ TEST_CASE("rollback_weighted_dsu variants: match the constraint-forest oracle wi
 	check_every_group<rollback_interleaved>();
 }
 
-TEST_CASE("rollback_weighted_dsu variants: by interleaved nodes agrees with the library class on random unites and undos", "[weighted_dsu]") {
+TEST_CASE("rollback_weighted_dsu variants: by interleaved nodes agrees with the library class "
+		  "on random unites and undos",
+		  "[weighted_dsu]") {
 	std::mt19937_64 rng(7);
 	for (std::size_t const n : {0, 1, 2, 3, 64, 1000}) {
 		atl::rollback_weighted_dsu<> library(n);
@@ -388,9 +517,12 @@ TEST_CASE("rollback_weighted_dsu variants: by interleaved nodes agrees with the 
 
 TEST_CASE("weighted_dsu: asserted preconditions", "[weighted_dsu]") {
 	CHECK(atl_test::aborts([] { atl::weighted_dsu<> d(std::size_t((std::numeric_limits<atl::int32>::max)()) + 1); }));
-	CHECK(atl_test::aborts([] { atl::rollback_weighted_dsu<> d(std::size_t((std::numeric_limits<atl::int32>::max)()) + 1); }));
 	CHECK(atl_test::aborts([] {
-		atl::experimental::rollback_weighted_dsu_by_interleaved_nodes<> d(std::size_t((std::numeric_limits<atl::int32>::max)()) + 1);
+		atl::rollback_weighted_dsu<> d(std::size_t((std::numeric_limits<atl::int32>::max)()) + 1);
+	}));
+	CHECK(atl_test::aborts([] {
+		atl::experimental::rollback_weighted_dsu_by_interleaved_nodes<> d(
+			std::size_t((std::numeric_limits<atl::int32>::max)()) + 1);
 	}));
 	CHECK(atl_test::aborts([] {
 		atl::experimental::rollback_weighted_dsu_by_interleaved_nodes<> d(2);
@@ -483,18 +615,23 @@ TEST_CASE("weighted_dsu: operation concepts support member pointers", "[weighted
 
 namespace {
 	// Keep experimental proofs beside their runtime oracles so constexpr_checks includes only published headers.
-	template<atl::experimental::weighted_dsu_compression Compression, atl::experimental::weighted_dsu_layout Layout, atl::signed_integral Potential>
+	template<atl::experimental::weighted_dsu_compression Compression,
+			 atl::experimental::weighted_dsu_layout Layout, atl::signed_integral Potential>
 	constexpr bool weighted_method_constant_check() {
 		atl::experimental::weighted_dsu_by_compression_and_layout<Compression, Layout, Potential> d(5);
-		bool const has_merged = d.unite(0, 1, 5) == atl::unite_outcome::merged && d.unite(1, 2, 3) == atl::unite_outcome::merged
-							 && d.unite(3, 4, 1) == atl::unite_outcome::merged && d.unite(2, 3, 2) == atl::unite_outcome::merged;
-		bool const is_checked = d.unite(0, 4, 11) == atl::unite_outcome::consistent && d.unite(4, 0, 11) == atl::unite_outcome::contradicts;
+		bool const has_merged = d.unite(0, 1, 5) == atl::unite_outcome::merged
+							 && d.unite(1, 2, 3) == atl::unite_outcome::merged
+							 && d.unite(3, 4, 1) == atl::unite_outcome::merged
+							 && d.unite(2, 3, 2) == atl::unite_outcome::merged;
+		bool const is_checked = d.unite(0, 4, 11) == atl::unite_outcome::consistent
+							 && d.unite(4, 0, 11) == atl::unite_outcome::contradicts;
 		return has_merged && is_checked && d.difference(4, 0) == -11 && d.size(3) == 5 && d.count() == 1;
 	}
 
 	template<atl::experimental::weighted_dsu_compression Compression>
 	constexpr bool weighted_layouts_constant_check() {
-		return weighted_method_constant_check<Compression, atl::experimental::weighted_dsu_layout::interleaved, atl::int32>()
+		return weighted_method_constant_check<
+				   Compression, atl::experimental::weighted_dsu_layout::interleaved, atl::int32>()
 			&& weighted_method_constant_check<Compression, atl::experimental::weighted_dsu_layout::split, atl::int64>();
 	}
 

@@ -2,8 +2,8 @@
 
 Union-find with group potentials records `pot(b) = pot(a) · w` in
 `unite(a, b, w)`, and returns `pot(a)⁻¹ · pot(b)` from `difference(a, b)`.
-Use it for difference constraints and parity relations; use the rollback variant
-when successful merges must be undone. The group may be noncommutative.
+Use it for difference constraints, modular potentials and parity relations;
+use the rollback variant when successful merges must be undone. The group may be noncommutative.
 Plain connectivity needs only a DSU.
 
 ```cpp
@@ -12,6 +12,16 @@ Plain connectivity needs only a DSU.
 ```
 
 \include weighted-dsu/potentials.cpp
+
+The last result wraps a negative difference modulo 998244353 using `mod_int`.
+For noncommutative potentials, 2x2 matrices with determinant one form SL2 over
+the same field; supply matrix multiplication, the identity matrix and the adjugate:
+
+\include weighted-dsu/matrix.cpp
+
+Expected stdout:
+
+\include weighted-dsu/matrix.out
 
 ## API
 
@@ -142,17 +152,54 @@ over three runs of 25 samples, plain / native.
 | noncommutative SL2 n=q=200000 | 9.1 / 9.4 | 8.5 / 8.6 |
 | parity n=1e6, 2e6 ops | 79.9 / 80.7 | 83.0 / 79.8 |
 
-Current width dispatch, compression-strategy contenders and root-child-exit
-tunings: not measured yet. The modular and SL2 rows describe recorded shapes;
-the current benchmark uses only the published integer and parity shapes.
+The same source races all compression strategies and root-child exits on modular
+addition and noncommutative SL2, each with n=q=200000 and modulus 998244353.
+The remaining three shapes above also remain in the benchmark. The two-pass
+buffer stores the path; two-pass inverse reconstructs weights using inverses;
+halving and splitting shorten paths during descent; recursion composes weights
+on return. “No root-child exit” disables the one-edge fast path. Plain DSU
+measures connectivity on the same unions, without potentials.
+
+Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-24.
+Flags: `-O2 -g -DNDEBUG -std=c++23` and
+`-O2 -march=native -g -DNDEBUG -std=c++23`. Minimum milliseconds over three
+runs of 25 samples, plain / native. Labels beginning “by compression and layout”
+refer to `weighted_dsu_by_compression_and_layout`.
+
+| Contender | modular addition | SL2 |
+|---|---:|---:|
+| by compression and layout (two-pass buffer), interleaved | 4.8 / 4.6 | 8.4 / 9.8 |
+| by compression and layout (two-pass buffer), split | 5.2 / 5.0 | 8.1 / 8.5 |
+| by compression and layout (two-pass inverse), interleaved | 4.4 / 4.3 | 9.7 / 9.7 |
+| by compression and layout (two-pass inverse), split | 4.6 / 4.5 | 8.8 / 8.8 |
+| by compression and layout (halving), interleaved | 4.4 / 4.4 | 9.2 / 9.4 |
+| by compression and layout (halving), split | 4.6 / 4.2 | 8.9 / 8.9 |
+| by compression and layout (recursive), interleaved | 3.7 / 3.5 | 7.9 / 7.9 |
+| by compression and layout (recursive), split | 4.1 / 4.0 | 7.4 / 7.3 |
+| by compression and layout (splitting), interleaved | 4.4 / 4.1 | 8.8 / 9.7 |
+| by compression and layout (splitting), split | 4.6 / 4.3 | 8.0 / 8.3 |
+| by compression and layout (two-pass buffer), interleaved, no root-child exit | 4.7 / 3.5 | not measured yet |
+| by compression and layout (two-pass inverse), interleaved, no root-child exit | 4.3 / 3.5 | not measured yet |
+| by compression and layout (halving), interleaved, no root-child exit | 4.2 / 4.1 | not measured yet |
+| by compression and layout (splitting), interleaved, no root-child exit | 3.3 / 3.6 | not measured yet |
+| by compression and layout (recursive), interleaved, no root-child exit | 3.6 / 3.5 | not measured yet |
+| weighted_dsu (library, layout by potential width) | 3.6 / 3.7 | 7.5 / 7.4 |
+| baseline: plain dsu, same unites | 2.9 / 2.8 | 3.0 / 3.0 |
+
+Recursive compression with the width-selected layout is competitive on both
+modular workloads. The supplied records have no SL2 root-child-exit tuning rows;
+those contenders remain in the benchmark. The rollback
+width dispatch itself has no separate measurement: the rollback table reports
+explicit interleaved and split layouts.
 
 ## Pitfalls and notes
 
 Direction matters: `unite(a, b, w)` implies `difference(a, b) == w`, while the
 reverse difference is `inverse(w)`. With noncommutative groups, reversing an operand
 order changes the answer. The test oracle builds a constraint forest and walks
-products in both directions, including permutations of five elements. This checks
-operand order without relying on modular arithmetic.
+products in both directions, including modular addition, SL2 matrices and
+permutations of five elements.
+The permutation group supplies an independent check of operand order.
 
 ## How it works
 
@@ -174,3 +221,4 @@ undo work independent of the potential group's operation cost.
 
 - [DSUs](dsu.md)
 - [Time divide and conquer](time-divide-and-conquer.md)
+- [Modular arithmetic](modular-arithmetic.md)

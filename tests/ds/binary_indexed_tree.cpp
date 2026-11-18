@@ -1,4 +1,5 @@
 #include <atl/ds/binary_indexed_tree.hpp>
+#include <atl/nt/mod_int.hpp>
 #include <atl/types/alias.hpp>
 #include <algorithm>
 #include <array>
@@ -43,6 +44,37 @@ TEST_CASE("Binary Indexed Tree small tests", "[binary_indexed_tree]") {
 			auto found = bit.prefix_fold(j);
 			REQUIRE(found == expected);
 			expected += values[j];
+		}
+		REQUIRE(bit.prefix_fold(size) == expected);
+	}
+}
+
+TEST_CASE("Binary Indexed Tree small test with multiplication", "[binary_indexed_tree]") {
+	auto seed = GENERATE(take(4, random(uint64(0), (std::numeric_limits<atl::uint64>::max)())));
+	std::mt19937 rng(static_cast<std::mt19937::result_type>(seed));
+
+	int const MAX_SIZE = 16;
+	int const NUM_QUERIES = 2048;
+	constexpr int product_test_modulus = 1000000007;
+	using Z = atl::mod_int32<product_test_modulus>;
+	std::uniform_int_distribution<> dist(1, MAX_SIZE - 1);
+	int size = dist(rng);
+
+	atl::binary_indexed_tree<Z, 1, std::multiplies<>> bit(size, Z(1));
+	std::vector<Z> values(size, Z(1));
+	std::uniform_int_distribution<> pos_dist(0, size - 1);
+	std::uniform_int_distribution<> value_dist(0, product_test_modulus - 1);
+	for (int i = 0; i < NUM_QUERIES; ++i) {
+		auto pos = pos_dist(rng);
+		auto value = value_dist(rng);
+		bit.update(value, pos);
+		values[pos] *= value;
+
+		auto expected = Z(1);
+		for (int j = 0; j < size; ++j) {
+			auto found = bit.prefix_fold(j);
+			REQUIRE(found == expected);
+			expected *= values[j];
 		}
 		REQUIRE(bit.prefix_fold(size) == expected);
 	}
@@ -201,7 +233,9 @@ TEST_CASE("Binary Indexed Tree: rvalue range moves its elements in", "[binary_in
 
 namespace {
 	template<typename Op, typename Values>
-	concept builds_without_identity = requires(Values const &values) { atl::make_binary_indexed_tree_from<Op>(values); };
+	concept builds_without_identity = requires(Values const &values) {
+		atl::make_binary_indexed_tree_from<Op>(values);
+	};
 }
 
 TEST_CASE("Binary Indexed Tree: a non-sum tree from values needs its identity", "[binary_indexed_tree]") {
