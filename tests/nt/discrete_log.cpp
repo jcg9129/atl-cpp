@@ -37,32 +37,35 @@ namespace {
 	uint64 pow_mod(uint64 a, uint64 e, uint64 m) { return atl::pow_mod(a, e, m); }
 }
 
-TEST_CASE("PROBE2 intermediate values at 29*2^57+1", "[discrete_log]") {
+TEST_CASE("PROBE3 order stripping at 29*2^57+1", "[discrete_log]") {
 	{
 		using atl::uint64;
-		using atl::uint128;
 		uint64 const m = 4179340454199820289ull;
-		auto pr = [](char const *name, unsigned long long v) { std::fprintf(stderr, "PROBE2 %s %llu\n", name, v); std::fflush(stderr); };
-		uint64 const r = (uint64(0) - m) % m;
-		pr("r", r);
-		uint128 const sq = uint128(r) * r;
-		pr("sq_lo", (unsigned long long)uint64(sq));
-		pr("sq_hi", (unsigned long long)uint64(sq >> 64));
-		pr("sq_mod", (unsigned long long)uint64(sq % m));
-		pr("mulhi", atl::detail::multiply_high(uint64(0x9E3779B97F4A7C15ull), uint64(0xC2B2AE3D27D4EB4Full)));
-		atl::detail::montgomery64 const e(m);
-		uint64 const x = e.to_form(123456789123ull), y = e.to_form(987654321987ull);
-		pr("mont_mul", e.from_form(e.mul(x, y)));
-		pr("mulmod", atl::mul_mod<uint64>(123456789123ull, 987654321987ull, m));
-		pr("one", e.from_form(e.one()));
-		pr("fermat3", e.from_form(atl::detail::engine_power(e, e.to_form(3), m - 1)));
-		for (auto const &f : atl::detail::carmichael_factorization(m)) { pr("lambda_p", f.prime); pr("lambda_e", f.exponent); }
-		for (auto const &f : atl::detail::order_factorization(e, e.to_form(3))) { pr("ord_p", f.prime); pr("ord_e", f.exponent); }
-		pr("order3", atl::multiplicative_order(3, m));
-		auto const ph = atl::detail::pohlig_hellman(e, e.to_form(3), e.to_form(atl::pow_mod<uint64>(3, 1234567890123ull, m)));
-		pr("ph_has", ph.has_value());
-		if (ph) pr("ph", *ph);
-		pr("dlog_has", atl::discrete_log(3, atl::pow_mod<uint64>(3, 1234567890123ull, m), m).has_value());
+		atl::detail::montgomery64 const engine(m);
+		uint64 const a = engine.to_form(3);
+		auto order = atl::detail::carmichael_factorization(m);
+		uint64 n = 1;
+		for (auto const &[p, e] : order)
+			for (uint64 i = 0; i < e; ++i) n *= p;
+		std::fprintf(stderr, "PROBE3 n %llu one %llu\n", (unsigned long long)n, (unsigned long long)engine.one());
+		for (auto &[p, e] : order) {
+			while (e > 0) {
+				uint64 const exponent = n / p;
+				uint64 const value = atl::detail::engine_power(engine, a, exponent);
+				std::fprintf(stderr, "PROBE3 binding p %llu e %llu n %llu n/p %llu pow %llu\n", (unsigned long long)p,
+							 (unsigned long long)e, (unsigned long long)n, (unsigned long long)exponent,
+							 (unsigned long long)engine.from_form(value));
+				std::fflush(stderr);
+				if (value != engine.one()) break;
+				n /= p;
+				--e;
+			}
+		}
+		for (uint64 k : {uint64(1) << 56, uint64(29) << 56, uint64(29) << 55, uint64(29) << 28, uint64(29) << 27}) {
+			std::fprintf(stderr, "PROBE3 pow3^%llu = %llu\n", (unsigned long long)k,
+						 (unsigned long long)engine.from_form(atl::detail::engine_power(engine, a, k)));
+			std::fflush(stderr);
+		}
 	}
 }
 
