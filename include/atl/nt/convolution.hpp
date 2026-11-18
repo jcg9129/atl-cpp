@@ -199,7 +199,7 @@ namespace atl {
 
 		/**
 		 * @brief Balanced 15-bit FFT split with overlap-add for lopsided inputs.
-		 * @pre Nonzero lengths, modulus <= 2^30, planned size <= 2^21 (asserted).
+		 * @pre Nonzero lengths, modulus <= 2^30, planned size <= 2^19 (asserted).
 		 * Centered residues split into signed halves bounded by 2^14. Anchored
 		 * roots limit accumulated phase error; integer recovery rounds each of
 		 * the ll, lh, hl and hh products separately.
@@ -210,7 +210,7 @@ namespace atl {
 											 GetB const &at_b, bool is_square = false) {
 			using U = decltype(Z::mod());
 			atl_assert(n != 0 && m != 0 && Z::mod() <= (uint64(1) << 30));
-			atl_assert(planned_ntt_size(n, m) <= (std::size_t(1) << 21));
+			atl_assert(planned_ntt_size(n, m) <= (std::size_t(1) << 19));
 			std::size_t const need = n + m - 1;
 			std::size_t const size = planned_ntt_size(n, m);
 			std::size_t const shortest = (std::min)(n, m), longest = (std::max)(n, m);
@@ -339,7 +339,7 @@ namespace atl {
 	 * @return Empty if either input is empty; otherwise n+m-1 coefficients.
 	 * @pre Nonempty input lengths are at most `2^(size_t digits - 2)` (asserted).
 	 *      Direct NTTs require a prime below 2^30 and sufficient 2-adic order.
-	 *      The balanced FFT split uses modulus <= 2^30 and planned size <= 2^21;
+	 *      The balanced FFT split uses modulus <= 2^30 and planned size <= 2^19;
 	 *      round-to-nearest arithmetic without fast-math is required.
 	 *      Garner requires the planned size <= 2^23 and
 	 *      `min(n,m) max(a) max(b) < 167772161*469762049*998244353` (asserted).
@@ -391,7 +391,7 @@ namespace atl {
 			return naive();
 		} else {
 			if constexpr (Z::mod() <= (decltype(Z::mod())(1) << 30)) {
-				if (detail::planned_ntt_size(n, m) <= (std::size_t(1) << 21))
+				if (detail::planned_ntt_size(n, m) <= (std::size_t(1) << 19))
 					return detail::fft_split_convolution<Z>(
 						n, [&](std::size_t i) { return Z(first_a[i]).value(); }, m,
 						[&](std::size_t i) { return Z(first_b[i]).value(); }, is_square);

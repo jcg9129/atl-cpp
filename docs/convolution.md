@@ -134,7 +134,7 @@ Asserted with `ATL_ASSERT`:
   even when their actual coefficients would fit. Both integer transform tiers
   are capped at 2^23 points. The bound applies even below the naive cutoff.
   Its exact calculation and path selection run independently of `ATL_ASSERT`.
-- The internal balanced FFT split checks modulus <= 2^30 and planned size <= 2^21.
+- The internal balanced FFT split checks modulus <= 2^30 and planned size <= 2^19.
 
 Constrained: NTT representations are 32- or 64-bit unsigned words, with odd
 prime moduli below 2^30; arbitrary modular convolution
@@ -144,7 +144,7 @@ Documented-only: valid raw buffers, canonical or lazy residue ranges as specifie
 nonaliasing of the two raw convolve buffers, and consistent modular arithmetic.
 For floating arithmetic use finite samples, round-to-nearest, and no fast-math.
 Raw FFTs are approximate and have no general exact-integer rounding guarantee.
-The integer split's supported envelope is modulus <= 2^30 and at most 2^21
+The integer split's supported envelope is modulus <= 2^30 and at most 2^19
 points per transform. Centering and balanced splitting bound each signed half
 by 2^14 in magnitude. The tests exercise the size and magnitude limits together
 against exact triangular products, including opposite signs and squares, on every
@@ -209,12 +209,18 @@ Other moduli and exact integer products:
 |---|---:|---:|---:|
 | lopsided 2^20 × 2^6, mod 7340033 | 48.3 / 45.1 | 538 / 521 | — |
 | lopsided 2^20 × 2^6, mod 1e9+7 | 108 / 99.7 | 540 / 517 | — |
-| 1e9+7, balanced 2^19 × 2^19 (FFT split) | 227 / 217 | — | — |
-| 1e9+7, square 2^19 (FFT split) | 183 / 171 | — | — |
+| 1e9+7, balanced 2^19 × 2^19 (now Garner) | not measured yet | — | — |
+| 1e9+7, square 2^19 (now Garner) | not measured yet | — | — |
 | 2^32−5, balanced 2^19 × 2^19 (Garner) | 266 / 259 | — | 84.6 / 82.5 |
 | 2^32−5, square 2^19 (Garner) | 178 / 171 | — | 66.1 / 63.7 |
 | uint64 two-prime, balanced 2^19 × 2^19 | 168 / 164 | — | — |
 | uint64 two-prime, square 2^19 | 110 / 104 | — | — |
+
+The 1e9+7 balanced and square 2^19 inputs have planned size 2^20, above the
+FFT split's exact range, so they now take three-prime Garner (not measured yet).
+The FFT split measured 227 / 217 ms and 183 / 171 ms on them, but is not exact
+there for worst-case inputs: at planned size 2^20 thousands of coefficients
+round wrongly.
 
 The uint64 three-prime balanced and square 2^19 shapes are not measured yet.
 They use the same benchmark loop and include exact widened agreement checks.
@@ -264,7 +270,10 @@ intermediate is below the three-prime product, which is below 2^87. Small inputs
 still use direct multiplication; constant evaluation uses the scalar engine
 for both transform paths.
 
-The FFT tier packs balanced low/high halves into real/imaginary components.
+After direct NTT dispatch, the FFT tier is used only for modulus <= 2^30
+and planned size <= 2^19; larger planned sizes use three-prime Garner,
+which supports up to 2^23 points. The FFT tier packs balanced low/high halves
+into real/imaginary components.
 Conjugate symmetry separates their products; two inverse transforms and rounding
 recover four integer products. Root generation anchors trigonometry every 64th
 root to limit phase error from multiplication chains. Long double may have the

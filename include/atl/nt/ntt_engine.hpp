@@ -178,6 +178,7 @@ namespace atl {
 		/** @brief Per-modulus incremental twiddle ("step") tables, built once. */
 		template<detail::ntt_modulus Z>
 		struct twiddles {
+			/** @brief The unsigned residue representation. */
 			using U = decltype(Z::mod());
 			/** @brief The transform modulus. */
 			static constexpr U mod = Z::mod();

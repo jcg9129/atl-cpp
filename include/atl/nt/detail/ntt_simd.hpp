@@ -57,7 +57,7 @@ namespace atl::detail {
 
 	/** @brief Unaligned 8-lane load (memcpy compiles to one vector move). */
 	ATL_SIMD_TARGET inline u32x8 load8(uint32 const *p) {
-		u32x8 v;
+		u32x8 v{};
 #if defined(ATL_SIMD_AVX2) || defined(ATL_SIMD_NEON)
 		std::memcpy(&v, p, sizeof(v));
 #else
@@ -76,9 +76,13 @@ namespace atl::detail {
 	}
 
 	ATL_SIMD_TARGET inline u32x8 splat8(uint32 x) {
+#if defined(ATL_SIMD_AVX2) || defined(ATL_SIMD_NEON)
+		return u32x8{x, x, x, x, x, x, x, x};
+#else
 		u32x8 r{};
 		for (std::size_t i = 0; i < 8; ++i) r[i] = x;
 		return r;
+#endif
 	}
 
 	/**
@@ -122,7 +126,7 @@ namespace atl::detail {
 	}
 #else
 	ATL_SIMD_TARGET inline u32x8 mulhi8(u32x8 a, u32x8 b) {
-		u32x8 r;
+		u32x8 r{};
 		for (int i = 0; i < 8; ++i) r[i] = uint32((uint64(a[i]) * b[i]) >> 32);
 		return r;
 	}

@@ -3,7 +3,8 @@
  * @brief Polynomial-product throughput: balanced and square 2^19 inputs,
  * lopsided 2^20 by 2^6, batches of 20000 tiny products, arbitrary moduli and
  * exact uint64 with two or three primes. Each sample includes scratch allocation
- * and returns a coefficient. The three-prime shape is not measured yet.
+ * and returns a coefficient. The uint64 three-prime and 1e9+7 Garner shapes
+ * are not measured yet.
  * Contenders isolate bit reversal (by radix2), incremental rates (by DIF),
  * deferred reduction (by lazy Montgomery), fused levels (by radix4), vector
  * pointwise/scaling, per-call rates with scalar block reduction, one padded FFT
@@ -31,15 +32,15 @@
 
 using namespace atl;
 namespace ex = atl::experimental;
-using Z = mod_int<uint32, 998244353>;
+using convolution_mint = mod_int<uint32, 998244353>;
 using M7 = mod_int<uint32, 1000000007>;
 using Z7 = mod_int<uint32, 7340033>; // 7·2^20 + 1: 2^20 of 2-adic headroom
 
 namespace {
 	template<typename Coefficient>
-		requires std::is_invocable_r_v<Z, Coefficient &>
-	Z sum_product_coefficients(Coefficient coefficient) {
-		Z sum;
+		requires std::is_invocable_r_v<convolution_mint, Coefficient &>
+	convolution_mint sum_product_coefficients(Coefficient coefficient) {
+		convolution_mint sum;
 		for (int i = 0; i < 20000; ++i) sum += coefficient();
 		return sum;
 	}
@@ -213,28 +214,28 @@ namespace contenders {
 
 	/** @brief The overlap-add tier with the 1/size scale folded into `fs` once (a tie). */
 	template<ntt_engine Eng>
-	std::vector<uint32> convolution_by_prescaled_spectrum(std::vector<Z> const &a, std::vector<Z> const &b) {
-		using mont = montgomery<Z::mod()>;
-		constexpr uint32 mod = Z::mod();
+	std::vector<uint32> convolution_by_prescaled_spectrum(std::vector<convolution_mint> const &a, std::vector<convolution_mint> const &b) {
+		using mont = montgomery<convolution_mint::mod()>;
+		constexpr uint32 mod = convolution_mint::mod();
 		std::size_t const n = a.size(), m = b.size(), need = n + m - 1;
 		std::size_t const shortest = (std::min)(n, m), longest = (std::max)(n, m);
-		std::vector<Z> const &s = n <= m ? a : b, &l = n <= m ? b : a;
+		std::vector<convolution_mint> const &s = n <= m ? a : b, &l = n <= m ? b : a;
 		std::size_t const size = std::bit_ceil(2 * shortest);
 		uint32 const h = uint32(std::countr_zero(size));
 		uint32 const rr = mont::to_form(mont::to_form(uint32(1)));
-		uint32 const scale = mont::mul(mont::to_form(power(Z(uint32(size)), mod - 2).value()), rr);
+		uint32 const scale = mont::mul(mont::to_form(power(convolution_mint(uint32(size)), mod - 2).value()), rr);
 		std::size_t const step = size - shortest + 1;
 		std::vector<uint32> fs(size, 0), chunk(size), acc(need + size, 0);
 		for (std::size_t i = 0; i < shortest; ++i) fs[i] = s[i].value();
-		Eng::template forward<Z>(fs.data(), h);
+		Eng::template forward<convolution_mint>(fs.data(), h);
 		for (uint32 &x : fs) x = mont::mul_lazy(x, scale);
 		for (std::size_t at = 0; at < longest; at += step) {
 			std::size_t const len = (std::min)(step, longest - at);
 			for (std::size_t i = 0; i < len; ++i) chunk[i] = l[at + i].value();
 			std::ranges::fill(chunk.begin() + len, chunk.end(), 0u);
-			Eng::template forward<Z>(chunk.data(), h);
+			Eng::template forward<convolution_mint>(chunk.data(), h);
 			for (std::size_t i = 0; i < size; ++i) chunk[i] = mont::mul_lazy(chunk[i], fs[i]);
-			Eng::template inverse<Z>(chunk.data(), h);
+			Eng::template inverse<convolution_mint>(chunk.data(), h);
 			for (std::size_t i = 0; i < size; ++i) {
 				uint32 x = chunk[i];
 				if (x >= mod) x -= mod;
@@ -249,7 +250,7 @@ namespace contenders {
 
 TEST_CASE("convolution contenders", "[convolution]") {
 	std::mt19937 rng(1);
-	auto make_input = [&]<static_mod_int M = Z>(std::size_t n) {
+	auto make_input = [&]<static_mod_int M = convolution_mint>(std::size_t n) {
 		std::vector<M> v(n);
 		for (auto &x : v) x = M(uint32(rng() % M::mod()));
 		return v;
@@ -298,7 +299,7 @@ TEST_CASE("convolution contenders", "[convolution]") {
 		auto const a = make_input(1 << 20), b = make_input(1 << 6);
 		auto const want = convolution(a, b);
 		std::vector<uint32> expected;
-		for (Z x : want) expected.push_back(x.value());
+		for (convolution_mint x : want) expected.push_back(x.value());
 		REQUIRE(want == ex::convolution_by_lazy_montgomery(a, b));
 		REQUIRE(want == convolution<ex::ntt_by_lazy_montgomery>(a, b));
 		REQUIRE(want == convolution<ex::ntt_by_radix4>(a, b));
@@ -367,8 +368,8 @@ TEST_CASE("convolution contenders", "[convolution]") {
 		auto const a = make_input.operator()<M7>(1 << 19), b = make_input.operator()<M7>(1 << 19);
 		auto const a_copy = a;
 		REQUIRE(convolution(a, a) == convolution(a, a_copy));
-		BENCHMARK("1e9+7 2^19 | library (fft split)") { return convolution(a, b)[1]; };
-		BENCHMARK("1e9+7 square 2^19 | library (fft split)") { return convolution(a, a)[1]; };
+		BENCHMARK("1e9+7 2^19 | library (garner)") { return convolution(a, b)[1]; };
+		BENCHMARK("1e9+7 square 2^19 | library (garner)") { return convolution(a, a)[1]; };
 		using ZBig = mod_int<uint32, 4294967291u>;
 		auto const ga = make_input.operator()<ZBig>(1 << 19), gb = make_input.operator()<ZBig>(1 << 19);
 		auto const ga_copy = ga;

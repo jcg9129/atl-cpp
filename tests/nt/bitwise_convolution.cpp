@@ -20,19 +20,19 @@ using atl::int64;
 using atl::uint32;
 using atl::uint64;
 namespace ex = atl::experimental;
-using Z = atl::mod_int<uint32, 998244353>;
+using bitwise_mint = atl::mod_int<uint32, 998244353>;
 using Even = atl::mod_int<uint32, 1000>;
 
-static_assert(atl::commutative_ring<Z>);
-static_assert(atl::halvable_ring<Z>);
+static_assert(atl::commutative_ring<bitwise_mint>);
+static_assert(atl::halvable_ring<bitwise_mint>);
 static_assert(atl::halvable_ring<int64>);
 static_assert(atl::halvable_ring<double>);
 static_assert(atl::commutative_ring<uint32>);
 static_assert(!atl::halvable_ring<uint32>); // no 1/2^n modulo 2^32
 static_assert(atl::halvable_ring<atl::dynamic_mod_int<>>);
-static_assert(atl::set_function_range<std::vector<Z> &>);
+static_assert(atl::set_function_range<std::vector<bitwise_mint> &>);
 static_assert(atl::set_function_range<std::span<int64>>);
-static_assert(!atl::set_function_range<std::vector<Z> const &>);
+static_assert(!atl::set_function_range<std::vector<bitwise_mint> const &>);
 
 namespace {
 	template<atl::commutative_ring T>
@@ -90,7 +90,7 @@ namespace {
 	}
 }
 
-TEMPLATE_TEST_CASE("bitwise transforms against their definitions", "[bitwise_convolution]", Z, int64, uint32) {
+TEMPLATE_TEST_CASE("bitwise transforms against their definitions", "[bitwise_convolution]", bitwise_mint, int64, uint32) {
 	auto seed = GENERATE(take(6, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
 	for (std::size_t bits = 0; bits <= 13; ++bits) { // past the 11-bit cache block, odd and even remainders
@@ -138,7 +138,7 @@ TEMPLATE_TEST_CASE("bitwise transforms against their definitions", "[bitwise_con
 	}
 }
 
-TEMPLATE_TEST_CASE("bitwise convolutions against their definitions", "[bitwise_convolution]", Z, int64, uint32) {
+TEMPLATE_TEST_CASE("bitwise convolutions against their definitions", "[bitwise_convolution]", bitwise_mint, int64, uint32) {
 	auto seed = GENERATE(take(20, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
 	// unequal and non-power-of-two lengths exercise the padding
@@ -163,14 +163,14 @@ TEST_CASE("bitwise convolutions: floating point, spans, edge cases", "[bitwise_c
 	auto const want = ex::bitwise_convolution_by_definition(a, b, [](std::size_t i, std::size_t j) { return i ^ j; });
 	for (std::size_t i = 0; i < 32; ++i) REQUIRE(std::abs(got[i] - want[i]) < 1e-6);
 
-	std::vector<Z> const empty;
+	std::vector<bitwise_mint> const empty;
 	REQUIRE(atl::or_convolution(empty, empty).empty());
 	REQUIRE(atl::subset_convolution(empty, empty).empty());
 	REQUIRE(atl::xor_convolution(empty, empty).empty());
-	std::vector<Z> const one{Z(3)}, two{Z(5)};
-	check_equal(atl::subset_convolution(one, two), std::vector<Z>{Z(15)});
-	check_equal(atl::xor_convolution(one, two), std::vector<Z>{Z(15)});
-	check_equal(atl::or_convolution(empty, two), std::vector<Z>{Z(0)}); // padded to 1
+	std::vector<bitwise_mint> const one{bitwise_mint(3)}, two{bitwise_mint(5)};
+	check_equal(atl::subset_convolution(one, two), std::vector<bitwise_mint>{bitwise_mint(15)});
+	check_equal(atl::xor_convolution(one, two), std::vector<bitwise_mint>{bitwise_mint(15)});
+	check_equal(atl::or_convolution(empty, two), std::vector<bitwise_mint>{bitwise_mint(0)}); // padded to 1
 
 	std::vector<int64> buffer{1, 2, 3, 4, 99};
 	atl::subset_zeta(std::span(buffer).first(4));
@@ -189,12 +189,12 @@ TEST_CASE("bitwise convolutions: floating point, spans, edge cases", "[bitwise_c
 
 TEST_CASE("bitwise convolutions: n = 16 subset convolution against rank-major", "[bitwise_convolution]") {
 	std::mt19937_64 rng(16);
-	auto const a = random_vector<Z>(rng, 1 << 16), b = random_vector<Z>(rng, 1 << 16);
+	auto const a = random_vector<bitwise_mint>(rng, 1 << 16), b = random_vector<bitwise_mint>(rng, 1 << 16);
 	auto const h = atl::subset_convolution(a, b);
 	check_equal(h, ex::subset_convolution_by_rank_major(a, b));
 	for (int probe = 0; probe < 20; ++probe) { // spot checks against the definition
 		std::size_t const s = rng() % (1 << 16);
-		Z want{};
+		bitwise_mint want{};
 		for (std::size_t l = s;; l = (l - 1) & s) {
 			want += a[l] * b[s ^ l];
 			if (l == 0) break;

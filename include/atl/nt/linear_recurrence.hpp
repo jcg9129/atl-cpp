@@ -16,8 +16,8 @@
 
 namespace atl {
 	/**
-	 * @brief A sized random-access range over an @ref atl::exact_field: what the
-	 *        recurrence functions read sequences and polynomials from.
+	 * @brief A sized random-access range of @ref atl::exact_field values for the
+	 *        recurrence functions to read sequences and polynomials.
 	 */
 	template<typename R>
 	concept field_range = std::ranges::random_access_range<R> && std::ranges::sized_range<R>
@@ -60,7 +60,7 @@ namespace atl {
 		constexpr T kitamasa_by_schoolbook(std::vector<T> const &c, std::vector<T> const &a, uint64 k) {
 			std::size_t const d = c.size();
 			if (d == 0) return T(0);
-			if (k < d) return a[std::size_t(k)];
+			if (k < d && k < a.size()) return a[std::size_t(k)];
 			// reduce a polynomial of degree < 2d by x^d = sum c[j] x^{d-1-j}
 			auto const reduce = [&](std::vector<T> &r) {
 				for (std::size_t top = r.size(); top-- > d;) {

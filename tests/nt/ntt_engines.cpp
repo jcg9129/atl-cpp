@@ -13,15 +13,15 @@
 // clang-format on
 
 using namespace atl;
-using Z = mod_int<uint32, 998244353>;
-using mont = montgomery<Z::mod()>;
+using ntt_test_mint = mod_int<uint32, 998244353>;
+using ntt_test_montgomery = montgomery<ntt_test_mint::mod()>;
 
 // a 64-bit static modulus no 32-bit vector engine can serve
 using Z64 = mod_int<uint64, (uint64(1) << 61) - 1>;
-static_assert(simd_ntt::supports<Z>() && conv8_ntt::supports<Z>());
+static_assert(simd_ntt::supports<ntt_test_mint>() && conv8_ntt::supports<ntt_test_mint>());
 static_assert(!simd_ntt::supports<Z64>() && !conv8_ntt::supports<Z64>());
 static_assert(std::is_same_v<detail::engine_or_scalar_t<simd_ntt, Z64>, scalar_ntt>);
-static_assert(std::is_same_v<detail::engine_or_scalar_t<conv8_ntt, Z>, conv8_ntt>);
+static_assert(std::is_same_v<detail::engine_or_scalar_t<conv8_ntt, ntt_test_mint>, conv8_ntt>);
 
 namespace {
 	template<typename Engine, typename Element>
@@ -30,9 +30,9 @@ namespace {
 		Engine::template inverse<Element>(p, 0);
 		Engine::template convolve<Element>(p, p, 0);
 	};
-	static_assert(raw_engine_for<scalar_ntt, Z>);
-	static_assert(raw_engine_for<simd_ntt, Z>);
-	static_assert(raw_engine_for<conv8_ntt, Z>);
+	static_assert(raw_engine_for<scalar_ntt, ntt_test_mint>);
+	static_assert(raw_engine_for<simd_ntt, ntt_test_mint>);
+	static_assert(raw_engine_for<conv8_ntt, ntt_test_mint>);
 	static_assert(!raw_engine_for<scalar_ntt, mod_int<uint32, 129>>);
 	static_assert(!raw_engine_for<simd_ntt, mod_int<uint32, 129>>);
 	static_assert(!raw_engine_for<conv8_ntt, mod_int<uint32, 129>>);
@@ -42,7 +42,7 @@ namespace {
 
 	std::vector<uint32> random_residues(std::mt19937_64 &rng, std::size_t n) {
 		std::vector<uint32> v(n);
-		for (auto &x : v) x = uint32(rng() % Z::mod());
+		for (auto &x : v) x = uint32(rng() % ntt_test_mint::mod());
 		return v;
 	}
 }
@@ -53,11 +53,11 @@ TEST_CASE("ntt engines: simd transforms match scalar bit for bit", "[nt]") {
 	for (uint32 h = 0; h <= 11; ++h) {
 		auto a = random_residues(rng, std::size_t(1) << h);
 		auto b = a;
-		scalar_ntt::forward<Z>(a.data(), h);
-		simd_ntt::forward<Z>(b.data(), h);
+		scalar_ntt::forward<ntt_test_mint>(a.data(), h);
+		simd_ntt::forward<ntt_test_mint>(b.data(), h);
 		REQUIRE(a == b);
-		scalar_ntt::inverse<Z>(a.data(), h);
-		simd_ntt::inverse<Z>(b.data(), h);
+		scalar_ntt::inverse<ntt_test_mint>(a.data(), h);
+		simd_ntt::inverse<ntt_test_mint>(b.data(), h);
 		REQUIRE(a == b);
 	}
 }
@@ -68,12 +68,12 @@ TEST_CASE("ntt engines: conv8_block_simd matches its scalar spec", "[nt]") {
 	for (int it = 0; it < 500; ++it) {
 		auto a = random_residues(rng, 8), b = random_residues(rng, 8);
 		auto a_spec = a;
-		uint32 const w_mont = mont::to_form(uint32(rng() % Z::mod()));
-		conv8_ntt::conv8_block_simd<Z>(a.data(), b.data(), w_mont);
-		conv8_ntt::conv8_block_reference<Z>(a_spec.data(), b.data(), w_mont);
+		uint32 const w_mont = ntt_test_montgomery::to_form(uint32(rng() % ntt_test_mint::mod()));
+		conv8_ntt::conv8_block_simd<ntt_test_mint>(a.data(), b.data(), w_mont);
+		conv8_ntt::conv8_block_reference<ntt_test_mint>(a_spec.data(), b.data(), w_mont);
 		for (int i = 0; i < 8; ++i) {
 			uint32 x = a[i]; // block8 leaves lazy residues, the spec canonical ones
-			x = x >= Z::mod() ? x - Z::mod() : x;
+			x = x >= ntt_test_mint::mod() ? x - ntt_test_mint::mod() : x;
 			REQUIRE(x == a_spec[i]);
 		}
 	}
@@ -86,8 +86,8 @@ TEST_CASE("ntt engines: fused conv8 convolve matches scalar convolve", "[nt]") {
 		auto a = random_residues(rng, std::size_t(1) << h);
 		auto b = random_residues(rng, std::size_t(1) << h);
 		auto a2 = a, b2 = b;
-		conv8_ntt::convolve<Z>(a.data(), b.data(), h);
-		scalar_ntt::convolve<Z>(a2.data(), b2.data(), h);
+		conv8_ntt::convolve<ntt_test_mint>(a.data(), b.data(), h);
+		scalar_ntt::convolve<ntt_test_mint>(a2.data(), b2.data(), h);
 		REQUIRE(a == a2);
 	}
 }
@@ -96,9 +96,9 @@ TEST_CASE("ntt engines: convolution<Engine> agrees across engines and shapes", "
 	auto seed = GENERATE(take(4, random(std::uint64_t(0), (std::numeric_limits<std::uint64_t>::max)())));
 	std::mt19937_64 rng(seed);
 	auto both = [&](std::size_t n, std::size_t m) {
-		std::vector<Z> x, y;
-		for (std::size_t i = 0; i < n; ++i) x.push_back(Z(uint32(rng() % Z::mod())));
-		for (std::size_t i = 0; i < m; ++i) y.push_back(Z(uint32(rng() % Z::mod())));
+		std::vector<ntt_test_mint> x, y;
+		for (std::size_t i = 0; i < n; ++i) x.push_back(ntt_test_mint(uint32(rng() % ntt_test_mint::mod())));
+		for (std::size_t i = 0; i < m; ++i) y.push_back(ntt_test_mint(uint32(rng() % ntt_test_mint::mod())));
 		auto const want = convolution<scalar_ntt>(x, y);
 		REQUIRE(convolution<simd_ntt>(x, y) == want);
 		REQUIRE(convolution<conv8_ntt>(x, y) == want);
@@ -116,18 +116,18 @@ TEST_CASE("ntt engines: square matches convolve of a copy", "[nt]") {
 	for (uint32 h = 3; h <= 11; ++h) {
 		auto const a = random_residues(rng, std::size_t(1) << h);
 		auto want = a, copy = a;
-		scalar_ntt::convolve<Z>(want.data(), copy.data(), h);
+		scalar_ntt::convolve<ntt_test_mint>(want.data(), copy.data(), h);
 		auto got = a;
-		scalar_ntt::square<Z>(got.data(), h);
+		scalar_ntt::square<ntt_test_mint>(got.data(), h);
 		REQUIRE(got == want);
 		got = a;
-		simd_ntt::square<Z>(got.data(), h);
+		simd_ntt::square<ntt_test_mint>(got.data(), h);
 		REQUIRE(got == want);
 		got = a;
-		conv8_ntt::square<Z>(got.data(), h);
+		conv8_ntt::square<ntt_test_mint>(got.data(), h);
 		REQUIRE(got == want);
 		got = a, copy = a;
-		simd_ntt::convolve<Z>(got.data(), copy.data(), h);
+		simd_ntt::convolve<ntt_test_mint>(got.data(), copy.data(), h);
 		REQUIRE(got == want);
 	}
 }
@@ -136,8 +136,8 @@ TEST_CASE("ntt engines: convolution(a, a) agrees across engines", "[nt]") {
 	auto seed = GENERATE(take(4, random(std::uint64_t(0), (std::numeric_limits<std::uint64_t>::max)())));
 	std::mt19937_64 rng(seed);
 	for (std::size_t n : {49, 300, 1000, 2048}) {
-		std::vector<Z> x;
-		for (std::size_t i = 0; i < n; ++i) x.push_back(Z(uint32(rng() % Z::mod())));
+		std::vector<ntt_test_mint> x;
+		for (std::size_t i = 0; i < n; ++i) x.push_back(ntt_test_mint(uint32(rng() % ntt_test_mint::mod())));
 		auto const copy = x;
 		auto const want = convolution<scalar_ntt>(x, copy);
 		REQUIRE(convolution<scalar_ntt>(x, x) == want);
@@ -156,7 +156,7 @@ TEST_CASE("ntt engines: modulus and level boundaries", "[nt]") {
 	CHECK(atl_test::aborts([] { uint32 x[2]{}; scalar_ntt::forward<Tiny>(x, 2); }));
 	CHECK(atl_test::aborts([] { uint32 x[2]{}; simd_ntt::inverse<Tiny>(x, 2); }));
 	CHECK(atl_test::aborts([] { uint32 x[2]{}; simd_ntt::forward<Tiny>(x, 1, 2); }));
-	CHECK(atl_test::aborts([] { uint32 x[8]{}; conv8_ntt::square<Z>(x, 2); }));
+	CHECK(atl_test::aborts([] { uint32 x[8]{}; conv8_ntt::square<ntt_test_mint>(x, 2); }));
 }
 
 TEST_CASE("ntt engines: fused sums near the modulus ceiling", "[nt]") {

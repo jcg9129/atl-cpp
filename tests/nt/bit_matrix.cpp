@@ -11,7 +11,7 @@ using atl::uint32;
 using atl::uint64;
 
 namespace {
-	std::vector<bool> apply(atl::bit_matrix const &a, std::vector<bool> const &x) {
+	std::vector<bool> apply_matrix(atl::bit_matrix const &a, std::vector<bool> const &x) {
 		std::vector<bool> out(a.rows());
 		for (uint32 i = 0; i < a.rows(); ++i) {
 			bool sum = false;
@@ -59,7 +59,7 @@ TEST_CASE("bit_matrix: rank and solve vs enumeration", "[bit_matrix]") {
 		std::vector<bool> x(n);
 		for (uint64 code = 0; code < (uint64(1) << n); ++code) {
 			for (uint32 j = 0; j < n; ++j) x[j] = (code >> j) & 1;
-			auto const ax = apply(a, x);
+			auto const ax = apply_matrix(a, x);
 			solutions += ax == b;
 			kernel += ax == std::vector<bool>(rows);
 		}
@@ -69,11 +69,11 @@ TEST_CASE("bit_matrix: rank and solve vs enumeration", "[bit_matrix]") {
 		REQUIRE(s.is_solvable == (solutions > 0));
 		REQUIRE(s.is_unique() == (solutions == 1));
 		REQUIRE(s.null_space.rows() == n - r);
-		if (s.is_solvable) REQUIRE(apply(a, s.particular) == b);
+		if (s.is_solvable) REQUIRE(apply_matrix(a, s.particular) == b);
 		for (uint32 k = 0; k < s.null_space.rows(); ++k) {
 			std::vector<bool> v(n);
 			for (uint32 j = 0; j < n; ++j) v[j] = s.null_space.test(k, j);
-			REQUIRE(apply(a, v) == std::vector<bool>(rows));
+			REQUIRE(apply_matrix(a, v) == std::vector<bool>(rows));
 		}
 		REQUIRE(atl::rank(s.null_space) == s.null_space.rows());
 	}
@@ -87,15 +87,15 @@ TEST_CASE("bit_matrix: wide systems across word boundaries", "[bit_matrix]") {
 			auto const a = random_bits(rows, n, rng, 50);
 			std::vector<bool> x(n);
 			for (uint32 j = 0; j < n; ++j) x[j] = rng() & 1;
-			auto const b = apply(a, x);
+			auto const b = apply_matrix(a, x);
 			auto const s = atl::solve_linear_system(a, b);
 			REQUIRE(s.is_solvable);
-			REQUIRE(apply(a, s.particular) == b);
+			REQUIRE(apply_matrix(a, s.particular) == b);
 			REQUIRE(s.null_space.rows() == n - atl::rank(a));
 			for (uint32 k = 0; k < s.null_space.rows(); ++k) {
 				std::vector<bool> v(n);
 				for (uint32 j = 0; j < n; ++j) v[j] = s.null_space.test(k, j);
-				REQUIRE(apply(a, v) == std::vector<bool>(rows));
+				REQUIRE(apply_matrix(a, v) == std::vector<bool>(rows));
 			}
 		}
 	}

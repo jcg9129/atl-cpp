@@ -24,7 +24,7 @@
 using atl::uint32;
 using atl::uint64;
 namespace ex = atl::experimental;
-using Z = atl::mod_int<uint32, 998244353>;
+using bitwise_mint = atl::mod_int<uint32, 998244353>;
 
 namespace {
 	/** @brief Race the four loop orders on one element type and butterfly at
@@ -61,19 +61,19 @@ namespace {
 }
 
 TEST_CASE("bitwise transforms: loop-order race", "[bitwise_convolution]") {
-	race<Z>("subset zeta, mod_int 998244353, n = 20", 20, atl::detail::subset_zeta_butterfly{});
+	race<bitwise_mint>("subset zeta, mod_int 998244353, n = 20", 20, atl::detail::subset_zeta_butterfly{});
 	race<uint64>("subset zeta, uint64, n = 20", 20, atl::detail::subset_zeta_butterfly{});
-	race<Z>("walsh-hadamard, mod_int 998244353, n = 20", 20, atl::detail::walsh_hadamard_butterfly{});
+	race<bitwise_mint>("walsh-hadamard, mod_int 998244353, n = 20", 20, atl::detail::walsh_hadamard_butterfly{});
 	race<uint64>("walsh-hadamard, uint64, n = 20", 20, atl::detail::walsh_hadamard_butterfly{});
-	race<Z>("subset zeta, mod_int 998244353, n = 16", 16, atl::detail::subset_zeta_butterfly{});
+	race<bitwise_mint>("subset zeta, mod_int 998244353, n = 16", 16, atl::detail::subset_zeta_butterfly{});
 }
 
 TEST_CASE("bitwise convolutions at n = 20", "[bitwise_convolution]") {
 	std::mt19937_64 rng(20);
 	std::size_t const size = std::size_t(1) << 20;
-	std::vector<Z> a(size), b(size);
-	for (auto &x : a) x = Z(uint64(rng()));
-	for (auto &x : b) x = Z(uint64(rng()));
+	std::vector<bitwise_mint> a(size), b(size);
+	for (auto &x : a) x = bitwise_mint(uint64(rng()));
+	for (auto &x : b) x = bitwise_mint(uint64(rng()));
 	BENCHMARK("or_convolution -- mod_int, n = 20") { return atl::or_convolution(a, b)[1]; };
 	BENCHMARK("xor_convolution -- mod_int, n = 20") { return atl::xor_convolution(a, b)[1]; };
 	REQUIRE(atl::subset_convolution(a, b) == ex::subset_convolution_by_rank_major(a, b));

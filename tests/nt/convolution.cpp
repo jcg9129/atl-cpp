@@ -2,6 +2,7 @@
 #include <atl/nt/convolution.hpp>
 #include <atl/nt/dynamic_mod_int.hpp>
 #include <atl/nt/fft.hpp>
+#include <algorithm>
 #include <bit>
 #include <catch2/catch.hpp>
 #include <cmath>
@@ -13,18 +14,18 @@
 
 using namespace atl;
 namespace ex = atl::experimental;
-using Z = mod_int<uint32, 998244353>;
+using convolution_mint = mod_int<uint32, 998244353>;
 using M7 = mod_int<uint32, 1000000007>;
 
-static_assert(static_mod_int<Z>);
+static_assert(static_mod_int<convolution_mint>);
 static_assert(static_mod_int<M7>);
 static_assert(!static_mod_int<uint32>);
-static_assert(mod_int_range<std::vector<Z>>);
-static_assert(mod_int_range<std::span<Z const>>);
+static_assert(mod_int_range<std::vector<convolution_mint>>);
+static_assert(mod_int_range<std::span<convolution_mint const>>);
 static_assert(!mod_int_range<std::vector<uint32>>);
 static_assert(integral_range<std::vector<uint32>>);
-static_assert(!integral_range<std::vector<Z>>);
-static_assert(detail::primitive_root<Z>() == Z(3));
+static_assert(!integral_range<std::vector<convolution_mint>>);
+static_assert(detail::primitive_root<convolution_mint>() == convolution_mint(3));
 static_assert(cplx_range<std::vector<cplx> &>);
 static_assert(!cplx_range<std::vector<cplx> const &>);
 static_assert(!static_mod_int<dynamic_mod_int<>>); // modulus not a constant expression
@@ -33,9 +34,9 @@ TEST_CASE("convolution: every engine against the oracle", "[nt]") {
 	auto seed = GENERATE(take(8, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
 	std::size_t const n = rng() % 70, m = rng() % 70;
-	std::vector<Z> a(n), b(m);
-	for (auto &x : a) x = Z(uint32(rng() % Z::mod()));
-	for (auto &x : b) x = Z(uint32(rng() % Z::mod()));
+	std::vector<convolution_mint> a(n), b(m);
+	for (auto &x : a) x = convolution_mint(uint32(rng() % convolution_mint::mod()));
+	for (auto &x : b) x = convolution_mint(uint32(rng() % convolution_mint::mod()));
 	auto const want = ex::convolution_by_definition(a, b);
 
 	auto const check = [&]<mod_int_range Result>(Result const &got) {
@@ -57,9 +58,9 @@ TEST_CASE("convolution: experimental engines through the library driver", "[nt]"
 	std::mt19937_64 rng(seed);
 	// past the naive cutoff; odd and even heights, balanced and lopsided (overlap-add)
 	std::size_t const n = 49 + rng() % 600, m = 49 + rng() % (rng() % 2 ? 600 : 30);
-	std::vector<Z> a(n), b(m);
-	for (auto &x : a) x = Z(uint32(rng() % Z::mod()));
-	for (auto &x : b) x = Z(uint32(rng() % Z::mod()));
+	std::vector<convolution_mint> a(n), b(m);
+	for (auto &x : a) x = convolution_mint(uint32(rng() % convolution_mint::mod()));
+	for (auto &x : b) x = convolution_mint(uint32(rng() % convolution_mint::mod()));
 	auto const want = ex::convolution_by_definition(a, b);
 	REQUIRE(convolution<ex::ntt_by_lazy_montgomery>(a, b) == want);
 	REQUIRE(convolution<ex::ntt_by_radix4>(a, b) == want);
@@ -104,7 +105,7 @@ TEST_CASE("convolution: a square takes the one-forward path in every tier", "[nt
 		REQUIRE(convolution(view, a) == want); // same storage through another range type
 		REQUIRE(convolution(a, view.first(n - 1)) == ex::convolution_by_definition(a, std::vector<M>(a.begin(), a.end() - 1)));
 	};
-	check.operator()<Z>(49 + rng() % 300);							  // direct NTT
+	check.operator()<convolution_mint>(49 + rng() % 300);			  // direct NTT
 	check.operator()<M7>(49 + rng() % 300);							  // FFT split
 	check.operator()<mod_int<uint32, 4294967291u>>(49 + rng() % 150); // Garner
 	std::vector<uint32> c(49 + rng() % 300);
@@ -181,8 +182,8 @@ TEST_CASE("ntt / inverse_ntt: transform pair round-trips", "[nt]") {
 	auto seed = GENERATE(take(6, random(uint64(0), (std::numeric_limits<uint64>::max)())));
 	std::mt19937_64 rng(seed);
 	std::size_t const n = std::size_t(1) << (rng() % 10);
-	std::vector<Z> a(n);
-	for (auto &x : a) x = Z(uint32(rng() % Z::mod()));
+	std::vector<convolution_mint> a(n);
+	for (auto &x : a) x = convolution_mint(uint32(rng() % convolution_mint::mod()));
 	auto b = a;
 	ntt(b);
 	inverse_ntt(b);
@@ -192,18 +193,18 @@ TEST_CASE("ntt / inverse_ntt: transform pair round-trips", "[nt]") {
 	ntt(fa);
 	for (std::size_t i = 0; i < n; ++i) fa[i] *= fa[i];
 	inverse_ntt(fa);
-	std::vector<Z> cyclic(n);
+	std::vector<convolution_mint> cyclic(n);
 	for (std::size_t i = 0; i < n; ++i)
 		for (std::size_t j = 0; j < n; ++j) cyclic[(i + j) % n] += a[i] * a[j];
 	REQUIRE(fa == cyclic);
 }
 
 TEST_CASE("convolution: canonical", "[nt]") {
-	std::vector<Z> f{Z(3), Z(1), Z(4), Z(1), Z(5)};
-	REQUIRE(convolution(f, std::vector<Z>{Z(1)}) == f);
-	REQUIRE(convolution(std::vector<Z>{}, f).empty());
-	std::vector<Z> one_x{Z(1), Z(1)};
-	REQUIRE(convolution(one_x, one_x) == std::vector<Z>{Z(1), Z(2), Z(1)});
+	std::vector<convolution_mint> f{convolution_mint(3), convolution_mint(1), convolution_mint(4), convolution_mint(1), convolution_mint(5)};
+	REQUIRE(convolution(f, std::vector<convolution_mint>{convolution_mint(1)}) == f);
+	REQUIRE(convolution(std::vector<convolution_mint>{}, f).empty());
+	std::vector<convolution_mint> one_x{convolution_mint(1), convolution_mint(1)};
+	REQUIRE(convolution(one_x, one_x) == std::vector<convolution_mint>{convolution_mint(1), convolution_mint(2), convolution_mint(1)});
 }
 
 TEST_CASE("convolution: an odd COMPOSITE modulus takes the non-NTT tiers", "[nt]") {
@@ -239,13 +240,13 @@ namespace {
 }
 
 TEST_CASE("ntt: a modulus the engine cannot run over is rejected at compile time", "[nt]") {
-	static_assert(transformable<std::vector<Z>>);
+	static_assert(transformable<std::vector<convolution_mint>>);
 	static_assert(transformable<std::vector<mod_int<uint32, 7340033>>>);
 	static_assert(!transformable<std::vector<mod_int<uint64, 4179340454199820289ull>>>); // 29 * 2^57 + 1
 	static_assert(!transformable<std::vector<mod_int<uint32, 3221225473u>>>);			 // 3 * 2^30 + 1: over 30 bits
 	static_assert(!transformable<std::vector<mod_int<uint32, 129>>>);					 // composite
 	static_assert(!transformable<std::vector<mod_int<uint32, 1000000008>>>);			 // even
-	std::vector<Z> values{Z(1), Z(2), Z(3), Z(4)};
+	std::vector<convolution_mint> values{convolution_mint(1), convolution_mint(2), convolution_mint(3), convolution_mint(4)};
 	auto const original = values;
 	ntt(values);
 	inverse_ntt(values);
@@ -280,34 +281,39 @@ namespace {
 									 && !requires(std::vector<M> const &c) { ex::convolution_by_radix4(c, c); };
 }
 
-static_assert(experimental_ntt_ready<Z>);
+static_assert(experimental_ntt_ready<convolution_mint>);
 static_assert(experimental_ntt_rejected<mod_int<uint32, 129>>);			// composite
 static_assert(experimental_ntt_rejected<mod_int<uint32, 3221225473u>>); // 3 * 2^30 + 1: over 30 bits
 
 TEST_CASE("convolution: FFT split at the size and magnitude bounds", "[nt]") {
 	using LimitZ = mod_int<uint32, uint32(1) << 30>;
-	std::size_t const n = std::size_t(1) << 20;
+	int const height = GENERATE(19, 20); // FFT limit, then Garner fallback
+	std::size_t const n = std::size_t(1) << (height - 1);
 	// Centered value 2^29 - 2^14 splits into (-2^14, 2^14).
 	LimitZ const coefficient((uint32(1) << 29) - (uint32(1) << 14));
-	std::vector<LimitZ> a(n, coefficient), b(n, -coefficient);
-	REQUIRE(detail::planned_ntt_size(n, n) == (std::size_t(1) << 21));
+	std::vector<LimitZ> a(n, coefficient), b(n, coefficient);
+	REQUIRE(detail::planned_ntt_size(n, n) == (std::size_t(1) << height));
 	auto const product = convolution(a, b);
 	auto const square = convolution(a, a);
-	bool has_exact_product = true, has_exact_square = true;
+	std::ranges::fill(b, -coefficient);
+	auto const negative_product = convolution(a, b);
+	bool has_exact_product = true, has_exact_square = true, has_exact_negative_product = true;
 	for (std::size_t k = 0; k < product.size(); ++k) {
 		LimitZ const expected = coefficient * coefficient * LimitZ(k < n ? k + 1 : 2 * n - 1 - k);
-		has_exact_product = has_exact_product && product[k] == -expected;
+		has_exact_product = has_exact_product && product[k] == expected;
+		has_exact_negative_product = has_exact_negative_product && negative_product[k] == -expected;
 		has_exact_square = has_exact_square && square[k] == expected;
 	}
 	CHECK(has_exact_product);
 	CHECK(has_exact_square);
+	CHECK(has_exact_negative_product);
 }
 
 TEST_CASE("convolution: coefficient and size preconditions", "[nt]") {
 	CHECK(atl_test::aborts([] { (void)convolution_uint64(std::vector<int>{-1}, std::vector<int>{1}); }));
 	CHECK(atl_test::aborts([] { (void)convolution_uint64(std::vector<uint128>{uint128(1) << 64}, std::vector<int>{1}); }));
 	CHECK(atl_test::aborts([] { (void)convolution_uint64(std::vector<uint64>{(std::numeric_limits<uint64>::max)()}, std::vector<uint64>{2}); }));
-	CHECK(atl_test::aborts([] { std::vector<Z> f(3); ntt(f); }));
+	CHECK(atl_test::aborts([] { std::vector<convolution_mint> f(3); ntt(f); }));
 	CHECK(atl_test::aborts([] { std::vector<mod_int<uint32, 3>> f(4); inverse_ntt(f); }));
 	CHECK(atl_test::aborts([] { (void)detail::planned_ntt_size(std::size_t(1) << (std::numeric_limits<std::size_t>::digits - 1), 1); }));
 	std::vector<uint128> const a{uint128(7), uint128(11)};

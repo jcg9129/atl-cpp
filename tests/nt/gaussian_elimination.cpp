@@ -60,7 +60,7 @@ namespace {
 
 	template<typename Z>
 		requires(atl::exact_field<Z> || std::floating_point<Z>)
-	std::vector<Z> apply(atl::matrix<Z> const &a, std::vector<Z> const &x) {
+	std::vector<Z> apply_matrix(atl::matrix<Z> const &a, std::vector<Z> const &x) {
 		return a * std::span<Z const>(x);
 	}
 
@@ -75,7 +75,7 @@ namespace {
 		for (uint64 code = 0; code < total; ++code) {
 			uint64 c = code;
 			for (uint32 i = 0; i < n; ++i) x[i] = Z(c % p), c /= p;
-			count += apply(a, x) == b;
+			count += apply_matrix(a, x) == b;
 		}
 		return count;
 	}
@@ -136,7 +136,7 @@ TEST_CASE("gaussian elimination: rank, solve and null space vs enumeration over 
 			auto const a = random_matrix<Z>(rows, n, rng, Z::mod());
 			std::vector<Z> b(rows);
 			for (auto &x : b) x = Z(rng() % Z::mod());
-			if (round % 3 == 0) b = apply(a, std::vector<Z>(n, Z(1)));
+			if (round % 3 == 0) b = apply_matrix(a, std::vector<Z>(n, Z(1)));
 			uint64 const solutions = count_solutions(a, b), kernel = count_solutions(a, std::vector<Z>(rows));
 			uint32 const r = atl::rank(a);
 			REQUIRE(r <= (std::min)(rows, n));
@@ -150,12 +150,12 @@ TEST_CASE("gaussian elimination: rank, solve and null space vs enumeration over 
 			REQUIRE(s.null_space.columns() == n);
 			REQUIRE(s.is_unique() == (solutions == 1));
 			if (s.is_solvable)
-				REQUIRE(apply(a, s.particular) == b);
+				REQUIRE(apply_matrix(a, s.particular) == b);
 			else
 				REQUIRE(s.particular.empty());
 			for (uint32 k = 0; k < s.null_space.rows(); ++k) {
 				std::vector<Z> v(s.null_space.row(k).begin(), s.null_space.row(k).end());
-				REQUIRE(apply(a, v) == std::vector<Z>(rows));
+				REQUIRE(apply_matrix(a, v) == std::vector<Z>(rows));
 			}
 			REQUIRE(atl::rank(s.null_space) == s.null_space.rows());
 		}
@@ -183,7 +183,7 @@ TEST_CASE("gaussian elimination: inverse", "[gaussian_elimination]") {
 	auto const a = random_matrix<mint>(n, n, rng, mint::mod());
 	std::vector<mint> x(n);
 	for (auto &v : x) v = mint(rng());
-	auto const s = atl::solve_linear_system(a, apply(a, x));
+	auto const s = atl::solve_linear_system(a, apply_matrix(a, x));
 	REQUIRE(s.is_unique());
 	REQUIRE(s.particular == x);
 }
@@ -197,7 +197,7 @@ TEST_CASE("gaussian elimination: floating point with partial pivoting", "[gaussi
 		for (auto &v : a.entries()) v = unit(rng);
 		std::vector<double> x(n);
 		for (auto &v : x) v = unit(rng);
-		auto const s = atl::solve_linear_system(a, apply(a, x), 1e-12);
+		auto const s = atl::solve_linear_system(a, apply_matrix(a, x), 1e-12);
 		REQUIRE(s.is_unique());
 		for (uint32 i = 0; i < n; ++i) REQUIRE(std::abs(s.particular[i] - x[i]) < 1e-6);
 		auto const inv = atl::inverse(a, 1e-12);
