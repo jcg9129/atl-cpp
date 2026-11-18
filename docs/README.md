@@ -63,3 +63,7 @@ where to put guide prose, executable examples and API comments.
 - [CRT](crt.md): linear congruences, class intersections and Garner reconstruction.
 - [Discrete logarithms](discrete-log.md): least exponents, unit orders and primitive roots.
 - [Floor sums](floor-sum.md): Euclidean sums, staircase products and first residues.
+- [Convolution and transforms](convolution.md): modular and exact integer polynomial products, NTT engines and complex FFT.
+- [Bitwise convolutions](bitwise-convolution.md): subset transforms and OR, AND, XOR and disjoint-subset products.
+- [Matrices and elimination](matrix.md): semiring products, field systems and packed XOR systems.
+- [Linear recurrences](linear-recurrence.md): shortest recurrences and distant terms over exact fields.
