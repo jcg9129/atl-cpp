@@ -1,5 +1,6 @@
 #include <atl/ds/rollback_weighted_dsu.hpp>
 #include <atl/ds/weighted_dsu.hpp>
+#include <atl/nt/mod_int.hpp>
 #include <iostream>
 
 int main() {
@@ -16,4 +17,9 @@ int main() {
 	std::cout << *history.difference(0, 2) << '\n';
 	history.rollback(token);
 	std::cout << history.difference(0, 2).has_value() << '\n';
+	using residue = atl::mod_int32<998244353>;
+	atl::weighted_dsu<residue> modular(3);
+	modular.unite(0, 1, 9);
+	modular.unite(1, 2, 90);
+	std::cout << modular.difference(2, 0)->value() << '\n';
 }

@@ -6,8 +6,8 @@ included as `<atl/experimental/...>`.
 
 Use it for:
 
-- alternative implementations you want to benchmark against the shipped one
-  (e.g. `atl::experimental::factorization_trial` vs `atl::factorization`),
+- alternative implementations you want to benchmark against the library implementation
+  (e.g. `atl::experimental::factorization_by_trial_division` vs `atl::factorization`),
 - prototypes not yet ready for `include/atl`,
 - reference "obviously correct" versions used to cross-check the fast ones.
 
@@ -27,7 +27,7 @@ add `atl_experimental` to its `target_link_libraries`.
 
 ```cpp
 #include <atl/experimental/nt/factorization_trial.hpp>
-auto f = atl::experimental::factorization_trial(n);   // vs atl::factorization(n)
+auto f = atl::experimental::factorization_by_trial_division(n);   // vs atl::factorization(n)
 ```
 
 ## Layout

@@ -29,13 +29,14 @@ They never close that stream. All stream operations are runtime only.
 and stdout. `in` does not read until a request arrives; `out` flushes on destruction.
 
 `readable<T>` accepts atl integers, `bool`, `char`, `std::string`, and models
-of the published `atl::modular_integer` concept. Floating types additionally
+of `atl::modular_integer`, including `mod_int` and `dynamic_mod_int`. The integer
+is read and its constructor reduces it. Floating types additionally
 require `__cpp_lib_to_chars`. `readable_into<T>` additionally checks
 `requires(T &dst, T (*produce)()) { dst = produce(); }`, so destination-taking
 reads reject types such as `const int` during overload resolution.
 `writable<T>` checks that `writer::put(T const&)` is valid: integers, booleans, characters, strings/string views, NUL-terminated
-character pointers, modular models and supported floats. The concrete modular
-integer implementations are outside this publication.
+character pointers, modular integers (`mod_int`, `dynamic_mod_int`, or other
+models, printed as `value()`) and supported floats.
 
 Reader members (template arguments are constrained by `readable` unless a
 more specific constraint is shown). `operator>>`, `try_read`, and
@@ -60,6 +61,10 @@ vector storage. Value-returning `read<T>()` and `read_one<T>()` retain the
 | `Z read_modular()` | `atl::modular_integer`: parse a uint64 magnitude, construct/reduce, then negate if needed |
 | `std::string read_token()` | Read a token of any length |
 | `F read_float()` | `std::floating_point`, optional charconv support; parse with `std::from_chars` |
+
+A modular integer reads its sign and digits separately: "-v" is `-(v mod M)`,
+so "-1" is `M - 1` for every modulus width, including a 64-bit modulus whose
+residues need the full uint64 range. `mod_int`'s `operator>>` reads the same way.
 
 The free `T read<T>()`, `std::tuple<A, B, R...> read()`,
 `bool read(Ts &...xs)`, `std::vector<T> read_n(std::size_t n)`, and `bool eof()`
@@ -207,4 +212,5 @@ published wide-word quotient/remainder primitive, so it needs no native
 support the minimum value. Spilling uses `fwrite`; explicit flush and destruction
 also flush the stdio buffer so an interactive peer receives each reply.
 
-See also: [Types and utilities](types-and-utilities.md), [128-bit integers](int128.md).
+See also: [Types and utilities](types-and-utilities.md), [128-bit integers](int128.md),
+[Modular arithmetic](modular-arithmetic.md).

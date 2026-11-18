@@ -177,7 +177,6 @@ From `<atl/config.hpp>` (which also pulls in `<version>` for the `__cpp_lib_*` m
 
 | macro | meaning |
 |---|---|
-| `ATL_HAS_INT128` | `1` when a native `__int128` is available (`__SIZEOF_INT128__` and neither `ATL_NO_INT128` nor `ATL_FORCE_FALLBACKS`), else `0`. Selects native vs software aliases; both provide the same atl traits |
 | `ATL_FORCE_FALLBACKS` | define it to use every portable fallback: software int128 and portable word primitives, the `forward_like` cast, no-op prefetch, and value decomposition for wide floats |
 | `ATL_PORTABLE_WIDE_ARITHMETIC` | define it to force portable word primitives at runtime, independently of the aliases |
 | `ATL_NO_INT128` | define it to select software 128-bit aliases; must match across translation units |
@@ -242,4 +241,5 @@ does the width form participate.
 
 ## See also
 
+- [Modular arithmetic](modular-arithmetic.md) — `mod_int` and `dynamic_mod_int` implement the modular concepts.
 - [counting sort](counting-sort.md) — `atl::counting_sort` (`<atl/utils/counting_sort.hpp>`)

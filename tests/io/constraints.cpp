@@ -11,8 +11,7 @@
 #include <vector>
 
 namespace {
-	// The field with two elements supplies a published-concept model without
-	// depending on the unpublished modular integer implementations.
+	// An independent field model checks that I/O accepts user-defined modular integers.
 	class mod_two {
 		atl::uint32 value_ = 0;
 
@@ -140,7 +139,8 @@ namespace {
 		mutable_text operator()(std::string_view value) const { return {value}; }
 	};
 
-	using proxy_range = std::ranges::transform_view<std::ranges::ref_view<std::vector<std::string_view>>, make_mutable_text>;
+	using proxy_range = std::ranges::transform_view<
+		std::ranges::ref_view<std::vector<std::string_view>>, make_mutable_text>;
 
 	template<typename R>
 	concept member_writeln = requires(atl::io::writer &out, R const &range) { out.writeln(range); };

@@ -54,3 +54,12 @@ where to put guide prose, executable examples and API comments.
 - [Persistent segment tree](persistent-segment-tree.md): point updates, folds and prefix-version descent.
 - [Persistent lazy segment tree](persistent-lazy-segment-tree.md): range actions and cross-version range copies.
 - [Persistent treap sequence](persistent-treap-sequence.md): branching sequence surgery and folds.
+- [Extended gcd](gcd.md): gcds with signed Bézout coefficients.
+- [Power](power.md): binary exponentiation and explicit monoid identities.
+- [Modular arithmetic](modular-arithmetic.md): modular values, reducers and engines.
+- [Sieve](sieve.md): prime lists, factorizations and divisors within a fixed bound.
+- [Multiplicative functions](multiplicative-functions.md): totient and divisor tables from prime-power rules.
+- [Factorization](factorization.md): deterministic primality and Pollard rho on uint64.
+- [CRT](crt.md): linear congruences, class intersections and Garner reconstruction.
+- [Discrete logarithms](discrete-log.md): least exponents, unit orders and primitive roots.
+- [Floor sums](floor-sum.md): Euclidean sums, staircase products and first residues.

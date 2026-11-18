@@ -72,7 +72,7 @@ Ranges are half-open with `l <= r <= size()`, indices `i < size()`; checked unde
 | add / min | value | added amount | `min` | `s + f` | `f + g` |
 | add / sum | `(sum, width)` | added amount | pairwise `+` | `{s.first + f·s.second, s.second}` | `f + g` |
 | assign / sum | `(sum, width)` | value or `no_tag` | pairwise `+` | `f == no_tag ? s : {f·s.second, s.second}` | `f == no_tag ? g : f` |
-| affine / sum mod p | `(sum, width)` of `mod_int` | `(a, b)`: `s ↦ a·s + b` | pairwise `+` | `{a·sum + b·width, width}` | `(f.a·g.a, f.a·g.b + f.b)` |
+| affine / sum mod p | `(sum, width)` of [`mod_int`](modular-arithmetic.md) | `(a, b)`: `s ↦ a·s + b` | pairwise `+` | `{a·sum + b·width, width}` | `(f.a·g.a, f.a·g.b + f.b)` |
 | assign / composite | `(function, width)` | function or `no_tag` | composition | `f == no_tag ? s : f^width` | `f == no_tag ? g : f` |
 
 The last row's `mapping` is not O(1): raising the assigned function to the segment
