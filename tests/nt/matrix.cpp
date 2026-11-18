@@ -198,7 +198,7 @@ TEST_CASE("matrix: asserted preconditions", "[matrix]") {
 	}));
 	[]<typename Size>() {
 		if constexpr (std::numeric_limits<Size>::digits > 32)
-			CHECK(atl_test::aborts([] { (void)atl::matrix<int64>(Size(1) << 32, 0); }));
+			CHECK(atl_test::aborts([] { (void)atl::matrix<int64>(Size((std::numeric_limits<uint32>::max)()) + 1, 0); }));
 	}.template operator()<std::size_t>();
 	[]<typename Size>() {
 		if constexpr (std::numeric_limits<Size>::digits == 32)
