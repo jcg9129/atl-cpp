@@ -62,8 +62,9 @@ TEST_CASE("PROBE3 order stripping at 29*2^57+1", "[discrete_log]") {
 			}
 		}
 		for (uint64 k : {uint64(1) << 56, uint64(29) << 56, uint64(29) << 55, uint64(29) << 28, uint64(29) << 27}) {
-			std::fprintf(stderr, "PROBE3 pow3^%llu = %llu\n", (unsigned long long)k,
-						 (unsigned long long)engine.from_form(atl::detail::engine_power(engine, a, k)));
+			std::fprintf(stderr, "PROBE4 pow3^%llu = %llu member %llu\n", (unsigned long long)k,
+						 (unsigned long long)engine.from_form(atl::detail::engine_power(engine, a, k)),
+						 (unsigned long long)engine.from_form(engine.power(a, k)));
 			std::fflush(stderr);
 		}
 	}

@@ -102,9 +102,10 @@ namespace atl {
 		template<modular_multiplier Engine>
 		constexpr uint64 engine_power(Engine const &engine, uint64 x, uint64 e) {
 			uint64 result = engine.one();
-			for (; e > 0; e >>= 1) {
+			while (e != 0) {
 				if (e & 1) result = engine.mul(result, x);
-				if (e > 1) x = engine.mul(x, x);
+				e >>= 1;
+				if (e != 0) x = engine.mul(x, x);
 			}
 			return result;
 		}
