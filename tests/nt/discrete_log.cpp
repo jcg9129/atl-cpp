@@ -3,6 +3,7 @@
 #include <atl/nt/modular.hpp>
 #include <atl/types/alias.hpp>
 #include <catch2/catch.hpp>
+#include <cstdio>
 #include <cstddef>
 #include <limits>
 #include <numeric>
@@ -36,6 +37,7 @@ namespace {
 }
 
 TEST_CASE("discrete_log matches the brute force on every small modulus", "[discrete_log]") {
+	std::fprintf(stderr, "PROBE start %s\n", "discrete_log matches the brute force on every small modulus"); std::fflush(stderr);
 	for (uint64 m = 1; m <= 130; ++m)
 		for (uint64 a = 0; a < m; ++a) {
 			auto const first = brute_logs(a, m);
@@ -48,6 +50,7 @@ TEST_CASE("discrete_log matches the brute force on every small modulus", "[discr
 }
 
 TEST_CASE("discrete_log on a non-coprime modulus that needs many reduction steps", "[discrete_log]") {
+	std::fprintf(stderr, "PROBE start %s\n", "discrete_log on a non-coprime modulus that needs many reduction steps"); std::fflush(stderr);
 	// m = 2^40·3^5·7: a = 6 shares 2 and 3; solutions start beyond the direct checks
 	uint64 const m = (uint64(1) << 40) * 243 * 7;
 	for (uint64 x : {uint64(0), uint64(1), uint64(39), uint64(40), uint64(63), uint64(64), uint64(65), uint64(100)}) {
@@ -62,6 +65,7 @@ TEST_CASE("discrete_log on a non-coprime modulus that needs many reduction steps
 }
 
 TEST_CASE("discrete_log on wide prime and composite moduli", "[discrete_log]") {
+	std::fprintf(stderr, "PROBE start %s\n", "discrete_log on wide prime and composite moduli"); std::fflush(stderr);
 	uint64 const seed = GENERATE(uint64(0), uint64(23), uint64(0xC0FFEE));
 	std::mt19937_64 rng(seed);
 	// smooth-order and safe primes, an odd composite past 2^32 (Montgomery), an even one (Barrett64)
@@ -72,7 +76,9 @@ TEST_CASE("discrete_log on wide prime and composite moduli", "[discrete_log]") {
 									 uint64(1'000'003) * 999'983 * 1009,
 									 uint64(4) * 1'000'003 * 999'983 * 15};
 	for (uint64 m : moduli) {
+		std::fprintf(stderr, "PROBE modulus %llu seed %llu\n", (unsigned long long)m, (unsigned long long)seed); std::fflush(stderr);
 		for (int iter = 0; iter < 20; ++iter) {
+			std::fprintf(stderr, "PROBE iter %d\n", iter); std::fflush(stderr);
 			uint64 a = rng() % m;
 			while (std::gcd(a, m) != 1) a = rng() % m;
 			uint64 const x = rng() % m, b = pow_mod(a, x, m);
@@ -91,6 +97,7 @@ TEST_CASE("discrete_log on wide prime and composite moduli", "[discrete_log]") {
 }
 
 TEST_CASE("multiplicative_order matches the brute force", "[discrete_log]") {
+	std::fprintf(stderr, "PROBE start %s\n", "multiplicative_order matches the brute force"); std::fflush(stderr);
 	for (uint64 m = 1; m <= 600; ++m)
 		for (uint64 a = 0; a < m; ++a)
 			if (std::gcd(a, m) == 1) REQUIRE(atl::multiplicative_order(a, m) == brute_order(a, m));
@@ -101,6 +108,7 @@ TEST_CASE("multiplicative_order matches the brute force", "[discrete_log]") {
 }
 
 TEST_CASE("primitive_root matches the brute force", "[discrete_log]") {
+	std::fprintf(stderr, "PROBE start %s\n", "primitive_root matches the brute force"); std::fflush(stderr);
 	for (uint64 p = 2; p <= 3000; ++p) {
 		if (!atl::is_prime(p)) continue;
 		uint64 g = 1;
@@ -119,12 +127,14 @@ TEST_CASE("primitive_root matches the brute force", "[discrete_log]") {
 }
 
 TEST_CASE("discrete_log precondition aborts", "[discrete_log]") {
+	std::fprintf(stderr, "PROBE start %s\n", "discrete_log precondition aborts"); std::fflush(stderr);
 	CHECK(atl_test::aborts([] { (void)atl::discrete_log(2, 1, 0); }));
 }
 
 // The experimental BSGS solver, run behind the library reduction, against the
 // brute force (the oracle) on every small modulus and on both 64-bit engines.
 TEST_CASE("experimental discrete_log_by_baby_step_giant_step matches the brute force", "[discrete_log]") {
+	std::fprintf(stderr, "PROBE start %s\n", "experimental discrete_log_by_baby_step_giant_step matches the brute force"); std::fflush(stderr);
 	auto const bsgs = [](uint64 a, uint64 b, uint64 m) {
 		return atl::detail::discrete_log_reduced(a, b, m, [](uint64 base, uint64 target, uint64 mod) {
 			return atl::detail::with_engine(mod, [&]<atl::detail::modular_multiplier Engine>(Engine const &engine) {
