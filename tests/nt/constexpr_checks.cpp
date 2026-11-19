@@ -1,11 +1,15 @@
 #include <atl/experimental/nt/factorization_trial.hpp>
+#include <atl/experimental/nt/power_series_variants.hpp>
+#include <atl/experimental/nt/square_root_mod_variants.hpp>
 #include <atl/nt/basic.hpp>
+#include <atl/nt/batch_inverse.hpp>
 #include <atl/nt/bitwise_convolution.hpp>
 #include <atl/nt/constants.hpp>
 #include <atl/nt/convolution.hpp>
 #include <atl/nt/crt.hpp>
 #include <atl/nt/discrete_log.hpp>
 #include <atl/nt/dynamic_mod_int.hpp>
+#include <atl/nt/factorial_table.hpp>
 #include <atl/nt/fft.hpp>
 #include <atl/nt/floor_sum.hpp>
 #include <atl/nt/gcd.hpp>
@@ -15,12 +19,18 @@
 #include <atl/nt/multiplicative.hpp>
 #include <atl/nt/ntt_engine.hpp>
 #include <atl/nt/power.hpp>
+#include <atl/nt/power_series.hpp>
+#include <atl/nt/series_calculus.hpp>
 #include <atl/nt/sieve.hpp>
+#include <atl/nt/square_root_mod.hpp>
 #include <atl/nt/static_modulus.hpp>
 #include <atl/types/alias.hpp>
+#include <algorithm>
 #include <array>
 #include <catch2/catch.hpp>
+#include <cstddef>
 #include <limits>
+#include <optional>
 #include <vector>
 
 namespace {
@@ -425,4 +435,383 @@ namespace linear_algebra_checks {
 	static_assert(atl::max_min_semiring<int>::multiply(2, 3) == 2);
 	static_assert(atl::max_min_semiring<int>::add(2, 3) == 3);
 	static_assert(atl::max_min_semiring<int>::one() > atl::max_min_semiring<int>::zero());
+}
+
+namespace power_series_checks {
+	using Coefficient = atl::mod_int32<17>;
+	static_assert([] {
+		atl::factorial_table<Coefficient> const table(16);
+		atl::factorial_table<Coefficient> const empty(0);
+		return table.maximum_index() == 16 && table.factorial(4) == Coefficient(24)
+			&& table.inverse_factorial(4) * Coefficient(24) == Coefficient(1)
+			&& table.inverse_integer(3) * Coefficient(3) == Coefficient(1)
+			&& table.binomial(5, 2) == Coefficient(10) && table.binomial(5, 6) == Coefficient(0)
+			&& empty.maximum_index() == 0 && empty.factorial(0) == Coefficient(1)
+			&& empty.inverse_factorial(0) == Coefficient(1) && empty.binomial(0, 0) == Coefficient(1);
+	}());
+	static_assert([] {
+		atl::factorial_table<Coefficient> grown(0);
+		atl::factorial_table<Coefficient> const whole(16);
+		grown.extend(3);
+		grown.extend(2);
+		grown.extend(16);
+		for (std::size_t i = 0; i <= 16; ++i)
+			if (grown.factorial(i) != whole.factorial(i) || grown.inverse_factorial(i) != whole.inverse_factorial(i)
+				|| (i != 0 && grown.inverse_integer(i) != whole.inverse_integer(i))) return false;
+		return grown.maximum_index() == 16;
+	}());
+	static_assert([] {
+		std::vector<Coefficient> const values{2, 4, 8};
+		return atl::batch_inverse(values) == std::vector<Coefficient>{9, 13, 15}
+			&& atl::batch_inverse(std::vector<Coefficient>{}).empty()
+			&& atl::series_derivative(values) == std::vector<Coefficient>{4, 16}
+			&& atl::series_derivative(std::vector<Coefficient>{}).empty()
+			&& atl::series_integral(std::vector<Coefficient>{}) == std::vector<Coefficient>{0}
+			&& atl::series_integral(values) == std::vector<Coefficient>{0, 2, 2, 14}
+			&& atl::series_derivative(atl::series_integral(values)) == values;
+	}());
+	static_assert(atl::square_root_mod(0, 2) == 0);
+	static_assert(atl::square_root_mod(1, 2) == 1);
+	static_assert(atl::square_root_mod(2, 7) == 3);
+	static_assert(atl::square_root_mod(4, 17) == 2);
+	static_assert(!atl::square_root_mod(3, 17));
+	static_assert(atl::square_root_mod(Coefficient(4)) == Coefficient(2));
+	static_assert(atl::square_root_mod(4, 18446744073709551557ull) == 2);
+	static_assert(atl::experimental::square_root_mod_by_cipolla(0, 2) == 0);
+	static_assert(atl::experimental::square_root_mod_by_cipolla(1, 2) == 1);
+	static_assert(atl::experimental::square_root_mod_by_cipolla(2, 7) == 3);
+	static_assert(atl::experimental::square_root_mod_by_cipolla(4, 17) == 2);
+	static_assert(!atl::experimental::square_root_mod_by_cipolla(3, 17));
+	static_assert(atl::experimental::square_root_mod_by_cipolla(Coefficient(4)) == Coefficient(2));
+	static_assert(atl::experimental::square_root_mod_by_cipolla(4, 18446744073709551557ull) == 2);
+
+	/** @brief Small series calls and every inverse, logarithm and exponential contender constant-evaluate. */
+	constexpr bool small_series_checks() {
+		using Field = atl::mod_int32<7>;
+		using Vector = std::vector<Field>;
+		Vector const unit{1, 1}, zero{0, 1}, empty;
+		Vector const inverse{1, 6, 1, 6};
+		Vector const logarithm{0, 1, 3, 5};
+		Vector const exponential{1, 1, 4, 6};
+		return atl::maximum_series_length == (std::size_t{1} << 22)
+			&& atl::series_inverse(unit, 4) == inverse
+			&& atl::series_division(Vector{1}, unit, 4) == inverse
+			&& atl::series_logarithm(unit, 4) == logarithm
+			&& atl::series_exponential(zero, 4) == exponential
+			&& atl::experimental::series_inverse_by_recurrence(unit, 4) == inverse
+			&& atl::experimental::series_inverse_by_plain_newton(unit, 4) == inverse
+			&& atl::experimental::series_division_by_inverse_product(Vector{1}, unit, 4) == inverse
+			&& atl::experimental::series_logarithm_by_inverse_product(unit, 4) == logarithm
+			&& atl::experimental::series_exponential_by_recurrence(zero, 4) == exponential
+			&& atl::experimental::series_exponential_by_plain_newton(zero, 4) == exponential
+			&& atl::series_inverse(empty, 0).empty()
+			&& atl::series_logarithm(empty, 0).empty()
+			&& atl::series_exponential(unit, 0).empty()
+			&& atl::series_division(unit, empty, 0).empty()
+			&& atl::series_logarithm(atl::series_exponential(zero, 7), 7) == Vector{0, 1, 0, 0, 0, 0, 0};
+	}
+
+	static_assert(small_series_checks());
+
+	// Each check is a separate constant evaluation: Clang's default step limit is per static_assert.
+	template<atl::static_prime_mod_int Field>
+	constexpr bool inverse_crosses_cutoff() {
+		auto const inverse = atl::series_inverse(std::vector<Field>{1, 1}, 65);
+		for (std::size_t i = 0; i < inverse.size(); ++i)
+			if (inverse[i] != (i % 2 == 0 ? Field(1) : Field(-1))) return false;
+		return true;
+	}
+
+	template<atl::static_prime_mod_int Field>
+	constexpr bool division_crosses_cutoff() {
+		std::vector<Field> const unit{1, 1};
+		return atl::series_division(std::vector<Field>{1}, unit, 65) == atl::series_inverse_sparse(unit, 65);
+	}
+
+	template<atl::static_prime_mod_int Field>
+	constexpr bool logarithm_crosses_cutoff() {
+		std::vector<Field> const unit{1, 1};
+		return atl::series_logarithm(unit, 65) == atl::series_logarithm_sparse(unit, 65);
+	}
+
+	template<atl::static_prime_mod_int Field>
+	constexpr bool exponential_crosses_cutoff() {
+		std::vector<Field> const zero{0, 1};
+		return atl::series_exponential(zero, 65) == atl::series_exponential_sparse(zero, 65);
+	}
+
+	static_assert(inverse_crosses_cutoff<atl::mod_int32<998244353>>());
+	static_assert(inverse_crosses_cutoff<atl::mod_int32<1000000007>>());
+	static_assert(division_crosses_cutoff<atl::mod_int32<998244353>>());
+	static_assert(division_crosses_cutoff<atl::mod_int32<1000000007>>());
+	static_assert(logarithm_crosses_cutoff<atl::mod_int32<998244353>>());
+	static_assert(logarithm_crosses_cutoff<atl::mod_int32<1000000007>>());
+	static_assert(exponential_crosses_cutoff<atl::mod_int32<998244353>>());
+	static_assert(exponential_crosses_cutoff<atl::mod_int32<1000000007>>());
+
+	/** @brief Powers, roots, polynomial division, the sparse entries and their contenders constant-evaluate, also in characteristics 2 and 3. */
+	constexpr bool power_root_checks() {
+		using Field = atl::mod_int32<7>;
+		using Vector = std::vector<Field>;
+		Vector const unit{1, 1}, square{0, 0, 4, 4, 1}, expected{0, 2, 1, 0, 0, 0, 0};
+		auto const division = atl::polynomial_division(Vector{1, 2, 1, 0}, unit);
+		auto const schoolbook = atl::experimental::polynomial_division_by_schoolbook(Vector{1, 2, 1, 0}, unit);
+		if (division.quotient != unit || !division.remainder.empty() || schoolbook.quotient != unit || !schoolbook.remainder.empty()) return false;
+		if (atl::series_power(unit, 2, 4) != Vector{1, 2, 1, 0}
+			|| atl::series_power_sparse(unit, 2, 4) != Vector{1, 2, 1, 0}
+			|| atl::experimental::series_power_by_binary_powering(unit, 2, 4) != Vector{1, 2, 1, 0}) return false;
+		if (atl::series_square_root(square, 7) != std::optional<Vector>(expected)
+			|| atl::series_square_root_sparse(square, 7) != std::optional<Vector>(expected)
+			|| atl::experimental::series_square_root_by_plain_newton(square, 7) != std::optional<Vector>(expected)
+			|| atl::experimental::series_square_root_by_logarithm(square, 7) != std::optional<Vector>(expected)) return false;
+		if (atl::series_inverse_sparse(unit, 4) != atl::series_inverse(unit, 4)
+			|| atl::series_division_sparse(Vector{1}, unit, 4) != atl::series_inverse(unit, 4)
+			|| atl::series_logarithm_sparse(unit, 4) != atl::series_logarithm(unit, 4)
+			|| atl::series_exponential_sparse(Vector{0, 1}, 4) != atl::series_exponential(Vector{0, 1}, 4)) return false;
+		if (atl::series_power_sparse(Vector{0, 0, 1, 1}, 3, 10) != Vector{0, 0, 0, 0, 0, 0, 1, 3, 3, 1}
+			|| atl::series_square_root_sparse(Vector{0, 0, 0, 0, 1, 2, 1}, 11) != std::optional<Vector>(Vector{0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0})
+			|| atl::series_power_sparse(Vector{}, 0, 9) != Vector{1, 0, 0, 0, 0, 0, 0, 0, 0}) return false;
+		using Small = atl::mod_int32<3>;
+		if (atl::series_power(std::vector<Small>{1, 1}, 3, 5) != std::vector<Small>{1, 0, 0, 1, 0}) return false;
+		using Bit = atl::mod_int32<2>;
+		return atl::series_square_root(std::vector<Bit>{1, 0, 1}, 3) == std::optional{std::vector<Bit>{1, 1, 0}}
+			&& atl::series_square_root_sparse(std::vector<Bit>{1, 0, 1}, 3) == std::optional{std::vector<Bit>{1, 1, 0}};
+	}
+
+	static_assert(power_root_checks());
+
+	/** @brief The Newton-driver contenders and the coupled square root cross their seed precision in constant evaluation. */
+	constexpr bool square_root_crosses_cutoff() {
+		using Field = atl::mod_int32<998244353>;
+		using Vector = std::vector<Field>;
+		auto const root = atl::series_square_root(Vector{1, 2, 1}, 65);
+		Vector expected(65);
+		expected[0] = expected[1] = Field(1);
+		return root == std::optional<Vector>(expected);
+	}
+
+	constexpr bool inverse_driver_crosses_cutoff() {
+		using Field = atl::mod_int32<998244353>;
+		std::vector<Field> const unit{1, 1};
+		return atl::experimental::series_inverse_by_newton_driver(unit, 65) == atl::series_inverse_sparse(unit, 65);
+	}
+
+	constexpr bool exponential_driver_crosses_cutoff() {
+		using Field = atl::mod_int32<998244353>;
+		std::vector<Field> const zero{0, 1};
+		return atl::experimental::series_exponential_by_newton_driver(zero, 65) == atl::series_exponential_sparse(zero, 65);
+	}
+
+	static_assert(square_root_crosses_cutoff());
+	static_assert(inverse_driver_crosses_cutoff());
+	static_assert(exponential_driver_crosses_cutoff());
+}
+
+#include <atl/experimental/nt/polynomial_points_variants.hpp>
+#include <atl/experimental/nt/series_composition_variants.hpp>
+#include <atl/nt/polynomial_points.hpp>
+#include <atl/nt/series_composition.hpp>
+
+namespace {
+	/** @brief Every point operation and contender preserves its algebra and its lengths in constant evaluation. */
+	constexpr bool polynomial_points_checks() {
+		using Field = atl::mod_int32<7>;
+		using Vector = std::vector<Field>;
+		namespace ex = atl::experimental;
+		Vector const polynomial{1, 2, 3}, points{0, 1, 2}, values{1, 6, 3};
+		Field const shift(1);
+		atl::polynomial_point_tree<Field> const tree(points);
+		if (tree.point_count() != 3 || tree.evaluate(polynomial) != values || tree.interpolate(values) != polynomial) return false;
+		if (!std::ranges::equal(tree.points(), points)) return false;
+		if (atl::polynomial_evaluation(polynomial, points) != values
+			|| ex::polynomial_evaluation_by_remainder_tree(polynomial, points) != values
+			|| ex::polynomial_evaluation_by_horner(polynomial, points) != values
+			|| ex::polynomial_evaluation_by_leaf_cutoff(polynomial, points, 1) != values) return false;
+		if (atl::polynomial_interpolation(points, values) != polynomial
+			|| ex::polynomial_interpolation_by_remainder_tree(points, values) != polynomial
+			|| ex::polynomial_interpolation_by_newton_differences(points, values) != polynomial) return false;
+		if (atl::polynomial_taylor_shift(polynomial, shift) != Vector{6, 1, 3}
+			|| ex::polynomial_taylor_shift_by_divide_and_conquer(polynomial, shift) != Vector{6, 1, 3}
+			|| ex::polynomial_taylor_shift_by_horner(polynomial, shift) != Vector{6, 1, 3}) return false;
+		if (atl::polynomial_from_roots(points) != Vector{0, 2, 4, 1}
+			|| ex::polynomial_from_roots_by_sequential_product(points) != Vector{0, 2, 4, 1}) return false;
+		std::vector<Vector> const factors{{1, 1, 0}, {1, 2}};
+		if (atl::polynomial_product(factors) != Vector{1, 3, 2}
+			|| ex::polynomial_product_by_smallest_first(factors) != Vector{1, 3, 2}
+			|| ex::polynomial_product_by_sequential_schoolbook(factors) != Vector{1, 3, 2}) return false;
+		if (atl::polynomial_geometric_evaluation(polynomial, Field(1), Field(2), 3) != Vector{6, 3, 1}
+			|| ex::polynomial_geometric_evaluation_by_horner(polynomial, Field(1), Field(2), 3) != Vector{6, 3, 1}) return false;
+		Vector const expected{1, 6, 3, 6, 1, 2, 2, 1, 6, 3};
+		if (atl::sample_point_shift(values, Field(0), 10) != expected
+			|| ex::sample_point_shift_by_falling_factorials(values, Field(0), 10) != expected
+			|| ex::sample_point_shift_by_direct_barycentric(values, Field(0), 10) != expected) return false;
+		Vector beyond_characteristic(9);
+		beyond_characteristic[7] = Field(1);
+		return atl::polynomial_taylor_shift(beyond_characteristic, Field(1)) == Vector{1, 0, 0, 0, 0, 0, 0, 1, 0};
+	}
+
+	static_assert(polynomial_points_checks());
+
+	/** @brief The transform-backed tree directions, which only run above the schoolbook leaf size. */
+	constexpr bool polynomial_points_tree_checks() {
+		using Field = atl::mod_int32<998244353>;
+		using Vector = std::vector<Field>;
+		Vector points(33), polynomial(33);
+		for (std::size_t i = 0; i < points.size(); ++i) points[i] = Field(i);
+		polynomial[0] = Field(1);
+		polynomial[32] = Field(2);
+		atl::polynomial_point_tree<Field> const tree(points);
+		return tree.interpolate(tree.evaluate(polynomial)) == polynomial;
+	}
+
+	static_assert(polynomial_points_tree_checks());
+
+	/** @brief Composition, power projection and compositional inverse with every contender, including a precision beyond the characteristic. */
+	constexpr bool series_composition_checks() {
+		using Field = atl::mod_int32<7>;
+		using Vector = std::vector<Field>;
+		namespace ex = atl::experimental;
+		Vector const outer{1, 2, 3}, inner{1, 1, 1}, weights{1, 2, 3};
+		Vector const composed{6, 1, 4, 6};
+		if (atl::series_composition(outer, inner, 4) != composed
+			|| ex::series_composition_by_brent_kung(outer, inner, 4) != composed
+			|| ex::series_composition_by_fast_horner(outer, inner, 4) != composed
+			|| ex::series_composition_by_schoolbook_horner(outer, inner, 4) != composed
+			|| ex::series_composition_by_cutoffs(outer, inner, 4, 1, 1) != composed) return false;
+		Vector const moments{1, 6, 0, 4, 4};
+		if (atl::series_power_projection(weights, inner, 5) != moments
+			|| ex::series_power_projection_by_padded_bostan_mori(weights, inner, 5) != moments
+			|| ex::series_power_projection_by_repeated_products(weights, inner, 5) != moments
+			|| ex::series_power_projection_by_bostan_mori(weights, inner, 5) != moments) return false;
+		Vector const invertible{0, 1, 1}, inverse{0, 1, 6, 2, 2};
+		if (atl::series_compositional_inverse(invertible, 5) != inverse
+			|| ex::series_compositional_inverse_by_composition_newton(invertible, 5) != inverse
+			|| ex::series_compositional_inverse_by_projection_lagrange(invertible, 5) != inverse
+			|| ex::series_compositional_inverse_by_baby_giant_lagrange(invertible, 5) != inverse
+			|| ex::series_compositional_inverse_by_coefficient_recurrence(invertible, 5) != inverse) return false;
+		auto const beyond = atl::series_compositional_inverse(invertible, 8);
+		if (atl::series_composition(invertible, beyond, 8) != Vector{0, 1, 0, 0, 0, 0, 0, 0}) return false;
+		using Bit = atl::mod_int32<2>;
+		return atl::series_compositional_inverse(std::vector<Bit>{0, 1, 1}, 5) == std::vector<Bit>{0, 1, 1, 0, 1};
+	}
+
+	static_assert(series_composition_checks());
+
+	/** @brief The transposed composition (forced by the cutoffs 1) and the half-transform doubling of its spectra. */
+	constexpr bool series_composition_transform_checks() {
+		using Field = atl::mod_int32<998244353>;
+		using Vector = std::vector<Field>;
+		Vector const outer{1, 2, 3};
+		Vector inner(20);
+		inner[1] = Field(1);
+		inner[2] = Field(1);
+		Vector expected(20);
+		expected[0] = Field(1);
+		expected[1] = Field(2);
+		expected[2] = Field(5);
+		expected[3] = Field(6);
+		expected[4] = Field(3);
+		Vector packed{1, 2, 3};
+		auto const transformed = atl::detail::composition_transform<atl::default_ntt_engine, Field>(packed, 8);
+		packed.resize(8);
+		atl::ntt(packed);
+		return atl::series_composition(outer, inner, 20) == expected
+			&& atl::experimental::series_composition_by_cutoffs(outer, inner, 20, 1, 1) == expected && packed == transformed;
+	}
+
+	static_assert(series_composition_transform_checks());
+}
+
+#include <atl/experimental/nt/online_convolution_variants.hpp>
+#include <atl/experimental/nt/polynomial_gcd_variants.hpp>
+#include <atl/nt/online_convolution.hpp>
+#include <atl/nt/polynomial_gcd.hpp>
+
+namespace {
+	/** @brief Gcd, minimal cofactors, modular inverses, Pade approximants and the reversed-sequence recurrence, with every contender. */
+	constexpr bool polynomial_gcd_checks() {
+		using Field = atl::mod_int32<7>;
+		using Vector = std::vector<Field>;
+		namespace ex = atl::experimental;
+		Vector const first{2, 3, 1}, second{3, 4, 1};
+		if (atl::polynomial_gcd(first, second) != Vector{1, 1}) return false;
+		auto const extended = atl::polynomial_extended_gcd(first, second);
+		if (extended.gcd != Vector{1, 1} || extended.first_cofactor != Vector{6} || extended.second_cofactor != Vector{1}) return false;
+		if (!(extended == atl::polynomial_extended_gcd_result<Field>{{1, 1}, {6}, {1}}) || extended == atl::polynomial_extended_gcd_result<Field>{{1, 1}, {6}, {}}) return false;
+		if (atl::polynomial_gcd(first, Vector{}) != first || !atl::polynomial_gcd(Vector{}, Vector{0}).empty()) return false;
+		if (atl::polynomial_inverse_mod(Vector{0, 1}, Vector{1, 0, 1}) != std::optional<Vector>(Vector{0, 6})) return false;
+		if (atl::polynomial_inverse_mod(Vector{}, Vector{1, 1})) return false;
+		auto const pade = atl::pade_approximant(Vector{1, 1, 1, 1}, 1, 2);
+		if (!pade || pade->numerator != Vector{1} || pade->denominator != Vector{1, 6}) return false;
+		if (atl::pade_approximant(Vector{0, 1}, 0, 1)) return false;
+		if (ex::polynomial_gcd_by_fused_matrix_products(first, second) != Vector{1, 1}) return false;
+		if (ex::polynomial_gcd_by_fast_division_euclid(first, second) != Vector{1, 1}) return false;
+		if (ex::polynomial_gcd_by_schoolbook_euclid(first, second) != Vector{1, 1}) return false;
+		if (ex::polynomial_gcd_by_leaf_cutoff_plain_products(first, second, 1) != Vector{1, 1}) return false;
+		if (ex::polynomial_gcd_by_leaf_cutoff_fused_products(first, second, 1) != Vector{1, 1}) return false;
+		if (ex::polynomial_extended_gcd_by_fused_matrix_products(first, second).gcd != Vector{1, 1}) return false;
+		if (ex::polynomial_extended_gcd_by_fast_division_euclid(first, second).gcd != Vector{1, 1}) return false;
+		if (ex::polynomial_extended_gcd_by_schoolbook_euclid(first, second).gcd != Vector{1, 1}) return false;
+		if (ex::polynomial_extended_gcd_by_leaf_cutoff_plain_products(first, second, 1).second_cofactor != Vector{1}) return false;
+		if (ex::polynomial_extended_gcd_by_leaf_cutoff_fused_products(first, second, 1).second_cofactor != Vector{1}) return false;
+		if (ex::pade_approximant_by_quadratic_euclid(Vector{1, 1, 1}, 0, 2)->denominator != Vector{1, 6}) return false;
+		return ex::berlekamp_massey_by_half_gcd(Vector{0, 1, 1, 2, 3, 5}) == Vector{1, 1};
+	}
+
+	static_assert(polynomial_gcd_checks());
+
+	/** @brief Every online schedule streams its inputs, with feedback, in constant evaluation. */
+	constexpr bool online_convolution_checks() {
+		using Field = atl::mod_int32<7>;
+		using Vector = std::vector<Field>;
+		namespace ex = atl::experimental;
+		Vector const kernel{1, 2, 3};
+		atl::online_convolution<Field> full;
+		atl::online_fixed_convolution<Field> fixed(kernel);
+		full.reserve(12);
+		fixed.reserve(12);
+		ex::online_convolution_by_block_cutoff<Field> block_cutoff(1);
+		ex::online_convolution_by_uncached_blocks<Field> uncached(1);
+		ex::online_convolution_by_direct_sums<Field> direct;
+		ex::online_convolution_by_karatsuba_blocks<Field> karatsuba(1);
+		ex::online_fixed_convolution_by_block_cutoff<Field> fixed_block_cutoff(kernel, 1);
+		ex::online_fixed_convolution_by_uncached_blocks<Field> fixed_uncached(kernel, 1);
+		ex::online_fixed_convolution_by_direct_sums<Field> fixed_direct(kernel);
+		ex::online_fixed_convolution_by_karatsuba_blocks<Field> fixed_karatsuba(kernel, 1);
+		for (std::size_t i = 0; i < 12; ++i) {
+			Field const left(i + 1), right(i < kernel.size() ? kernel[i] : Field(0));
+			Field expected(0);
+			for (std::size_t j = 0; j <= i && j < kernel.size(); ++j) expected += Field(i - j + 1) * kernel[j];
+			if (full.push(left, right) != expected || fixed.push(left) != expected) return false;
+			if (block_cutoff.push(left, right) != expected || uncached.push(left, right) != expected || direct.push(left, right) != expected
+				|| karatsuba.push(left, right) != expected) return false;
+			if (fixed_block_cutoff.push(left) != expected || fixed_uncached.push(left) != expected || fixed_direct.push(left) != expected
+				|| fixed_karatsuba.push(left) != expected) return false;
+		}
+		return full.size() == 12 && fixed.size() == 12 && block_cutoff.size() == 12 && uncached.size() == 12 && direct.size() == 12
+			&& karatsuba.size() == 12 && fixed_block_cutoff.size() == 12;
+	}
+
+	static_assert(online_convolution_checks());
+
+	/** @brief With a transform-friendly prime and cutoff 1, the block products go through the transforms, cached and not. */
+	constexpr bool online_convolution_transform_checks() {
+		using Field = atl::mod_int32<998244353>;
+		using Vector = std::vector<Field>;
+		namespace ex = atl::experimental;
+		Vector kernel(4);
+		for (std::size_t i = 0; i < kernel.size(); ++i) kernel[i] = Field(2 * i + 1);
+		ex::online_convolution_by_block_cutoff<Field> cached(1);
+		ex::online_convolution_by_uncached_blocks<Field> uncached(1);
+		ex::online_fixed_convolution_by_block_cutoff<Field> fixed(kernel, 1);
+		for (std::size_t i = 0; i < 9; ++i) {
+			Field const left(i + 3), right(i < kernel.size() ? kernel[i] : Field(0));
+			Field expected(0);
+			for (std::size_t j = 0; j <= i && j < kernel.size(); ++j) expected += Field(i - j + 3) * kernel[j];
+			if (cached.push(left, right) != expected || uncached.push(left, right) != expected || fixed.push(left) != expected) return false;
+		}
+		return true;
+	}
+
+	static_assert(online_convolution_transform_checks());
 }

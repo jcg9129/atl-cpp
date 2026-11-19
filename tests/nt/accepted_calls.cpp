@@ -1,12 +1,20 @@
 #include <atl/experimental/nt/bitwise_convolution_variants.hpp>
 #include <atl/experimental/nt/convolution_variants.hpp>
 #include <atl/experimental/nt/factorization_variants.hpp>
+#include <atl/experimental/nt/online_convolution_variants.hpp>
+#include <atl/experimental/nt/polynomial_gcd_variants.hpp>
+#include <atl/experimental/nt/polynomial_points_variants.hpp>
+#include <atl/experimental/nt/power_series_variants.hpp>
+#include <atl/experimental/nt/series_composition_variants.hpp>
 #include <atl/experimental/nt/sieve_variants.hpp>
+#include <atl/experimental/nt/square_root_mod_variants.hpp>
+#include <atl/nt/batch_inverse.hpp>
 #include <atl/nt/bitwise_convolution.hpp>
 #include <atl/nt/convolution.hpp>
 #include <atl/nt/crt.hpp>
 #include <atl/nt/discrete_log.hpp>
 #include <atl/nt/dynamic_mod_int.hpp>
+#include <atl/nt/factorial_table.hpp>
 #include <atl/nt/fft.hpp>
 #include <atl/nt/floor_sum.hpp>
 #include <atl/nt/gcd.hpp>
@@ -14,19 +22,31 @@
 #include <atl/nt/modular.hpp>
 #include <atl/nt/montgomery.hpp>
 #include <atl/nt/multiplicative.hpp>
+#include <atl/nt/online_convolution.hpp>
+#include <atl/nt/polynomial_gcd.hpp>
+#include <atl/nt/polynomial_points.hpp>
 #include <atl/nt/power.hpp>
+#include <atl/nt/power_series.hpp>
+#include <atl/nt/series_calculus.hpp>
+#include <atl/nt/series_composition.hpp>
+#include <atl/nt/square_root_mod.hpp>
 #include <atl/nt/static_modulus.hpp>
 #include <algorithm>
 #include <array>
 #include <catch2/catch.hpp>
 #include <cmath>
 #include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <forward_list>
 #include <functional>
+#include <list>
 #include <ranges>
 #include <span>
 #include <sstream>
 #include <utility>
 #include <vector>
+#include "input_only.hpp"
 
 namespace {
 	struct explicit_identity {
@@ -465,4 +485,381 @@ TEST_CASE("numeric semirings accept portable wide integers", "[nt][constraints]"
 	CHECK(numeric_policy_holds<atl::max_plus_semiring<double>>());
 	CHECK(numeric_policy_holds<atl::max_min_semiring<double>>());
 	CHECK(numeric_policy_holds<atl::plus_times_semiring<atl::uint8>>());
+}
+
+namespace {
+	using series_mint = atl::mod_int32<998244353>;
+	using series_vector = std::vector<series_mint>;
+
+	template<atl::prime_mod_int_range Unit, atl::prime_mod_int_range Zero>
+	series_vector series_inputs_agree(Unit const &unit, Zero const &zero) {
+		auto const inverse = atl::series_inverse(unit, 5);
+		CHECK(atl::series_logarithm(unit, 5) == atl::series_logarithm(series_vector{1, 1}, 5));
+		CHECK(atl::series_exponential(zero, 5) == atl::series_exponential(series_vector{0, 1}, 5));
+		CHECK(atl::series_division(unit, unit, 5) == series_vector{1, 0, 0, 0, 0});
+		CHECK(atl::series_power(unit, 3, 5) == series_vector{1, 3, 3, 1, 0});
+		CHECK(atl::series_inverse_sparse(unit, 5) == inverse);
+		CHECK(atl::series_division_sparse(unit, unit, 5) == series_vector{1, 0, 0, 0, 0});
+		CHECK(atl::series_logarithm_sparse(unit, 5) == atl::series_logarithm(unit, 5));
+		CHECK(atl::series_exponential_sparse(zero, 5) == atl::series_exponential(zero, 5));
+		CHECK(atl::series_power_sparse(unit, 3, 5) == series_vector{1, 3, 3, 1, 0});
+		CHECK(atl::series_square_root(unit, 5) == atl::series_square_root_sparse(unit, 5));
+		CHECK(atl::experimental::series_inverse_by_recurrence(unit, 5) == inverse);
+		CHECK(atl::experimental::series_inverse_by_plain_newton(unit, 5) == inverse);
+		CHECK(atl::experimental::series_inverse_by_newton_driver(unit, 5) == inverse);
+		CHECK(atl::experimental::series_division_by_inverse_product(unit, unit, 5) == series_vector{1, 0, 0, 0, 0});
+		CHECK(atl::experimental::series_logarithm_by_inverse_product(unit, 5) == atl::series_logarithm(unit, 5));
+		CHECK(atl::experimental::series_exponential_by_recurrence(zero, 5) == atl::series_exponential(zero, 5));
+		CHECK(atl::experimental::series_exponential_by_plain_newton(zero, 5) == atl::series_exponential(zero, 5));
+		CHECK(atl::experimental::series_exponential_by_newton_driver(zero, 5) == atl::series_exponential(zero, 5));
+		CHECK(atl::experimental::series_power_by_binary_powering(unit, 3, 5) == series_vector{1, 3, 3, 1, 0});
+		CHECK(atl::experimental::series_square_root_by_plain_newton(unit, 5) == atl::series_square_root(unit, 5));
+		CHECK(atl::experimental::series_square_root_by_logarithm(unit, 5) == atl::series_square_root(unit, 5));
+		CHECK(atl::polynomial_division(unit, unit).quotient == series_vector{1});
+		CHECK(atl::experimental::polynomial_division_by_schoolbook(unit, unit).quotient == series_vector{1});
+		return inverse;
+	}
+}
+
+TEST_CASE("power series entries accept every const input range and engine", "[nt][constraints]") {
+	series_vector const unit{1, 1}, zero{0, 1};
+	auto const expected = series_inputs_agree(unit, zero);
+	CHECK(expected == series_vector{1, -1, 1, -1, 1});
+	std::array<series_mint, 2> const unit_array{1, 1}, zero_array{0, 1};
+	CHECK(series_inputs_agree(unit_array, zero_array) == expected);
+	std::forward_list<series_mint> const unit_list{1, 1}, zero_list{0, 1};
+	CHECK(series_inputs_agree(unit_list, zero_list) == expected);
+	std::list<series_mint> const unit_bidirectional{1, 1}, zero_bidirectional{0, 1};
+	CHECK(series_inputs_agree(unit_bidirectional, zero_bidirectional) == expected);
+	atl_test::input_only<series_mint> const unit_single_pass(unit), zero_single_pass(zero);
+	CHECK(series_inputs_agree(unit_single_pass, zero_single_pass) == expected);
+	auto const unit_view = std::views::iota(0, 2) | std::views::transform([](int) { return series_mint(1); });
+	auto const zero_view = std::views::iota(0, 2) | std::views::transform([](int i) { return series_mint(i); });
+	CHECK(series_inputs_agree(unit_view, zero_view) == expected);
+	CHECK(series_inputs_agree(std::span<series_mint const>(unit), std::span<series_mint const>(zero)) == expected);
+	CHECK(atl::series_inverse<atl::scalar_ntt>(unit, 5) == expected);
+	CHECK(atl::series_division<atl::scalar_ntt>(unit_array, unit_list, 5) == series_vector{1, 0, 0, 0, 0});
+	CHECK(atl::series_division_sparse(unit_array, unit_list, 5) == series_vector{1, 0, 0, 0, 0});
+	CHECK(atl::polynomial_division<atl::scalar_ntt>(unit_array, unit_list).quotient == series_vector{1});
+	using wide_mint = atl::mod_int64<18446744073709551557ull>;
+	CHECK(atl::series_inverse(std::vector<wide_mint>{1, 1}, 3) == std::vector<wide_mint>{1, -1, 1});
+}
+
+TEST_CASE("prime-field helpers accept every const input range and modulus", "[nt][constraints]") {
+	series_vector const values{2, 4, 8};
+	std::array<series_mint, 3> const array{2, 4, 8};
+	std::forward_list<series_mint> const list{2, 4, 8};
+	atl_test::input_only<series_mint> const single_pass(values);
+	CHECK(atl::batch_inverse(array) == atl::batch_inverse(values));
+	CHECK(atl::batch_inverse(list) == atl::batch_inverse(values));
+	CHECK(atl::batch_inverse(single_pass) == atl::batch_inverse(values));
+	CHECK(atl::series_derivative(list) == atl::series_derivative(values));
+	CHECK(atl::series_derivative(single_pass) == atl::series_derivative(values));
+	CHECK(atl::series_integral(list) == atl::series_integral(values));
+	CHECK(atl::series_integral(single_pass) == atl::series_integral(values));
+	CHECK(atl::factorial_table<atl::mod_int32<2>>(1).factorial(1) == atl::mod_int32<2>(1));
+	CHECK(atl::factorial_table<atl::mod_int64<18446744073709551557ull>>(3).factorial(3) == atl::mod_int64<18446744073709551557ull>(6));
+	series_mint const square(49);
+	CHECK(atl::square_root_mod(square) == series_mint(7));
+	CHECK(atl::experimental::square_root_mod_by_cipolla(square) == series_mint(7));
+	CHECK(atl::square_root_mod(atl::mod_int64<18446744073709551557ull>(4)) == atl::mod_int64<18446744073709551557ull>(2));
+	CHECK(atl::square_root_mod(std::uint64_t{4}, std::uint64_t{17}) == 2);
+}
+
+namespace {
+	using points_field = atl::mod_int32<998244353>;
+	using points_vector = std::vector<points_field>;
+
+	/** @brief Every point operation and contender gives the result of the vector call, whatever the input ranges are. */
+	template<atl::prime_mod_int_range Polynomial, atl::prime_mod_int_range Points, atl::prime_mod_int_range Values>
+	void point_inputs_agree(Polynomial const &polynomial, Points const &points, Values const &values) {
+		namespace ex = atl::experimental;
+		points_vector const reference_polynomial{1, 2, 3}, reference_points{4, 5, 6}, reference_values{57, 86, 121};
+		points_field const shift(7), first(2), ratio(3);
+		auto const shifted = atl::polynomial_taylor_shift(reference_polynomial, shift);
+		auto const evaluated = atl::polynomial_evaluation(reference_polynomial, reference_points);
+		CHECK(evaluated == reference_values);
+		CHECK(atl::polynomial_taylor_shift(polynomial, shift) == shifted);
+		CHECK(ex::polynomial_taylor_shift_by_divide_and_conquer(polynomial, shift) == shifted);
+		CHECK(ex::polynomial_taylor_shift_by_horner(polynomial, shift) == shifted);
+		auto const from_roots = atl::polynomial_from_roots(reference_points);
+		CHECK(atl::polynomial_from_roots(points) == from_roots);
+		CHECK(ex::polynomial_from_roots_by_sequential_product(points) == from_roots);
+		CHECK(atl::polynomial_evaluation(polynomial, points) == evaluated);
+		CHECK(ex::polynomial_evaluation_by_remainder_tree(polynomial, points) == evaluated);
+		CHECK(ex::polynomial_evaluation_by_horner(polynomial, points) == evaluated);
+		CHECK(ex::polynomial_evaluation_by_leaf_cutoff(polynomial, points, 16) == evaluated);
+		CHECK(atl::polynomial_interpolation(points, values) == reference_polynomial);
+		CHECK(ex::polynomial_interpolation_by_remainder_tree(points, values) == reference_polynomial);
+		CHECK(ex::polynomial_interpolation_by_newton_differences(points, values) == reference_polynomial);
+		auto const geometric = atl::polynomial_geometric_evaluation(reference_polynomial, first, ratio, 5);
+		CHECK(atl::polynomial_geometric_evaluation(polynomial, first, ratio, 5) == geometric);
+		CHECK(ex::polynomial_geometric_evaluation_by_horner(polynomial, first, ratio, 5) == geometric);
+		auto const sampled = atl::sample_point_shift(reference_values, shift, 5);
+		CHECK(atl::sample_point_shift(values, shift, 5) == sampled);
+		CHECK(ex::sample_point_shift_by_falling_factorials(values, shift, 5) == sampled);
+		CHECK(ex::sample_point_shift_by_direct_barycentric(values, shift, 5) == sampled);
+		atl::polynomial_point_tree<points_field> const tree(points);
+		CHECK(tree.point_count() == 3);
+		CHECK(tree.evaluate(polynomial) == evaluated);
+		CHECK(tree.interpolate(values) == reference_polynomial);
+	}
+
+	/** @brief Composition, power projection and reversion, with every contender, agree with the vector call. */
+	template<atl::prime_mod_int_range Outer, atl::prime_mod_int_range Inner>
+	void composition_inputs_agree(Outer const &outer, Inner const &inner) {
+		namespace ex = atl::experimental;
+		points_vector const reference_outer{1, 2, 3}, reference_inner{0, 1, 1};
+		auto const composed = atl::series_composition(reference_outer, reference_inner, 5);
+		CHECK(composed == points_vector{1, 2, 5, 6, 3});
+		CHECK(atl::series_composition(outer, inner, 5) == composed);
+		CHECK(ex::series_composition_by_brent_kung(outer, inner, 5) == composed);
+		CHECK(ex::series_composition_by_fast_horner(outer, inner, 5) == composed);
+		CHECK(ex::series_composition_by_schoolbook_horner(outer, inner, 5) == composed);
+		CHECK(ex::series_composition_by_cutoffs(outer, inner, 5, 1, 1) == composed);
+		auto const projected = atl::series_power_projection(reference_outer, reference_inner, 5);
+		CHECK(atl::series_power_projection(outer, inner, 5) == projected);
+		CHECK(ex::series_power_projection_by_padded_bostan_mori(outer, inner, 5) == projected);
+		CHECK(ex::series_power_projection_by_repeated_products(outer, inner, 5) == projected);
+		CHECK(ex::series_power_projection_by_bostan_mori(outer, inner, 5) == projected);
+		auto const inverse = atl::series_compositional_inverse(reference_inner, 5);
+		CHECK(atl::series_composition(reference_inner, inverse, 5) == points_vector{0, 1, 0, 0, 0});
+		CHECK(atl::series_compositional_inverse(inner, 5) == inverse);
+		CHECK(ex::series_compositional_inverse_by_composition_newton(inner, 5) == inverse);
+		CHECK(ex::series_compositional_inverse_by_projection_lagrange(inner, 5) == inverse);
+		CHECK(ex::series_compositional_inverse_by_baby_giant_lagrange(inner, 5) == inverse);
+		CHECK(ex::series_compositional_inverse_by_coefficient_recurrence(inner, 5) == inverse);
+	}
+}
+
+TEST_CASE("polynomial point operations accept every const input range", "[nt][constraints]") {
+	points_vector const polynomial{1, 2, 3}, points{4, 5, 6}, values{57, 86, 121};
+	point_inputs_agree(polynomial, points, values);
+	std::array<points_field, 3> const polynomial_array{1, 2, 3}, points_array{4, 5, 6}, values_array{57, 86, 121};
+	point_inputs_agree(polynomial_array, points_array, values_array);
+	std::forward_list<points_field> const polynomial_list{1, 2, 3}, points_list{4, 5, 6}, values_list{57, 86, 121};
+	point_inputs_agree(polynomial_list, points_list, values_list);
+	std::list<points_field> const polynomial_bidirectional{1, 2, 3}, points_bidirectional{4, 5, 6}, values_bidirectional{57, 86, 121};
+	point_inputs_agree(polynomial_bidirectional, points_bidirectional, values_bidirectional);
+	atl_test::input_only<points_field> const polynomial_single_pass(polynomial), points_single_pass(points), values_single_pass(values);
+	point_inputs_agree(polynomial_single_pass, points_single_pass, values_single_pass);
+	auto const polynomial_view = std::views::iota(1, 4) | std::views::transform([](int i) { return points_field(i); });
+	auto const points_view = std::views::iota(4, 7) | std::views::transform([](int i) { return points_field(i); });
+	point_inputs_agree(polynomial_view, points_view, values);
+	point_inputs_agree(std::span<points_field const>(polynomial), std::span<points_field const>(points), std::span<points_field const>(values));
+}
+
+TEST_CASE("polynomial products accept nested input ranges and every engine", "[nt][constraints]") {
+	points_vector const expected{1, 3, 2};
+	std::vector<points_vector> const vectors{{1, 1}, {1, 2}};
+	std::array<std::array<points_field, 2>, 2> const arrays{{{1, 1}, {1, 2}}};
+	std::list<std::forward_list<points_field>> const lists{{1, 1, 0}, {1, 2}};
+	std::vector<atl_test::input_only<points_field>> const single_pass{atl_test::input_only<points_field>({1, 1}), atl_test::input_only<points_field>({1, 2})};
+	CHECK(atl::polynomial_product(vectors) == expected);
+	CHECK(atl::polynomial_product(arrays) == expected);
+	CHECK(atl::polynomial_product(lists) == expected);
+	CHECK(atl::polynomial_product(single_pass) == expected);
+	CHECK(atl::polynomial_product<atl::scalar_ntt>(vectors) == expected);
+	CHECK(atl::experimental::polynomial_product_by_smallest_first(lists) == expected);
+	CHECK(atl::experimental::polynomial_product_by_sequential_schoolbook(single_pass) == expected);
+	points_vector const polynomial{1, 2, 3}, points{4, 5, 6};
+	CHECK(atl::polynomial_evaluation<atl::scalar_ntt>(polynomial, points) == points_vector{57, 86, 121});
+	CHECK(atl::polynomial_interpolation<atl::scalar_ntt>(points, atl::polynomial_evaluation(polynomial, points)) == polynomial);
+	CHECK(atl::polynomial_taylor_shift<atl::scalar_ntt>(polynomial, points_field(1)) == points_vector{6, 8, 3});
+	CHECK(atl::polynomial_geometric_evaluation<atl::scalar_ntt>(polynomial, points_field(1), points_field(2), 3) == points_vector{6, 17, 57});
+	CHECK(atl::sample_point_shift<atl::scalar_ntt>(points_vector{1, 6, 17}, points_field(3), 2) == points_vector{34, 57});
+	using wide_field = atl::mod_int64<18446744073709551557ull>;
+	std::vector<wide_field> const wide_polynomial{1, 2, 3}, wide_points{4, 5, 6};
+	CHECK(atl::polynomial_evaluation(wide_polynomial, wide_points) == std::vector<wide_field>{57, 86, 121});
+	CHECK(atl::polynomial_point_tree<wide_field>(wide_points).interpolate(atl::polynomial_evaluation(wide_polynomial, wide_points)) == wide_polynomial);
+}
+
+TEST_CASE("series composition accepts every const input range and engine", "[nt][constraints]") {
+	points_vector const outer{1, 2, 3}, inner{0, 1, 1};
+	composition_inputs_agree(outer, inner);
+	std::array<points_field, 3> const outer_array{1, 2, 3}, inner_array{0, 1, 1};
+	composition_inputs_agree(outer_array, inner_array);
+	std::forward_list<points_field> const outer_list{1, 2, 3}, inner_list{0, 1, 1};
+	composition_inputs_agree(outer_list, inner_list);
+	std::list<points_field> const outer_bidirectional{1, 2, 3}, inner_bidirectional{0, 1, 1};
+	composition_inputs_agree(outer_bidirectional, inner_bidirectional);
+	atl_test::input_only<points_field> const outer_single_pass(outer), inner_single_pass(inner);
+	composition_inputs_agree(outer_single_pass, inner_single_pass);
+	auto const outer_view = std::views::iota(1, 4) | std::views::transform([](int i) { return points_field(i); });
+	auto const inner_view = std::views::iota(0, 3) | std::views::transform([](int i) { return points_field(i == 0 ? 0 : 1); });
+	composition_inputs_agree(outer_view, inner_view);
+	composition_inputs_agree(std::span<points_field const>(outer), std::span<points_field const>(inner));
+	CHECK(atl::series_composition<atl::scalar_ntt>(outer, inner, 5) == points_vector{1, 2, 5, 6, 3});
+	CHECK(atl::series_power_projection<atl::scalar_ntt>(outer, inner, 5) == atl::series_power_projection(outer, inner, 5));
+	CHECK(atl::series_compositional_inverse<atl::scalar_ntt>(inner, 5) == atl::series_compositional_inverse(inner, 5));
+	using wide_field = atl::mod_int64<18446744073709551557ull>;
+	std::vector<wide_field> const wide_outer{1, 2, 3}, wide_inner{0, 1, 1};
+	CHECK(atl::series_composition(wide_outer, wide_inner, 5) == std::vector<wide_field>{1, 2, 5, 6, 3});
+	CHECK(atl::series_composition(wide_inner, atl::series_compositional_inverse(wide_inner, 5), 5) == std::vector<wide_field>{0, 1, 0, 0, 0});
+}
+
+namespace {
+	using gcd_field = atl::mod_int32<998244353>;
+	using gcd_vector = std::vector<gcd_field>;
+
+	/** @brief Every gcd-family function and contender gives the vector result whatever the input ranges are. */
+	template<atl::prime_mod_int_range First, atl::prime_mod_int_range Second, atl::prime_mod_int_range Series>
+	void gcd_inputs_agree(First const &first, Second const &second, Series const &series) {
+		namespace ex = atl::experimental;
+		gcd_vector const reference_first{2, 3, 1}, reference_second{3, 4, 1}, reference_series{1, 1, 1, 1};
+		auto const expected = atl::polynomial_gcd(reference_first, reference_second);
+		auto const extended = atl::polynomial_extended_gcd(reference_first, reference_second);
+		CHECK(expected == gcd_vector{1, 1});
+		CHECK(atl::polynomial_gcd(first, second) == expected);
+		CHECK(ex::polynomial_gcd_by_fused_matrix_products(first, second) == expected);
+		CHECK(ex::polynomial_gcd_by_fast_division_euclid(first, second) == expected);
+		CHECK(ex::polynomial_gcd_by_schoolbook_euclid(first, second) == expected);
+		CHECK(ex::polynomial_gcd_by_leaf_cutoff_plain_products(first, second, 1) == expected);
+		CHECK(ex::polynomial_gcd_by_leaf_cutoff_fused_products(first, second, 1) == expected);
+		auto const result = atl::polynomial_extended_gcd(first, second);
+		CHECK(result.gcd == extended.gcd);
+		CHECK(result.first_cofactor == extended.first_cofactor);
+		CHECK(result.second_cofactor == extended.second_cofactor);
+		CHECK(ex::polynomial_extended_gcd_by_fused_matrix_products(first, second).gcd == expected);
+		CHECK(ex::polynomial_extended_gcd_by_fast_division_euclid(first, second).gcd == expected);
+		CHECK(ex::polynomial_extended_gcd_by_schoolbook_euclid(first, second).gcd == expected);
+		CHECK(ex::polynomial_extended_gcd_by_leaf_cutoff_plain_products(first, second, 1).gcd == expected);
+		CHECK(ex::polynomial_extended_gcd_by_leaf_cutoff_fused_products(first, second, 1).gcd == expected);
+		auto const approximant = atl::pade_approximant(reference_series, 1, 2);
+		REQUIRE(approximant.has_value());
+		auto const from_range = atl::pade_approximant(series, 1, 2);
+		REQUIRE(from_range.has_value());
+		CHECK(from_range->numerator == approximant->numerator);
+		CHECK(from_range->denominator == approximant->denominator);
+		auto const quadratic = ex::pade_approximant_by_quadratic_euclid(series, 1, 2);
+		REQUIRE(quadratic.has_value());
+		CHECK(quadratic->denominator == approximant->denominator);
+		CHECK(ex::berlekamp_massey_by_half_gcd(series) == ex::berlekamp_massey_by_half_gcd(reference_series));
+	}
+
+	/** @brief The inverse of `x` modulo `x^2 + 1` is `-x`, whatever the input ranges are. */
+	template<atl::prime_mod_int_range Value, atl::prime_mod_int_range Modulus>
+	void inverse_inputs_agree(Value const &value, Modulus const &modulus) {
+		auto const inverse = atl::polynomial_inverse_mod(value, modulus);
+		REQUIRE(inverse.has_value());
+		CHECK(*inverse == gcd_vector{0, gcd_field(-1)});
+	}
+
+	/** @brief Every fixed-kernel stream and contender gives the result of the vector kernel, whatever the kernel range is. */
+	template<atl::prime_mod_int_range Kernel>
+	void kernel_inputs_agree(Kernel const &kernel) {
+		namespace ex = atl::experimental;
+		gcd_vector const reference_kernel{1, 2, 3};
+		atl::online_fixed_convolution<gcd_field> reference(reference_kernel), library(kernel);
+		ex::online_fixed_convolution_by_block_cutoff<gcd_field> block_cutoff(kernel, 1);
+		ex::online_fixed_convolution_by_uncached_blocks<gcd_field> uncached(kernel, 1);
+		ex::online_fixed_convolution_by_direct_sums<gcd_field> direct(kernel);
+		ex::online_fixed_convolution_by_karatsuba_blocks<gcd_field> karatsuba(kernel, 1);
+		for (int i = 1; i <= 40; ++i) {
+			gcd_field const expected = reference.push(gcd_field(i));
+			CHECK(library.push(gcd_field(i)) == expected);
+			CHECK(block_cutoff.push(gcd_field(i)) == expected);
+			CHECK(uncached.push(gcd_field(i)) == expected);
+			CHECK(direct.push(gcd_field(i)) == expected);
+			CHECK(karatsuba.push(gcd_field(i)) == expected);
+		}
+	}
+}
+
+TEST_CASE("polynomial gcd family accepts every const input range", "[nt][constraints]") {
+	gcd_vector const first{2, 3, 1}, second{3, 4, 1}, series{1, 1, 1, 1};
+	gcd_inputs_agree(first, second, series);
+	std::array<gcd_field, 3> const first_array{2, 3, 1}, second_array{3, 4, 1};
+	std::array<gcd_field, 4> const series_array{1, 1, 1, 1};
+	gcd_inputs_agree(first_array, second_array, series_array);
+	std::forward_list<gcd_field> const first_list{2, 3, 1}, second_list{3, 4, 1}, series_list{1, 1, 1, 1};
+	gcd_inputs_agree(first_list, second_list, series_list);
+	std::list<gcd_field> const first_bidirectional{2, 3, 1}, second_bidirectional{3, 4, 1}, series_bidirectional{1, 1, 1, 1};
+	gcd_inputs_agree(first_bidirectional, second_bidirectional, series_bidirectional);
+	atl_test::input_only<gcd_field> const first_single_pass(first), second_single_pass(second), series_single_pass(series);
+	gcd_inputs_agree(first_single_pass, second_single_pass, series_single_pass);
+	auto const first_view = std::views::iota(2, 5) | std::views::transform([](int i) { return gcd_field(i == 4 ? 1 : i); });
+	auto const second_view = std::views::iota(3, 6) | std::views::transform([](int i) { return gcd_field(i == 5 ? 1 : i); });
+	gcd_inputs_agree(first_view, second_view, series_list);
+	gcd_inputs_agree(std::span<gcd_field const>(first), second_list, std::span<gcd_field const>(series));
+	gcd_inputs_agree(first, second_single_pass, series_single_pass);
+	std::array<gcd_field, 2> const value{0, 1};
+	std::array<gcd_field, 3> const modulus{1, 0, 1};
+	inverse_inputs_agree(value, modulus);
+	inverse_inputs_agree(std::forward_list<gcd_field>{0, 1}, atl_test::input_only<gcd_field>(gcd_vector{1, 0, 1}));
+	inverse_inputs_agree(std::span<gcd_field const>(value), std::list<gcd_field>{1, 0, 1});
+}
+
+TEST_CASE("polynomial gcd family accepts every engine and wide fields", "[nt][constraints]") {
+	gcd_vector const first{2, 3, 1}, second{3, 4, 1};
+	CHECK(atl::polynomial_gcd<atl::scalar_ntt>(first, second) == gcd_vector{1, 1});
+	CHECK(atl::polynomial_extended_gcd<atl::scalar_ntt>(first, second).gcd == gcd_vector{1, 1});
+	CHECK(atl::polynomial_inverse_mod<atl::scalar_ntt>(gcd_vector{0, 1}, gcd_vector{1, 0, 1}).has_value());
+	CHECK(atl::pade_approximant<atl::scalar_ntt>(gcd_vector{1, 1, 1, 1}, 1, 2).has_value());
+	using wide_field = atl::mod_int64<18446744073709551557ull>;
+	std::vector<wide_field> const wide_first{2, 3, 1}, wide_second{3, 4, 1};
+	CHECK(atl::polynomial_gcd(wide_first, wide_second) == std::vector<wide_field>{1, 1});
+	CHECK(atl::polynomial_extended_gcd(wide_first, wide_second).gcd == std::vector<wide_field>{1, 1});
+	CHECK(atl::pade_approximant(std::vector<wide_field>{1, 1, 1, 1}, 1, 2).has_value());
+	atl::online_convolution<gcd_field, atl::scalar_ntt> scalar_stream;
+	CHECK(scalar_stream.push(gcd_field(2), gcd_field(3)) == gcd_field(6));
+	atl::online_fixed_convolution<wide_field> wide_stream(wide_first);
+	CHECK(wide_stream.push(wide_field(1)) == wide_field(2));
+	CHECK(wide_stream.push(wide_field(1)) == wide_field(5));
+}
+
+TEST_CASE("online fixed convolution accepts every const kernel range", "[nt][constraints]") {
+	gcd_vector const kernel{1, 2, 3};
+	kernel_inputs_agree(kernel);
+	kernel_inputs_agree(std::array<gcd_field, 3>{1, 2, 3});
+	kernel_inputs_agree(std::forward_list<gcd_field>{1, 2, 3});
+	kernel_inputs_agree(std::list<gcd_field>{1, 2, 3, 0, 0});
+	kernel_inputs_agree(atl_test::input_only<gcd_field>(kernel));
+	kernel_inputs_agree(std::span<gcd_field const>(kernel));
+	kernel_inputs_agree(std::views::iota(1, 4) | std::views::transform([](int i) { return gcd_field(i); }));
+}
+
+namespace {
+	using decision_field = atl::mod_int32<998244353>;
+	using decision_vector = std::vector<decision_field>;
+
+	/** @brief A function constrained only by the public range concept, returning the public coefficient alias. */
+	template<atl::prime_mod_int_range Range>
+	atl::series_coefficient_t<Range> first_coefficient(Range const &range) {
+		return *std::ranges::begin(range);
+	}
+}
+
+TEST_CASE("public prime-field concepts accept references, const ranges and const elements", "[nt][constraints]") {
+	decision_vector values{3, 1, 2};
+	decision_vector const &const_values = values;
+	std::array<decision_field const, 2> const const_elements{decision_field(5), decision_field(6)};
+	CHECK(first_coefficient(values) == decision_field(3));
+	CHECK(first_coefficient(const_values) == decision_field(3));
+	CHECK(first_coefficient(const_elements) == decision_field(5));
+	CHECK(first_coefficient(std::span<decision_field const>(values)) == decision_field(3));
+	CHECK(first_coefficient(atl_test::input_only<decision_field>(values)) == decision_field(3));
+	CHECK(atl::series_inverse(const_elements, 2) == atl::series_inverse(decision_vector{5, 6}, 2));
+	CHECK(atl::series_power_sparse(const_elements, 2, 3) == atl::series_power(decision_vector{5, 6}, 2, 3));
+}
+
+TEST_CASE("nt-3 interface additions accept const and wrapped inputs", "[nt][constraints]") {
+	atl::factorial_table<decision_field> table(2);
+	table.extend(10);
+	CHECK(table.factorial(10) == decision_field(3628800));
+	std::forward_list<decision_field> const points{4, 4, 1};
+	atl::polynomial_point_tree<decision_field> const tree(points);
+	CHECK(std::ranges::equal(tree.points(), decision_vector{4, 4, 1}));
+	auto const &tree_reference = tree;
+	CHECK(tree_reference.points().size() == 3);
+	auto const result = atl::polynomial_extended_gcd(decision_vector{2, 3, 1}, decision_vector{3, 4, 1});
+	auto const copy = result;
+	CHECK(result == copy);
+	CHECK(std::equality_comparable<atl::polynomial_extended_gcd_result<decision_field>>);
+	atl::online_convolution<decision_field, atl::scalar_ntt> stream;
+	stream.reserve(std::size_t{8});
+	CHECK(stream.push(decision_field(2), decision_field(3)) == decision_field(6));
+	atl::online_fixed_convolution<decision_field> fixed(std::array<decision_field, 2>{1, 2});
+	fixed.reserve(3u);
+	CHECK(fixed.push(decision_field(1)) == decision_field(1));
 }
