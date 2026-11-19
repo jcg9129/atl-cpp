@@ -515,8 +515,8 @@ namespace {
 		CHECK(atl::experimental::series_power_by_binary_powering(unit, 3, 5) == series_vector{1, 3, 3, 1, 0});
 		CHECK(atl::experimental::series_square_root_by_plain_newton(unit, 5) == atl::series_square_root(unit, 5));
 		CHECK(atl::experimental::series_square_root_by_logarithm(unit, 5) == atl::series_square_root(unit, 5));
-		CHECK(atl::polynomial_division(unit, unit).quotient == series_vector{1});
-		CHECK(atl::experimental::polynomial_division_by_schoolbook(unit, unit).quotient == series_vector{1});
+		CHECK(atl::polynomial_division(unit, unit).quotient == series_vector{series_mint(1)});
+		CHECK(atl::experimental::polynomial_division_by_schoolbook(unit, unit).quotient == series_vector{series_mint(1)});
 		return inverse;
 	}
 }
@@ -540,7 +540,7 @@ TEST_CASE("power series entries accept every const input range and engine", "[nt
 	CHECK(atl::series_inverse<atl::scalar_ntt>(unit, 5) == expected);
 	CHECK(atl::series_division<atl::scalar_ntt>(unit_array, unit_list, 5) == series_vector{1, 0, 0, 0, 0});
 	CHECK(atl::series_division_sparse(unit_array, unit_list, 5) == series_vector{1, 0, 0, 0, 0});
-	CHECK(atl::polynomial_division<atl::scalar_ntt>(unit_array, unit_list).quotient == series_vector{1});
+	CHECK(atl::polynomial_division<atl::scalar_ntt>(unit_array, unit_list).quotient == series_vector{series_mint(1)});
 	using wide_mint = atl::mod_int64<18446744073709551557ull>;
 	CHECK(atl::series_inverse(std::vector<wide_mint>{1, 1}, 3) == std::vector<wide_mint>{1, -1, 1});
 }
@@ -843,7 +843,7 @@ TEST_CASE("public prime-field concepts accept references, const ranges and const
 	CHECK(atl::series_power_sparse(const_elements, 2, 3) == atl::series_power(decision_vector{5, 6}, 2, 3));
 }
 
-TEST_CASE("nt-3 interface additions accept const and wrapped inputs", "[nt][constraints]") {
+TEST_CASE("power series interface additions accept const and wrapped inputs", "[nt][constraints]") {
 	atl::factorial_table<decision_field> table(2);
 	table.extend(10);
 	CHECK(table.factorial(10) == decision_field(3628800));

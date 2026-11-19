@@ -31,6 +31,8 @@ namespace atl {
 	 * @complexity O(M(m) log(m + 1) + M(n) log(n + 1)) time and O(m + n log(n + 1)) memory for outer length `m` and
 	 *             precision `n`, where M(k) is the cost of a length-k product.
 	 * @note Transpose of the bivariate power projection, with Horner's rule for tiny shapes; race pending.
+	 * @note MSVC cannot constant-evaluate the transposed path (a recursion returning vectors); constant
+	 *       evaluation there is limited to the shapes that take Horner's rule.
 	 */
 	template<ntt_engine Engine = default_ntt_engine, prime_mod_int_range Outer, prime_mod_int_range Inner>
 		requires std::same_as<series_coefficient_t<Outer>, series_coefficient_t<Inner>>

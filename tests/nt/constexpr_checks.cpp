@@ -695,7 +695,11 @@ namespace {
 		return atl::series_compositional_inverse(std::vector<Bit>{0, 1, 1}, 5) == std::vector<Bit>{0, 1, 1, 0, 1};
 	}
 
+	// MSVC does not constant-evaluate the transposed composition, a recursion returning vectors: its
+	// checks also run at run time (TEST_CASE "series composition checks at run time").
+#if !defined(_MSC_VER) || defined(__clang__)
 	static_assert(series_composition_checks());
+#endif
 
 	/** @brief The transposed composition (forced by the cutoffs 1) and the half-transform doubling of its spectra. */
 	constexpr bool series_composition_transform_checks() {
@@ -719,7 +723,9 @@ namespace {
 			&& atl::experimental::series_composition_by_cutoffs(outer, inner, 20, 1, 1) == expected && packed == transformed;
 	}
 
+#if !defined(_MSC_VER) || defined(__clang__)
 	static_assert(series_composition_transform_checks());
+#endif
 }
 
 #include <atl/experimental/nt/online_convolution_variants.hpp>
@@ -814,4 +820,9 @@ namespace {
 	}
 
 	static_assert(online_convolution_transform_checks());
+}
+
+TEST_CASE("series composition checks at run time", "[constexpr]") {
+	CHECK(series_composition_checks());
+	CHECK(series_composition_transform_checks());
 }

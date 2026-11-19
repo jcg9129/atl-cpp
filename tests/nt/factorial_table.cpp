@@ -22,18 +22,18 @@ void check_factorial_table(std::size_t maximum) {
 	atl::factorial_table<Coefficient> const table(maximum);
 	REQUIRE(table.maximum_index() == maximum);
 	Coefficient product(1);
-	std::vector<Coefficient> pascal(maximum + 1);
-	pascal[0] = 1;
+	std::vector<Coefficient> binomial_row(maximum + 1);
+	binomial_row[0] = 1;
 	for (std::size_t n = 0; n <= maximum; ++n) {
 		if (n != 0) product *= Coefficient(n);
 		REQUIRE(table.factorial(n) == product);
 		REQUIRE(table.inverse_factorial(n) * product == Coefficient(1));
 		if (n != 0) REQUIRE(table.inverse_integer(n) * Coefficient(n) == Coefficient(1));
-		for (std::size_t k = 0; k <= n; ++k) REQUIRE(table.binomial(n, k) == pascal[k]);
+		for (std::size_t k = 0; k <= n; ++k) REQUIRE(table.binomial(n, k) == binomial_row[k]);
 		REQUIRE(table.binomial(n, n + 1) == Coefficient(0));
 		REQUIRE(table.binomial(n, (std::numeric_limits<std::size_t>::max)()) == Coefficient(0));
 		if (n < maximum)
-			for (std::size_t k = n + 1; k > 0; --k) pascal[k] += pascal[k - 1];
+			for (std::size_t k = n + 1; k > 0; --k) binomial_row[k] += binomial_row[k - 1];
 	}
 }
 
