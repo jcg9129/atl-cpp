@@ -67,3 +67,8 @@ where to put guide prose, executable examples and API comments.
 - [Bitwise convolutions](bitwise-convolution.md): subset transforms and OR, AND, XOR and disjoint-subset products.
 - [Matrices and elimination](matrix.md): semiring products, field systems and packed XOR systems.
 - [Linear recurrences](linear-recurrence.md): shortest recurrences and distant terms over exact fields.
+- [Formal power series](power-series.md): reciprocal, division, logarithm, exponential, powers, roots and polynomial division over prime fields, with factorial tables, batch inverses and modular square roots.
+- [Polynomial points](polynomial-points.md): product trees, multipoint evaluation, interpolation, Taylor shifts, chirp-z and sample shifts over prime fields.
+- [Series composition](series-composition.md): composition, power projection and compositional inverse of power series over prime fields.
+- [Polynomial gcd](polynomial-gcd.md): gcd, extended gcd, modular inverses and Pade approximants of polynomials over prime fields.
+- [Online convolution](online-convolution.md): relaxed products of coefficient streams, with feedback, over prime fields.
