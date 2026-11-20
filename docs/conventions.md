@@ -182,6 +182,19 @@ Document new conventions here alongside their technical rationale.
   reached through a static factory (C2248), and of a named local built from
   one: give the constructor a user-provided body and return a prvalue
   (`return csr(std::move(offsets), std::move(edges));`).
+- Constexpr constructors that MSVC must evaluate take vectors and pairs by
+  `const &` when they are the target of a delegating constructor, and never
+  modify a by-value vector parameter to build from it: MSVC's constant
+  evaluation misreads such parameters ("unevaluable pointer value", a read of
+  an uninitialized symbol, or silently wrong contents). Build a local copy.
+  Likewise never `push_back` an element read from the same vector
+  (`v.push_back(v[i])`): size the vector first and assign by index.
+- Where an invariant guarantees that a `std::optional` is engaged, test it
+  anyway (`if (steps < depth && forest)`) with a comment: clang-tidy's
+  `bugprone-unchecked-optional-access` cannot see the invariant.
+- Benchmarks that hook allocation cannot use `std::aligned_alloc` (MSVC lacks
+  it): over-allocate with `malloc`, align with `std::align` and keep the
+  original pointer for the release.
 - `std::numeric_limits<T>::min()` is the smallest positive value for a
   floating `T`; a "minus infinity" starting value is `lowest()`.
 - Count edges or other range elements in a checked `std::size_t`
