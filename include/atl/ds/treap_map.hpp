@@ -103,7 +103,7 @@ namespace atl {
 				if constexpr (has_op) nodes[0].aggregate = id;
 			}
 
-			pool(Compare compare, slot<Op> fold = {}, std::conditional_t<has_op, fold_type, no_slot> identity = {})
+			explicit pool(Compare compare, slot<Op> fold = {}, std::conditional_t<has_op, fold_type, no_slot> identity = {})
 				: rng(detail::hash_seed() ^ 0x9e3779b97f4a7c15ULL), comp(detail::move_or_copy(compare)), op(detail::move_or_copy(fold)), id(std::move(identity)) {
 				nodes.emplace_back(); // id 0 = null: size 0
 				nodes[0].size = 0;

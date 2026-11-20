@@ -1,14 +1,17 @@
 # atl coding-standard enforcement.
 #
 # Naming: standard-library style (all snake_case) — see STYLE.md.
-# Two checks are treated as errors: `readability-identifier-naming` (snake_case)
-# and `modernize-use-ranges` (prefer std::ranges algorithms over iterator-pair
-# std:: calls). The rest of the bugprone/performance/modernize families are
+# Three checks are treated as errors: `readability-identifier-naming` (snake_case),
+# `modernize-use-ranges` (prefer std::ranges algorithms over iterator-pair
+# std:: calls) and `google-explicit-constructor` (constructors callable with one
+# argument are explicit unless they model a value conversion, marked NOLINT with
+# the reason). The rest of the bugprone/performance/modernize families are
 # advisory.
 
 Checks: >
   -*,
   readability-identifier-naming,
+  google-explicit-constructor,
   bugprone-*,
   performance-*,
   modernize-*,
@@ -37,7 +40,7 @@ Checks: >
 #    on purpose — their values follow the orientation sign convention.
 
 # Naming and use-ranges are blocking; other quality checks surface as warnings.
-WarningsAsErrors: 'readability-identifier-naming,modernize-use-ranges'
+WarningsAsErrors: 'readability-identifier-naming,modernize-use-ranges,google-explicit-constructor'
 
 # Only diagnose our own headers, not <system> or vendored Catch2.
 HeaderFilterRegex: '(^|[/\\])include[/\\]atl[/\\]'

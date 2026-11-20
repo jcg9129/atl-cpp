@@ -38,6 +38,13 @@ Document new conventions here alongside their technical rationale.
   skips the atomic refcount increment and decrement per operation. Both share
   one private helper that takes the pool by value. The moved-from object may
   only be destroyed or assigned to. Getters and queries are not overloaded.
+- A constructor callable with one argument (including one whose other
+  parameters all have defaults) is `explicit`. The exception is a value
+  conversion the type models on purpose, such as an integer converting to
+  `mod_int` or `software_int128` as it would to a built-in integer, or an
+  edge length converting to a top-tree cluster value; it carries
+  `// NOLINT(google-explicit-constructor): <reason>`. clang-tidy enforces this
+  on every public header.
 - Argument tags are `struct X_t { explicit X_t() = default; };` plus a
   documented `inline constexpr X_t X{};` (`inline constexpr sorted_unique_t
   sorted_unique{};`). Template-only selectors (never passed as a value, e.g.

@@ -54,7 +54,7 @@ namespace atl {
 		 * @param v Value to reduce.
 		 */
 		template<integral I>
-		constexpr mod_int(I v) {
+		constexpr mod_int(I v) { // NOLINT(google-explicit-constructor): integers convert, as for built-in arithmetic
 			value_ = mod_ops::to_form(reduce_mod<I, T>(v, mod()));
 		}
 

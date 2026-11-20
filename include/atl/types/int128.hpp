@@ -293,10 +293,10 @@ namespace atl::detail {
 
 		/** @brief Implicitly sign-extend any built-in integer operand. */
 		template<builtin_integer Integer>
-		constexpr software_uint128(Integer value) : software_uint128(integer_words(value)) {}
+		constexpr software_uint128(Integer value) : software_uint128(integer_words(value)) {} // NOLINT(google-explicit-constructor): built-in semantics
 
 		/** @brief Preserve the bit pattern when changing signedness. */
-		constexpr software_uint128(software_int128 value);
+		constexpr software_uint128(software_int128 value); // NOLINT(google-explicit-constructor): built-in semantics
 
 		/** @brief Truncate a finite floating value. @pre Truncated value is representable. */
 		template<std::floating_point Floating>
@@ -396,7 +396,7 @@ namespace atl::detail {
 
 		/** @brief Implicitly sign-extend any built-in integer operand. */
 		template<builtin_integer Integer>
-		constexpr software_int128(Integer value) : software_int128(integer_words(value)) {}
+		constexpr software_int128(Integer value) : software_int128(integer_words(value)) {} // NOLINT(google-explicit-constructor): built-in semantics
 
 		/** @brief Preserve the bit pattern when changing signedness. */
 		explicit constexpr software_int128(software_uint128 value);
