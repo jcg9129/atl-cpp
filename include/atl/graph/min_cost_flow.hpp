@@ -265,7 +265,7 @@ namespace atl::graph {
 			auto const acost = [&](uint32 a) { return arc_cost[a]; };
 			auto const flow = [&](uint32 a) -> F & { return a < m ? x[a] : artificial_flow[a - m]; };
 			auto const capacity = [&](uint32 a) { return a < m ? arcs[a].capacity : infinite_capacity; };
-			auto const residual = [&](uint32 a, bool is_along) { return is_along ? capacity(a) - flow(a) : flow(a); };
+			auto const residual = [&](uint32 a, bool is_along) { return is_along ? F(capacity(a) - flow(a)) : F(flow(a)); };
 			auto const link = [&](uint32 u, uint32 v) {
 				thread[u] = v;
 				rev_thread[v] = u;
@@ -296,7 +296,7 @@ namespace atl::graph {
 				for (std::size_t seen = 0; seen < m + n; seen += (std::min)(block, m + n - seen)) {
 					for (std::size_t k = 0; k < block; ++k, ++probe) {
 						if (probe == m + n) probe = 0;
-						C const rc = acost(uint32(probe)) + potentials[from(uint32(probe))] - potentials[to(uint32(probe))];
+						C const rc = C(acost(uint32(probe)) + potentials[from(uint32(probe))] - potentials[to(uint32(probe))]);
 						C const score = C(state[probe]) * rc;
 						if (score < best) {
 							best = score;
@@ -331,14 +331,14 @@ namespace atl::graph {
 					else
 						step(vb, false);
 				uint32 const apex = va;
-				flow(enter) += is_forward ? delta : -delta;
+				flow(enter) = F(flow(enter) + (is_forward ? delta : F(-delta)));
 				for (uint32 v = a; v != apex; v = parent[v]) {
 					uint32 const pa = parent_arc[v];
-					flow(pa) += to(pa) == v ? delta : -delta;
+					flow(pa) = F(flow(pa) + (to(pa) == v ? delta : F(-delta)));
 				}
 				for (uint32 v = bb; v != apex; v = parent[v]) {
 					uint32 const pa = parent_arc[v];
-					flow(pa) += from(pa) == v ? delta : -delta;
+					flow(pa) = F(flow(pa) + (from(pa) == v ? delta : F(-delta)));
 				}
 				if (leave == enter) {
 					state[enter] = int8(-state[enter]);
@@ -402,7 +402,7 @@ namespace atl::graph {
 				parent[cut] = hook;
 				parent_arc[cut] = enter;
 
-				C const rc = acost(enter) + potentials[from(enter)] - potentials[to(enter)];
+				C const rc = C(acost(enter) + potentials[from(enter)] - potentials[to(enter)]);
 				C const shift = cut == from(enter) ? -rc : rc;
 				uint32 v = cut;
 				for (uint32 i = 0; i < moved; ++i, v = thread[v]) potentials[v] += shift;
@@ -556,7 +556,7 @@ namespace atl::graph {
 		using C = detail::cost_type<Cost, EdgeList>;
 		using edge = std::remove_cvref_t<std::ranges::range_reference_t<EdgeList const>>;
 		atl_assert(n < none - 1 && b.size() == n);
-		auto const lower_of = [](edge const &e) {
+		auto const lower_of = []([[maybe_unused]] edge const &e) {
 			if constexpr (bounded_capacitated_edge<edge>)
 				return F(lower(e));
 			else

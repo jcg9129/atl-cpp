@@ -253,7 +253,7 @@ namespace atl::experimental {
 				for (uint32 a = net.offset[v]; a < net.offset[v + 1]; ++a) {
 					if (net.capacity[a] <= 0) continue;
 					uint32 const w = net.head[a];
-					C const step = net.cost[a] + pi[v] - pi[w];
+					C const step = C(net.cost[a] + pi[v] - pi[w]);
 					if (dist[w] == unreached || d + step < dist[w]) {
 						dist[w] = d + step;
 						heap.push({dist[w], w});
@@ -370,7 +370,7 @@ namespace atl::experimental {
 						for (uint32 a = net.offset[v]; a < net.offset[v + 1]; ++a) {
 							if (net.capacity[a] < delta) continue;
 							uint32 const w = net.head[a];
-							C const step = net.cost[a] + pi[v] - pi[w];
+							C const step = C(net.cost[a] + pi[v] - pi[w]);
 							if (dist[w] == unreached || d + step < dist[w]) {
 								dist[w] = d + step;
 								in_arc[w] = a;
@@ -475,7 +475,7 @@ namespace atl::experimental {
 			auto const flow = [&](uint32 a) -> F & { return a < m ? x[a] : artificial_arcs[a - m].flow; };
 			auto const capacity = [&](uint32 a) { return a < m ? arcs[a].capacity : infinite_capacity; };
 			auto const residual = [&](uint32 a, bool is_along) {
-				return is_along ? capacity(a) - flow(a) : flow(a);
+				return is_along ? F(capacity(a) - flow(a)) : F(flow(a));
 			};
 			// tree adjacency with per-arc positions so a pivot's attach/detach
 			// is O(1) — a linear scan of adj[root] would go quadratic when the
@@ -517,7 +517,7 @@ namespace atl::experimental {
 				for (std::size_t seen = 0; seen < m + n; seen += (std::min)(block, m + n - seen)) {
 					for (std::size_t k = 0; k < block; ++k, ++probe) {
 						if (probe == m + n) probe = 0;
-						C const rc = acost(uint32(probe)) + potentials[from(uint32(probe))] - potentials[to(uint32(probe))];
+						C const rc = C(acost(uint32(probe)) + potentials[from(uint32(probe))] - potentials[to(uint32(probe))]);
 						C const score = C(state[probe]) * rc;
 						if (score < best) {
 							best = score;
@@ -553,14 +553,14 @@ namespace atl::experimental {
 						step(va, true);
 					else
 						step(vb, false);
-				flow(enter) += is_forward ? delta : -delta;
+				flow(enter) = F(flow(enter) + (is_forward ? delta : F(-delta)));
 				for (uint32 v = a; v != va; v = parent[v]) {
 					uint32 const pa = parent_arc[v];
-					flow(pa) += to(pa) == v ? delta : -delta;
+					flow(pa) = F(flow(pa) + (to(pa) == v ? delta : F(-delta)));
 				}
 				for (uint32 v = bb; v != va; v = parent[v]) {
 					uint32 const pa = parent_arc[v];
-					flow(pa) += from(pa) == v ? delta : -delta;
+					flow(pa) = F(flow(pa) + (from(pa) == v ? delta : F(-delta)));
 				}
 				if (leave == enter) {
 					state[enter] = int8(-state[enter]);
@@ -574,7 +574,7 @@ namespace atl::experimental {
 				attach(enter);
 				uint32 const cut = leaves_on_a ? a : bb; // entering endpoint inside the cut subtree
 				uint32 const hook = leaves_on_a ? bb : a;
-				C const rc = acost(enter) + potentials[from(enter)] - potentials[to(enter)];
+				C const rc = C(acost(enter) + potentials[from(enter)] - potentials[to(enter)]);
 				C const shift = cut == from(enter) ? -rc : rc;
 				parent[cut] = hook;
 				parent_arc[cut] = enter;
@@ -664,8 +664,8 @@ namespace atl::experimental {
 					for (uint32 a = net.offset[w]; a < net.offset[w + 1]; ++a) {
 						uint32 const b = net.mate[a], x = net.head[a]; // b is the residual arc x -> w
 						if (settled[x] || net.capacity[b] <= 0) continue;
-						C const cp = net.cost[b] + pi[x] - pi[w];
-						C const nd = d + (cp < C(0) ? C(0) : cp / phase_eps + 1);
+						C const cp = C(net.cost[b] + pi[x] - pi[w]);
+						C const nd = C(d + (cp < C(0) ? C(0) : C(cp / phase_eps + 1)));
 						if (nd < label[x]) {
 							label[x] = nd;
 							heap.push({nd, x});
@@ -918,7 +918,7 @@ namespace atl::experimental {
 				for (uint32 a = net.offset[v]; a < net.offset[v + 1]; ++a) {
 					if (net.capacity[a] <= 0) continue;
 					uint32 const w = net.head[a];
-					C const step = net.cost[a] + pi[v] - pi[w];
+					C const step = C(net.cost[a] + pi[v] - pi[w]);
 					if (dist[w] == unreached || d + step < dist[w]) {
 						dist[w] = d + step;
 						in_arc[w] = a;

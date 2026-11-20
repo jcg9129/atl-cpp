@@ -176,7 +176,7 @@ namespace atl::graph {
 
 			std::vector<Sum> dist(cols);
 			std::vector<uint32> from_row(cols), order(cols);
-			std::iota(order.begin(), order.end(), uint32(0)); // stays a permutation across rows
+			for (uint32 j = 0; j < uint32(cols); ++j) order[j] = j; // stays a permutation across rows
 			for (uint32 s = 0; s < uint32(rows); ++s) {
 				if (r.row_to_col[s] != none) continue;
 				for (std::size_t j = 0; j < cols; ++j) {
