@@ -79,6 +79,9 @@ Document new conventions here alongside their technical rationale.
 - `constexpr` wherever constant evaluation is possible (exceptions: I/O,
   runtime-only state); every constexpr API gets a static_assert proof in
   the owning folder's `tests/<folder>/constexpr_checks.cpp`.
+- Every test translation unit has at least one `TEST_CASE`, including files
+  of static_assert proofs: CTest reports a unit without one as "No tests
+  ran" and fails it.
 - Reuse existing library facilities before writing new code (helpers,
   concepts, `ds/` structures, modular helpers); hand-rolled replacements
   only with a measured, stated reason.
@@ -152,6 +155,18 @@ Document new conventions here alongside their technical rationale.
 - Never rely on a braced list's left-to-right order when one element copies
   an object and a later one moves from it (`{T(pool_, a), T(std::move(pool_),
   b)}`): MSVC may move first. Copy in a separate statement.
+- Loops over a 64-bit counter shift, then test `!= 0` (`e >>= 1; if (e != 0)
+  x *= x;`). Testing `e > 1` after the body was miscompiled by MSVC x86 once
+  heavily inlined software `uint128` code surrounded it.
+- Never use a name that `<windows.h>` defines as a macro, tests included:
+  `pascal`, `cdecl`, `far`, `near` (and `small` without
+  `WIN32_LEAN_AND_MEAN`). On MSVC, `tests/expect_abort.hpp`,
+  `tests/io/interactive.cpp` and Catch2 include it, and users may include it
+  before any library header.
+- Test-file globals never share a name with a local or parameter in an
+  included header: MSVC warns that the local hides the global (C4459), which
+  `/W4 /WX` turns into an error. Keep fixtures function-local or give them
+  distinctive names.
 - No code copied from attribution-licensed sources (MIT/BSD/Apache/CC-BY
   included): cite the reference in a comment, implement independently.
 
@@ -186,6 +201,8 @@ component. Generated files go in the build tree, never in `docs/`.
   gets a brief only when it states a contract, an invariant or non-obvious
   reasoning; a brief that restates the name ("helper that adds two words")
   is deleted, not written.
+- Put template arguments in Doxygen text in backticks, as in
+  `congruence<U>`: written bare, Doxygen reads `<U>` as an HTML tag.
 - API docs use `/** ... */`; trailing member docs may use `///<`. No `///`
   line docs.
 - Every runtime-only (non-constexpr) public API states why in its docs:
