@@ -351,7 +351,7 @@ namespace atl::top_clusters {
 		constexpr diameter_value() = default;
 
 		/** @brief An edge of length @p edge_length. */
-		constexpr diameter_value(W edge_length) : length(std::move(edge_length)) {} // implicit: an edge length converts
+		constexpr diameter_value(W edge_length) : length(std::move(edge_length)) {} // NOLINT(google-explicit-constructor): an edge length converts
 
 		/** @brief The value of vertex @p v (what a `diameter_top_tree` starts each vertex with). */
 		[[nodiscard]] static constexpr diameter_value of_vertex(uint32 v) {
@@ -503,7 +503,7 @@ namespace atl::top_clusters {
 		constexpr marked_value() = default;
 
 		/** @brief An edge of length @p edge_length. */
-		constexpr marked_value(W edge_length) : length(std::move(edge_length)) {} // implicit: an edge length converts
+		constexpr marked_value(W edge_length) : length(std::move(edge_length)) {} // NOLINT(google-explicit-constructor): an edge length converts
 
 		/** @brief Compare every stored field. */
 		[[nodiscard]] constexpr bool operator==(marked_value const &) const = default;

@@ -98,7 +98,7 @@ namespace atl {
 		 * @note Not constexpr (reads the shared runtime modulus).
 		 */
 		template<integral I>
-		dynamic_mod_int(I v) {
+		dynamic_mod_int(I v) { // NOLINT(google-explicit-constructor): integers convert, as for built-in arithmetic
 			if constexpr (sizeof(T) == 4 && sizeof(I) == 8) {
 				if constexpr (std::is_unsigned_v<I>) {
 					value_ = reduce_wide(uint64(v));

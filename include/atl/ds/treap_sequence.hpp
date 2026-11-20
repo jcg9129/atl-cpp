@@ -119,8 +119,8 @@ namespace atl {
 			[[no_unique_address]] std::conditional_t<has_op, T, no_slot> element_identity;
 			[[no_unique_address]] slot<F> tag_identity;
 
-			pool(slot<Op> fold = {}, slot<Mapping> map = {}, slot<Compose> composition = {},
-				 std::conditional_t<has_op, T, no_slot> identity = {}, slot<F> tag_unit = {})
+			explicit pool(slot<Op> fold = {}, slot<Mapping> map = {}, slot<Compose> composition = {},
+						  std::conditional_t<has_op, T, no_slot> identity = {}, slot<F> tag_unit = {})
 				: rng(detail::hash_seed() ^ 0x9e3779b97f4a7c15ULL), op(detail::move_or_copy(fold)), mapping(detail::move_or_copy(map)), compose(detail::move_or_copy(composition)),
 				  element_identity(std::move(identity)), tag_identity(std::move(tag_unit)) {
 				nodes.emplace_back(); // id 0 = null: size 0, never read otherwise

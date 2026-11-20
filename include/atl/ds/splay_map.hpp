@@ -111,7 +111,7 @@ namespace atl {
 				if constexpr (has_op) payloads(0).aggregate = identity;
 			}
 
-			splay_map_pool(Compare compare, slot<Op> fold = {}, std::conditional_t<has_op, fold_type, no_slot> unit = {})
+			explicit splay_map_pool(Compare compare, slot<Op> fold = {}, std::conditional_t<has_op, fold_type, no_slot> unit = {})
 				: comp(detail::move_or_copy(compare)), op(detail::move_or_copy(fold)), identity(std::move(unit)) {
 				append_node();
 				if constexpr (has_op) payloads(0).aggregate = identity;
