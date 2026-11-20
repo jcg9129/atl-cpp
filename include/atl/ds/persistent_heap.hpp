@@ -182,7 +182,8 @@ namespace atl {
 	/**
 	 * @brief A fully persistent meldable priority queue: `push`, `pop`, `meld`
 	 *        and `push_range` return a new version and leave every old one
-	 *        intact, at O(log n) expected new nodes per operation.
+	 *        intact, at O(log n) expected new nodes per push, pop or meld.
+	 *        push_range creates O(N + log n) expected new nodes for N elements.
 	 *
 	 * A randomized meldable heap (a heap-ordered binary tree whose meld walks
 	 * down a coin-picked path), so path copying changes the O(log n) expected

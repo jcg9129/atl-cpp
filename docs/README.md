@@ -65,7 +65,7 @@ where to put guide prose, executable examples and API comments.
 - [Floor sums](floor-sum.md): Euclidean sums, staircase products and first residues.
 - [Convolution and transforms](convolution.md): modular and exact integer polynomial products, NTT engines and complex FFT.
 - [Bitwise convolutions](bitwise-convolution.md): subset transforms and OR, AND, XOR and disjoint-subset products.
-- [Matrices and elimination](matrix.md): semiring products, field systems and packed XOR systems.
+- [Matrices and elimination](matrix.md): semiring products, field systems, packed XOR systems and matrix-tree counts.
 - [Linear recurrences](linear-recurrence.md): shortest recurrences and distant terms over exact fields.
 - [Formal power series](power-series.md): reciprocal, division, logarithm, exponential, powers, roots and polynomial division over prime fields, with factorial tables, batch inverses and modular square roots.
 - [Polynomial points](polynomial-points.md): product trees, multipoint evaluation, interpolation, Taylor shifts, chirp-z and sample shifts over prime fields.
@@ -73,6 +73,10 @@ where to put guide prose, executable examples and API comments.
 - [Polynomial gcd](polynomial-gcd.md): gcd, extended gcd, modular inverses and Pade approximants of polynomials over prime fields.
 - [Online convolution](online-convolution.md): relaxed products of coefficient streams, with feedback, over prime fields.
 - [Graphs](graph.md): edge vocabulary, CSR and generated representations, traversal views and visitors, markers and partitions.
+- [Maximum flow](max-flow.md): maximum flow, minimum-cut certificates and lower bounds.
+- [Min-cost flow](min-cost-flow.md): costs, supplies, lower bounds and dual certificates.
+- [Dense assignment](assignment.md): rectangular matching with exact dual potentials.
+- [Bipartite matching](bipartite-matching.md): matching, vertex sets, edge roles and DAG covers.
 - [Graph components](graph-components.md): directed SCCs, bridge components, edge blocks and articulation points.
 - [Lowest common ancestors](lca.md): static forest queries and heavy-first path intervals.
 - [Virtual trees](virtual-tree.md): sparse key sets closed under LCA.

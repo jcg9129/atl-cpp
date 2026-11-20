@@ -14,8 +14,12 @@
  * 1014 / 1015) but loses on linear push/pop (124 / 125 versus 101 / 98.2).
  * These records are 2026-10-23 / 2026-10-24, with the same CPU and flags.
  * Persistent skew and pairing heaps are excluded because repeated expensive
- * operations on one version defeat their amortized bounds. The k-shortest-walk
- * comparisons are not published yet. Tests certify all variants by a multiset per version.
+ * operations on one version defeat their amortized bounds. On k-shortest random n=1e5 m=3e5 heap construction, class vector heapify
+ * takes 19.5 / 20.2 ms versus in-arena 16.7 / 16.4; forest takes
+ * 16.0 / 16.5 versus 13.0 / 13.2 (2026-11-01, same CPU/compiler/flags).
+ * Complete forest-walk tuning with K=3e5 takes 174 / 179 ms by rank-leftist,
+ * 184 / 183 by weight-biased and 170 / 168 by randomized meld with branch/reuse
+ * (2026-10-23, same CPU/compiler/flags). Tests certify all variants by a multiset per version.
  */
 
 #include <atl/ds/detail/forward_element.hpp>
