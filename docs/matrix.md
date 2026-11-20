@@ -1,14 +1,16 @@
-# `atl::matrix`, Gaussian elimination and `atl::bit_matrix`
+# `atl::matrix`, elimination and matrix-tree counting
 
 Dense matrices compose linear maps and semiring walks; elimination finds ranks,
 determinants, inverses and affine solution spaces. Use packed `bit_matrix` for
 XOR systems. Dense cubic algorithms suit dimensions of a few hundred; packed
-systems can be much wider.
+systems can be much wider. Matrix-tree determinants count spanning trees and
+rooted directed arborescences modulo a chosen modulus.
 
 ```cpp
 #include <atl/nt/matrix.hpp>
 #include <atl/nt/gaussian_elimination.hpp>
 #include <atl/nt/bit_matrix.hpp>
+#include <atl/graph/spanning_tree_count.hpp>
 ```
 
 \include matrix/quick.cpp
@@ -134,6 +136,25 @@ Unused bits of the last word must remain zero when modifying a borrowed span.
 `constexpr bool is_unique() const`. It follows the field result's conventions;
 solutions combine the basis rows by XOR.
 
+### Matrix-tree counts
+
+All three functions are in `atl::graph` and use
+`template<modular_integer Z, edge_list EdgeList>`:
+
+| constexpr declaration | meaning |
+|---|---|
+| `Z count_spanning_trees(std::size_t vertex_count, EdgeList const &edges)` | undirected spanning trees |
+| `Z count_out_arborescences(std::size_t vertex_count, EdgeList const &edges, vertex_id root)` | directed trees reaching every vertex from root |
+| `Z count_in_arborescences(std::size_t vertex_count, EdgeList const &edges, vertex_id root)` | directed trees in which every vertex reaches root |
+
+Each list element represents one edge or arc; parallel edges are distinct and
+self-loops do not contribute. The count is reduced modulo Z::mod(). A singleton
+has one empty tree; a disconnected undirected graph has zero. Const forward
+ranges, including proxies with usable endpoints, are accepted. No input storage
+is retained or modified. Prime moduli use field elimination; composite moduli
+and modulus one use Euclidean determinant reduction. These entry points accept
+modular integers rather than arbitrary field types.
+
 ## Complexity
 
 For r×c matrices, dimension construction and addition cost O(rc) time;
@@ -156,6 +177,10 @@ solve costs O(r(c+1)+r rank ceil((c+1)/64)+c²) time and
 O(r ceil((c+1)/64)+c ceil(c/64)) words plus O(r+c) bookkeeping.
 These bounds include empty and rank-zero shapes.
 
+Matrix-tree counting takes O(n³+m) time with prime modulus and
+O(n³+n² log(mod+1)+m) otherwise, using O(n²) heap storage and O(1) call stack.
+There is no recursion per vertex.
+
 ## Preconditions
 
 Asserted with `ATL_ASSERT`: dimensions below 2^32, storage products fitting the
@@ -177,6 +202,12 @@ sentinel propagation does not clamp other sums. Floating policy values must not
 be NaN. These domain restrictions are preconditions, not checked. Floating
 elimination values and tolerance must be finite, with tolerance nonnegative.
 Packed padding bits must stay zero.
+
+Matrix-tree assertions require 1 <= n <= UINT32_MAX, root < n, endpoints
+in [0,n), a positive modulus at most UINT64_MAX, and reduced storage
+(n-1)² <= vector<Z>::max_size(). Modular arithmetic laws and a modulus valid
+for Z are documented preconditions; exact modular arithmetic does not overflow
+a host integer tree count, even when the unreduced count is enormous.
 
 `matrix<bool>` is rejected: `vector<bool>` cannot provide the element references,
 contiguous row spans and pointers promised by the matrix API. Use `bit_matrix`
@@ -219,9 +250,11 @@ Other operations (plain -O2 / -march=native):
 | `determinant_any_modulus` n=200 / n=500 | 10.5 / 151 | 9.0 / 129 |
 | `inverse` n=200 / n=500 | 18.8 / 297 | 18.9 / 295 |
 | `bit_matrix` `solve_linear_system`, n=2000 | 33.3 | 35.2 |
+| `count_spanning_trees`, n=500, m=10000 | 54.7 | 55.0 |
 
-The spanning-tree comparison is not published yet; its measured rows are
-omitted until it is.
+The matrix-tree row measures reduced-Laplacian construction and its modular
+determinant on 10000 generated undirected edges at n=500. It uses the same
+benchmark source and measurement setup; there is no alternate counting contender.
 
 ## Pitfalls and notes
 
@@ -246,8 +279,17 @@ column the pivot decreases, giving the logarithmic term in its bound.
 Binary elimination replaces scaled row subtraction with whole-word XORs;
 nonpivot columns generate the null-space basis.
 
+Matrix-tree counting builds D-A with the root row and column omitted.
+The undirected Laplacian counts both endpoint degrees and both adjacency
+entries; directed out-arborescences use in-degrees and in-arborescences use
+out-degrees. Loops cancel and are skipped. Kirchhoff's matrix-tree theorem
+identifies the cofactor determinant with the desired count. The implementation
+dispatches on primality to field elimination or Euclidean row reduction.
+
 ## See also
 
+- [Graphs](graph.md)
+- [Maximum flow](max-flow.md)
 - [Power](power.md)
 - [Modular arithmetic](modular-arithmetic.md)
 - [Linear recurrences](linear-recurrence.md)

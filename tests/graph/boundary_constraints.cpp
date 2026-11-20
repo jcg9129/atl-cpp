@@ -1,22 +1,34 @@
+#include <atl/experimental/graph/assignment_variants.hpp>
 #include <atl/experimental/graph/biconnected_components_variants.hpp>
+#include <atl/experimental/graph/bipartite_matching_variants.hpp>
 #include <atl/experimental/graph/centroid_bisect_variants.hpp>
 #include <atl/experimental/graph/centroid_variants.hpp>
 #include <atl/experimental/graph/csr_variants.hpp>
 #include <atl/experimental/graph/deletion_time_connectivity.hpp>
+#include <atl/experimental/graph/k_shortest_walks.hpp>
+#include <atl/experimental/graph/k_shortest_walks_variants.hpp>
 #include <atl/experimental/graph/lca_variants.hpp>
+#include <atl/experimental/graph/max_flow_variants.hpp>
+#include <atl/experimental/graph/min_cost_flow_variants.hpp>
 #include <atl/experimental/graph/scc_variants.hpp>
 #include <atl/experimental/graph/two_edge_connected_components_variants.hpp>
 #include <atl/experimental/graph/virtual_tree_variants.hpp>
+#include <atl/graph/assignment.hpp>
 #include <atl/graph/biconnected_components.hpp>
+#include <atl/graph/bipartite_matching.hpp>
 #include <atl/graph/centroid_bisect.hpp>
 #include <atl/graph/centroid_decomposition.hpp>
 #include <atl/graph/csr.hpp>
 #include <atl/graph/lca.hpp>
+#include <atl/graph/max_flow.hpp>
+#include <atl/graph/min_cost_flow.hpp>
 #include <atl/graph/scc.hpp>
+#include <atl/graph/spanning_tree_count.hpp>
 #include <atl/graph/ternarization.hpp>
 #include <atl/graph/traversal.hpp>
 #include <atl/graph/two_edge_connected_components.hpp>
 #include <atl/graph/virtual_tree.hpp>
+#include <atl/nt/mod_int.hpp>
 #include <array>
 #include <catch2/catch.hpp>
 #include <compare>
@@ -398,4 +410,322 @@ namespace graph_review_boundary {
 												  decltype([](atl::graph::visit) { return 0; }),
 												  decltype([](int &, int, atl::graph::visit, atl::graph::visit, atl::graph::vertex_id) {}),
 												  decltype([](int &, atl::graph::visit &&) {})>);
+}
+
+namespace graph_flow_boundary {
+	template<typename Flow>
+	concept accepts_result = requires { typename atl::graph::max_flow_result<Flow>; };
+	static_assert(!accepts_result<std::string>);
+	template<typename Flow, typename Edges>
+	concept accepts_plain = requires(Edges const &edges) {
+		atl::graph::max_flow<Flow>(2, edges, 0, 1);
+		atl::graph::max_flow_value<Flow>(2, edges, 0, 1);
+	};
+	template<typename Flow, typename Edges>
+	concept accepts_bounded = requires(Edges const &edges, std::vector<Flow> supply) {
+		atl::graph::feasible_flow<Flow>(2, edges, supply);
+		atl::graph::bounded_max_flow<Flow>(2, edges, 0, 1);
+		atl::graph::bounded_min_flow<Flow>(2, edges, 0, 1);
+	};
+	template<typename Flow>
+	concept accepts_edmonds_karp = requires(std::vector<atl::graph::flow_arc<int>> const &edges) {
+		atl::experimental::max_flow_by_edmonds_karp<Flow>(2, edges, 0, 1);
+	};
+
+	template<typename Flow>
+	concept accepts_dinic = requires(std::vector<atl::graph::flow_arc<int>> const &edges) {
+		atl::experimental::max_flow_by_dinic<Flow>(2, edges, 0, 1);
+	};
+
+	template<typename Flow>
+	concept accepts_isap = requires(std::vector<atl::graph::flow_arc<int>> const &edges) {
+		atl::experimental::max_flow_by_isap<Flow>(2, edges, 0, 1);
+	};
+
+	template<typename Flow>
+	concept accepts_capacity_scaling_dinic = requires(std::vector<atl::graph::flow_arc<int>> const &edges) {
+		atl::experimental::max_flow_by_capacity_scaling_dinic<Flow>(2, edges, 0, 1);
+	};
+
+	template<typename Flow>
+	concept accepts_capacity_scaling_edmonds_karp = requires(std::vector<atl::graph::flow_arc<int>> const &edges) {
+		atl::experimental::max_flow_by_capacity_scaling_edmonds_karp<Flow>(2, edges, 0, 1);
+	};
+
+	template<typename Z, typename Edges>
+	concept accepts_counts = requires(Edges const &edges) {
+		atl::graph::count_spanning_trees<Z>(2, edges);
+		atl::graph::count_out_arborescences<Z>(2, edges, 0);
+		atl::graph::count_in_arborescences<Z>(2, edges, 0);
+	};
+
+	template<typename Flow, typename Edges>
+	concept accepts_value = requires(Edges const &edges) { atl::graph::max_flow_value<Flow>(2, edges, 0, 1); };
+	template<typename Flow, typename Edges>
+	concept accepts_maximum = requires(Edges const &edges) { atl::graph::bounded_max_flow<Flow>(2, edges, 0, 1); };
+	template<typename Flow, typename Edges>
+	concept accepts_minimum = requires(Edges const &edges) { atl::graph::bounded_min_flow<Flow>(2, edges, 0, 1); };
+	template<typename Flow, typename Edges>
+	concept accepts_feasibility = requires(Edges const &edges, std::vector<Flow> b) { atl::graph::feasible_flow<Flow>(2, edges, b); };
+
+	template<typename Z>
+	concept accepts_out_count = requires(std::vector<atl::graph::arc<>> const &edges) {
+		atl::graph::count_out_arborescences<Z>(2, edges, 0);
+	};
+	template<typename Z>
+	concept accepts_in_count = requires(std::vector<atl::graph::arc<>> const &edges) {
+		atl::graph::count_in_arborescences<Z>(2, edges, 0);
+	};
+
+	struct non_numeric_capacity {
+		atl::graph::vertex_id from, to;
+		std::string capacity;
+	};
+
+	struct non_numeric_lower {
+		atl::graph::vertex_id from, to;
+		int capacity;
+		std::string lower;
+	};
+
+	using plain = std::vector<atl::graph::flow_arc<int>>;
+	using bounded = std::vector<atl::graph::bounded_flow_arc<int>>;
+	static_assert(!accepts_plain<std::string, plain>);
+	static_assert(!accepts_plain<int, bounded>);
+	static_assert(!accepts_value<int, bounded>);
+	static_assert(!accepts_value<bool, plain>);
+	static_assert(!accepts_plain<int, std::vector<non_numeric_capacity>>);
+	static_assert(!accepts_bounded<unsigned, bounded>);
+	static_assert(!accepts_maximum<unsigned, bounded>);
+	static_assert(!accepts_minimum<unsigned, bounded>);
+	static_assert(!accepts_feasibility<unsigned, bounded>);
+	static_assert(!accepts_bounded<int, std::vector<non_numeric_lower>>);
+	static_assert(!accepts_edmonds_karp<std::string>);
+	static_assert(!accepts_dinic<std::string>);
+	static_assert(!accepts_isap<std::string>);
+	static_assert(!accepts_capacity_scaling_dinic<double>);
+	static_assert(!accepts_capacity_scaling_edmonds_karp<double>);
+	static_assert(!accepts_capacity_scaling_dinic<bool>);
+	static_assert(!accepts_capacity_scaling_edmonds_karp<bool>);
+	static_assert(!accepts_counts<int, std::vector<atl::graph::arc<>>>);
+	static_assert(!accepts_out_count<int>);
+	static_assert(!accepts_in_count<int>);
+	static_assert(!accepts_counts<atl::mod_int32<7>, std::vector<int>>);
+}
+
+namespace graph_cost_constraints {
+	template<typename Value>
+	concept assignment_accepts = requires(std::vector<std::vector<Value>> const &matrix) {
+		atl::graph::assignment(matrix);
+	};
+	static_assert(assignment_accepts<int> && assignment_accepts<atl::int128>);
+	static_assert(!assignment_accepts<unsigned> && !assignment_accepts<bool>);
+	static_assert(!assignment_accepts<double> && !assignment_accepts<std::string>);
+	template<typename Value>
+	concept assignment_by_shortest_augmenting_paths_accepts = requires(std::vector<std::vector<Value>> const &matrix) {
+		atl::experimental::assignment_by_shortest_augmenting_paths(matrix);
+	};
+	static_assert(assignment_by_shortest_augmenting_paths_accepts<int> && assignment_by_shortest_augmenting_paths_accepts<atl::int128>);
+	static_assert(!assignment_by_shortest_augmenting_paths_accepts<unsigned> && !assignment_by_shortest_augmenting_paths_accepts<bool>);
+	static_assert(!assignment_by_shortest_augmenting_paths_accepts<double> && !assignment_by_shortest_augmenting_paths_accepts<std::string>);
+	template<typename Value>
+	concept assignment_by_auction_accepts = requires(std::vector<std::vector<Value>> const &matrix) {
+		atl::experimental::assignment_by_auction(matrix);
+	};
+	static_assert(assignment_by_auction_accepts<int> && assignment_by_auction_accepts<atl::int128>);
+	static_assert(!assignment_by_auction_accepts<unsigned> && !assignment_by_auction_accepts<bool>);
+	static_assert(!assignment_by_auction_accepts<double> && !assignment_by_auction_accepts<std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_max_flow_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+												 std::vector<Flow> const &flow) {
+		atl::graph::min_cost_max_flow<Flow, Cost>(2, edges, 0, 1);
+	};
+	static_assert(min_cost_max_flow_accepts<int, int> && min_cost_max_flow_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_max_flow_accepts<unsigned, int> && !min_cost_max_flow_accepts<int, unsigned>);
+	static_assert(!min_cost_max_flow_accepts<bool, int> && !min_cost_max_flow_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_feasible_flow_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+													  std::vector<Flow> const &flow) {
+		atl::graph::min_cost_feasible_flow<Flow, Cost>(2, edges, flow);
+	};
+	static_assert(min_cost_feasible_flow_accepts<int, int> && min_cost_feasible_flow_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_feasible_flow_accepts<unsigned, int> && !min_cost_feasible_flow_accepts<int, unsigned>);
+	static_assert(!min_cost_feasible_flow_accepts<bool, int> && !min_cost_feasible_flow_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_flow_potentials_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+														std::vector<Flow> const &flow) {
+		atl::graph::min_cost_flow_potentials<Flow, Cost>(2, edges, flow);
+	};
+	static_assert(min_cost_flow_potentials_accepts<int, int> && min_cost_flow_potentials_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_flow_potentials_accepts<unsigned, int> && !min_cost_flow_potentials_accepts<int, unsigned>);
+	static_assert(!min_cost_flow_potentials_accepts<bool, int> && !min_cost_flow_potentials_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_max_flow_by_spfa_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+														 std::vector<Flow> const &flow) {
+		atl::experimental::min_cost_max_flow_by_spfa<Flow, Cost>(2, edges, 0, 1);
+	};
+	static_assert(min_cost_max_flow_by_spfa_accepts<int, int> && min_cost_max_flow_by_spfa_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_max_flow_by_spfa_accepts<unsigned, int> && !min_cost_max_flow_by_spfa_accepts<int, unsigned>);
+	static_assert(!min_cost_max_flow_by_spfa_accepts<bool, int> && !min_cost_max_flow_by_spfa_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_max_flow_by_dijkstra_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+															 std::vector<Flow> const &flow) {
+		atl::experimental::min_cost_max_flow_by_dijkstra<Flow, Cost>(2, edges, 0, 1);
+	};
+	static_assert(min_cost_max_flow_by_dijkstra_accepts<int, int> && min_cost_max_flow_by_dijkstra_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_max_flow_by_dijkstra_accepts<unsigned, int> && !min_cost_max_flow_by_dijkstra_accepts<int, unsigned>);
+	static_assert(!min_cost_max_flow_by_dijkstra_accepts<bool, int> && !min_cost_max_flow_by_dijkstra_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_max_flow_by_zkw_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+														std::vector<Flow> const &flow) {
+		atl::experimental::min_cost_max_flow_by_zkw<Flow, Cost>(2, edges, 0, 1);
+	};
+	static_assert(min_cost_max_flow_by_zkw_accepts<int, int> && min_cost_max_flow_by_zkw_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_max_flow_by_zkw_accepts<unsigned, int> && !min_cost_max_flow_by_zkw_accepts<int, unsigned>);
+	static_assert(!min_cost_max_flow_by_zkw_accepts<bool, int> && !min_cost_max_flow_by_zkw_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_max_flow_by_capacity_scaling_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+																	 std::vector<Flow> const &flow) {
+		atl::experimental::min_cost_max_flow_by_capacity_scaling<Flow, Cost>(2, edges, 0, 1);
+	};
+	static_assert(min_cost_max_flow_by_capacity_scaling_accepts<int, int> && min_cost_max_flow_by_capacity_scaling_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_max_flow_by_capacity_scaling_accepts<unsigned, int> && !min_cost_max_flow_by_capacity_scaling_accepts<int, unsigned>);
+	static_assert(!min_cost_max_flow_by_capacity_scaling_accepts<bool, int> && !min_cost_max_flow_by_capacity_scaling_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_max_flow_by_cost_scaling_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+																 std::vector<Flow> const &flow) {
+		atl::experimental::min_cost_max_flow_by_cost_scaling<Flow, Cost>(2, edges, 0, 1);
+	};
+	static_assert(!min_cost_max_flow_by_cost_scaling_accepts<int, double>);
+	static_assert(min_cost_max_flow_by_cost_scaling_accepts<int, int> && min_cost_max_flow_by_cost_scaling_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_max_flow_by_cost_scaling_accepts<unsigned, int> && !min_cost_max_flow_by_cost_scaling_accepts<int, unsigned>);
+	static_assert(!min_cost_max_flow_by_cost_scaling_accepts<bool, int> && !min_cost_max_flow_by_cost_scaling_accepts<int, std::string>);
+	template<typename Flow, typename Cost>
+	concept min_cost_max_flow_by_cost_scaling_price_update_accepts = requires(std::vector<atl::graph::flow_arc<int, int>> const &edges,
+																			  std::vector<Flow> const &flow) {
+		atl::experimental::min_cost_max_flow_by_cost_scaling_price_update<Flow, Cost>(2, edges, 0, 1);
+	};
+	static_assert(!min_cost_max_flow_by_cost_scaling_price_update_accepts<int, double>);
+	static_assert(min_cost_max_flow_by_cost_scaling_price_update_accepts<int, int> && min_cost_max_flow_by_cost_scaling_price_update_accepts<atl::int128, atl::int128>);
+	static_assert(!min_cost_max_flow_by_cost_scaling_price_update_accepts<unsigned, int> && !min_cost_max_flow_by_cost_scaling_price_update_accepts<int, unsigned>);
+	static_assert(!min_cost_max_flow_by_cost_scaling_price_update_accepts<bool, int> && !min_cost_max_flow_by_cost_scaling_price_update_accepts<int, std::string>);
+}
+
+namespace graph_matching_constraints {
+	template<typename Edges>
+	concept accepts_bipartite_matching = requires(Edges const &edges) { atl::graph::bipartite_matching(2, 2, edges); };
+	static_assert(!accepts_bipartite_matching<std::vector<int>>);
+	static_assert(accepts_bipartite_matching<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_minimum_vertex_cover = requires(Edges const &edges) { atl::graph::minimum_vertex_cover(2, 2, edges, atl::graph::bipartite_matching_result{}); };
+	static_assert(!accepts_minimum_vertex_cover<std::vector<int>>);
+	static_assert(accepts_minimum_vertex_cover<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_maximum_independent_set = requires(Edges const &edges) { atl::graph::maximum_independent_set(2, 2, edges, atl::graph::bipartite_matching_result{}); };
+	static_assert(!accepts_maximum_independent_set<std::vector<int>>);
+	static_assert(accepts_maximum_independent_set<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_matching_edge_roles = requires(Edges const &edges) { atl::graph::matching_edge_roles(2, 2, edges, atl::graph::bipartite_matching_result{}); };
+	static_assert(!accepts_matching_edge_roles<std::vector<int>>);
+	static_assert(accepts_matching_edge_roles<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_minimum_path_cover = requires(Edges const &edges) { atl::graph::minimum_path_cover(2, edges); };
+	static_assert(!accepts_minimum_path_cover<std::vector<int>>);
+	static_assert(accepts_minimum_path_cover<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_minimum_chain_cover = requires(Edges const &edges) { atl::graph::minimum_chain_cover(2, edges); };
+	static_assert(!accepts_minimum_chain_cover<std::vector<int>>);
+	static_assert(accepts_minimum_chain_cover<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_bipartite_matching_by_hopcroft_karp = requires(Edges const &edges) { atl::experimental::bipartite_matching_by_hopcroft_karp(2, 2, edges); };
+	static_assert(!accepts_bipartite_matching_by_hopcroft_karp<std::vector<int>>);
+	static_assert(accepts_bipartite_matching_by_hopcroft_karp<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_bipartite_matching_by_kuhn = requires(Edges const &edges) { atl::experimental::bipartite_matching_by_kuhn(2, 2, edges); };
+	static_assert(!accepts_bipartite_matching_by_kuhn<std::vector<int>>);
+	static_assert(accepts_bipartite_matching_by_kuhn<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_bipartite_matching_by_kuhn_passes = requires(Edges const &edges) { atl::experimental::bipartite_matching_by_kuhn_passes(2, 2, edges); };
+	static_assert(!accepts_bipartite_matching_by_kuhn_passes<std::vector<int>>);
+	static_assert(accepts_bipartite_matching_by_kuhn_passes<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_shortest_paths_to = requires(Edges const &edges) { atl::experimental::shortest_paths_to(2, edges, 1); };
+	static_assert(!accepts_shortest_paths_to<std::vector<int>>);
+	static_assert(!accepts_shortest_paths_to<std::vector<atl::graph::arc<std::string>>>);
+	static_assert(accepts_shortest_paths_to<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_sidetracks_of = requires(Edges const &edges) { atl::experimental::sidetracks_of(2, edges, atl::experimental::shortest_path_tree{}); };
+	static_assert(!accepts_sidetracks_of<std::vector<int>>);
+	static_assert(!accepts_sidetracks_of<std::vector<atl::graph::arc<std::string>>>);
+	static_assert(accepts_sidetracks_of<std::vector<atl::graph::arc<int>>>);
+	template<typename Edges>
+	concept accepts_k_shortest_walks = requires(Edges const &edges) { atl::experimental::k_shortest_walks(2, edges, 0, 1, 2); };
+	static_assert(!accepts_k_shortest_walks<std::vector<int>>);
+	static_assert(!accepts_k_shortest_walks<std::vector<atl::graph::arc<std::string>>>);
+	static_assert(accepts_k_shortest_walks<std::vector<atl::graph::arc<int>>>);
+
+	using heap = atl::persistent_heap<atl::experimental::sidetrack, atl::experimental::cheaper_sidetrack>;
+	using forest = atl::persistent_heap_forest<atl::experimental::sidetrack, atl::experimental::cheaper_sidetrack>;
+
+	struct heap_without_ranges : heap {
+		heap_without_ranges pop() const;
+		template<std::ranges::input_range R>
+		heap_without_ranges push_range(R &&) const = delete;
+	};
+
+	struct forest_without_ranges : forest {
+		forest_without_ranges() : forest() {}
+
+		template<std::ranges::input_range R>
+		atl::uint32 push_range(atl::uint32, R &&) = delete;
+	};
+
+	static_assert(atl::experimental::eppstein_class_heap<heap_without_ranges>);
+	static_assert(atl::experimental::eppstein_forest_heap<forest_without_ranges>);
+
+	struct bad_lists {
+		std::span<int const> of(atl::uint32) const;
+	};
+
+	struct bad_order_tree {
+		std::vector<atl::int64> distance;
+		std::vector<atl::uint32> next;
+		std::vector<std::string> order;
+	};
+
+	static_assert(!atl::experimental::eppstein_stages<bad_order_tree, atl::experimental::sidetrack_lists>);
+	static_assert(!atl::experimental::eppstein_class_heap<atl::persistent_heap<int>>);
+	static_assert(!atl::experimental::eppstein_forest_heap<atl::persistent_heap_forest<int>>);
+	template<typename Heap, typename Lists>
+	concept accepts_class_walk = requires(atl::experimental::shortest_path_tree const &tree, Lists const &lists) {
+		atl::experimental::k_shortest_walks_by_class_walk<Heap>(2, tree, lists, 0, 1, 2);
+	};
+	static_assert(accepts_class_walk<heap, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_class_walk<heap, bad_lists>);
+	static_assert(!accepts_class_walk<int, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_class_walk<heap_without_ranges, atl::experimental::sidetrack_lists>);
+	template<typename Heap, typename Lists>
+	concept accepts_class_pop = requires(atl::experimental::shortest_path_tree const &tree, Lists const &lists) {
+		atl::experimental::k_shortest_walks_by_class_pop<Heap>(2, tree, lists, 0, 1, 2);
+	};
+	static_assert(accepts_class_pop<heap, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_class_pop<heap, bad_lists>);
+	static_assert(!accepts_class_pop<int, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_class_pop<heap_without_ranges, atl::experimental::sidetrack_lists>);
+	template<typename Heap, typename Lists>
+	concept accepts_forest_walk = requires(atl::experimental::shortest_path_tree const &tree, Lists const &lists) {
+		atl::experimental::k_shortest_walks_by_forest_walk<Heap>(2, tree, lists, 0, 1, 2);
+	};
+	static_assert(accepts_forest_walk<forest, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_forest_walk<forest, bad_lists>);
+	static_assert(!accepts_forest_walk<int, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_forest_walk<forest_without_ranges, atl::experimental::sidetrack_lists>);
+	template<typename Heap, typename Lists>
+	concept accepts_forest_pop = requires(atl::experimental::shortest_path_tree const &tree, Lists const &lists) {
+		atl::experimental::k_shortest_walks_by_forest_pop<Heap>(2, tree, lists, 0, 1, 2);
+	};
+	static_assert(accepts_forest_pop<forest, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_forest_pop<forest, bad_lists>);
+	static_assert(!accepts_forest_pop<int, atl::experimental::sidetrack_lists>);
+	static_assert(!accepts_forest_pop<forest_without_ranges, atl::experimental::sidetrack_lists>);
 }

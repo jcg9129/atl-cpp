@@ -4,12 +4,13 @@
  * @file
  * @brief Workloads shared by the persistent-heap tuning and race benchmarks:
  *        random version DAGs, a linear push / pop script, a keep-all-versions
- *        shape. Inputs are
+ *        shape, random weighted graphs and directed unit grids. Inputs are
  *        generated outside the timed region; each run returns a checksum.
  */
 
 #include <atl/experimental/ds/meldable_heap_variants.hpp>
 #include <atl/experimental/ds/persistent_heap_variants.hpp>
+#include <atl/graph/concepts.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/utils/assert.hpp>
 #include <algorithm>
@@ -207,4 +208,37 @@ namespace persistent_heap_bench {
 		using enum atl::experimental::persistent_heap_algorithm;
 		return a == rank_leftist ? "by rank leftist" : (a == weight_biased ? "by weight biased" : "by randomized meld");
 	}
+
+	using arc = atl::graph::arc<int64>;
+
+	/** @brief A random in-tree reaching vertex 1, augmented to m random positive-weight arcs. */
+	[[nodiscard]] inline std::vector<arc> random_graph(uint64 seed, std::size_t n, std::size_t m) {
+		atl_assert(n >= 2 && n < std::numeric_limits<uint32>::max() && m >= n - 1);
+		std::mt19937_64 rng(seed);
+		std::vector<uint32> order(n);
+		std::iota(order.begin(), order.end(), uint32(0));
+		std::swap(order[0], order[1]);
+		std::ranges::shuffle(order.begin() + 1, order.end(), rng);
+		std::vector<arc> edges;
+		edges.reserve(m);
+		for (std::size_t i = 1; i < n; ++i)
+			edges.push_back({order[i], order[std::size_t(rng() % i)], int64(1 + rng() % 1000000000)});
+		while (edges.size() < m) edges.push_back({uint32(rng() % n), uint32(rng() % n), int64(1 + rng() % 1000000000)});
+		std::ranges::shuffle(edges, rng);
+		return edges;
+	}
+
+	/** @brief A side-by-side grid with unit arcs right and down and many equal-length walks. */
+	[[nodiscard]] inline std::vector<arc> grid_graph(std::size_t side) {
+		atl_assert(side == 0 || side <= (uint64(std::numeric_limits<uint32>::max()) - 1) / side);
+		std::vector<arc> edges;
+		for (std::size_t r = 0; r < side; ++r)
+			for (std::size_t c = 0; c < side; ++c) {
+				uint32 const v = uint32(r * side + c);
+				if (c + 1 < side) edges.push_back({v, v + 1, 1});
+				if (r + 1 < side) edges.push_back({v, uint32(v + side), 1});
+			}
+		return edges;
+	}
+
 }

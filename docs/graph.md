@@ -447,6 +447,11 @@ iterators; generated rows are owned and resumed by index.
 ## Graph pages
 
 - [Graph components](graph-components.md): strongly connected, two-edge-connected and biconnected components.
+- [Maximum flow](max-flow.md): capacity flow, cut certificates and lower-bound reductions.
+- [Min-cost flow](min-cost-flow.md): costs, supplies, lower bounds and dual certificates.
+- [Dense assignment](assignment.md): rectangular matching with exact dual potentials.
+- [Bipartite matching](bipartite-matching.md): matching, vertex sets, edge roles and DAG covers.
+- [Matrices and matrix-tree counts](matrix.md): spanning trees and directed arborescences.
 - [Lowest common ancestors](lca.md).
 - [Virtual trees](virtual-tree.md).
 - [Centroid decomposition](centroid-decomposition.md).
@@ -470,6 +475,13 @@ discovery without recursive calls. Partition grouping counts component sizes,
 prefix-sums starts and fills members in ascending vertex order.
 
 ## See also
+
+- [Maximum flow](max-flow.md) for capacitated networks and lower bounds.
+- [Min-cost flow](min-cost-flow.md) for costed capacitated networks.
+- [Assignment](assignment.md) for dense weighted matching.
+- [Bipartite matching](bipartite-matching.md) for unweighted matching and DAG covers.
+- [Persistent heaps](persistent-heap.md) for experimental k shortest walks.
+- [Matrices](matrix.md) for matrix-tree counting.
 
 - [Disjoint sets](dsu.md) for incremental component merging.
 - [Time divide and conquer](time-divide-and-conquer.md) for offline add/remove schedules.

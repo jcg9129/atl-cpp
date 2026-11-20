@@ -4,13 +4,16 @@
  * Montgomery transpose, lazy transpose, 256-column tiles and per-term subtraction.
  * Each sample allocates and computes one square product at n=200, 300, 500.
  * Additional samples measure power (n=100, exponent=1e18), min-plus (n=200),
- * determinant / Euclidean determinant / inverse (n=200, 500), and GF(2) solve (n=2000).
+ * determinant / Euclidean determinant / inverse (n=200, 500), GF(2) solve (n=2000),
+ * and matrix-tree counting (n=500, m=10000; 54.7 / 55.0 ms).
  * Intel Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions disabled,
  * 2026-10-14, -O2 -g -DNDEBUG -std=c++23 with/without -march=native:
  * library n=500 80.4 / 32.1 ms; Montgomery i-k-j 190 / 189 ms.
  * Tiles give 81.5 / 32.1 ms, so the simpler library loop stays. Full tables: docs/matrix.md.
  */
 #include <atl/experimental/nt/matrix_variants.hpp>
+#include <atl/graph/concepts.hpp>
+#include <atl/graph/spanning_tree_count.hpp>
 #include <atl/nt/bit_matrix.hpp>
 #include <atl/nt/gaussian_elimination.hpp>
 #include <atl/nt/matrix.hpp>
@@ -97,5 +100,11 @@ TEST_CASE("matrix: power, semiring and elimination costs", "[matrix]") {
 		std::vector<bool> b(n);
 		for (uint32 i = 0; i < n; ++i) b[i] = rng() & 1;
 		BENCHMARK("bit_matrix solve n=2000") { return atl::solve_linear_system(a, b); };
+	}
+	{
+		uint32 const n = 500;
+		std::vector<atl::graph::arc<>> edges;
+		for (uint32 i = 0; i < 20 * n; ++i) edges.push_back({uint32(rng() % n), uint32(rng() % n)});
+		BENCHMARK("count_spanning_trees n=500 m=10000") { return atl::graph::count_spanning_trees<mint>(n, edges); };
 	}
 }

@@ -1,22 +1,30 @@
 #include <atl/experimental/graph/biconnected_components_variants.hpp>
 #include <atl/experimental/graph/centroid_bisect_variants.hpp>
 #include <atl/experimental/graph/centroid_variants.hpp>
+#include <atl/experimental/graph/k_shortest_walks.hpp>
 #include <atl/experimental/graph/lca_variants.hpp>
+#include <atl/experimental/graph/max_flow_variants.hpp>
 #include <atl/experimental/graph/offline_bipartiteness.hpp>
 #include <atl/experimental/graph/offline_dynamic_connectivity.hpp>
 #include <atl/experimental/graph/virtual_tree_variants.hpp>
+#include <atl/graph/assignment.hpp>
 #include <atl/graph/biconnected_components.hpp>
+#include <atl/graph/bipartite_matching.hpp>
 #include <atl/graph/centroid_bisect.hpp>
 #include <atl/graph/centroid_decomposition.hpp>
 #include <atl/graph/concepts.hpp>
 #include <atl/graph/csr.hpp>
 #include <atl/graph/lca.hpp>
+#include <atl/graph/max_flow.hpp>
+#include <atl/graph/min_cost_flow.hpp>
 #include <atl/graph/partition.hpp>
 #include <atl/graph/scc.hpp>
+#include <atl/graph/spanning_tree_count.hpp>
 #include <atl/graph/ternarization.hpp>
 #include <atl/graph/traversal.hpp>
 #include <atl/graph/two_edge_connected_components.hpp>
 #include <atl/graph/virtual_tree.hpp>
+#include <atl/nt/mod_int.hpp>
 #include <array>
 #include <catch2/catch.hpp>
 #include <cstddef>
@@ -438,4 +446,140 @@ namespace graph_connectivity_checks {
 
 TEST_CASE("offline connectivity constexpr event and parity state", "[graph][constexpr]") {
 	CHECK(graph_connectivity_checks::parity_rollback());
+}
+
+namespace graph_flow_checks {
+	constexpr bool maximum_flow() {
+		std::array<atl::graph::flow_arc<int>, 5> const net{{{0, 1, 3}, {0, 2, 2}, {1, 2, 1}, {1, 3, 2}, {2, 3, 3}}};
+		auto const r = atl::graph::max_flow(4, net, 0, 3);
+		return r.value == 5 && atl::graph::max_flow_value(4, net, 0, 3) == 5 && r.source_side[0] == 1
+			&& r.source_side[3] == 0 && r.edge_flow[0] + r.edge_flow[1] == 5
+			&& atl::experimental::max_flow_by_edmonds_karp(4, net, 0, 3).value == 5
+			&& atl::experimental::max_flow_by_dinic(4, net, 0, 3).value == 5
+			&& atl::experimental::max_flow_by_isap(4, net, 0, 3).value == 5
+			&& atl::experimental::max_flow_by_capacity_scaling_edmonds_karp(4, net, 0, 3).value == 5
+			&& atl::experimental::max_flow_by_capacity_scaling_dinic(4, net, 0, 3).value == 5;
+	}
+
+	constexpr bool lower_bounds() {
+		std::array<atl::graph::bounded_flow_arc<int>, 3> const net{{{0, 1, 1, 4}, {1, 2, 0, 2}, {2, 0, 0, 5}}};
+		auto const circulation = atl::graph::feasible_flow(3, net, std::vector<int>(3, 0));
+		std::array<atl::graph::bounded_flow_arc<int>, 2> const path{{{0, 1, 1, 4}, {1, 2, 0, 3}}};
+		auto const most = atl::graph::bounded_max_flow(3, path, 0, 2);
+		auto const least = atl::graph::bounded_min_flow(3, path, 0, 2);
+		return circulation && (*circulation)[0] >= 1 && (*circulation)[0] <= 2 && most && most->value == 3 && least
+			&& least->value == 1;
+	}
+
+	constexpr bool matrix_tree() {
+		using mint = atl::mod_int32<998244353>;
+		std::array<atl::graph::arc<>, 6> const k4{{{0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}}};
+		std::array<atl::graph::arc<>, 3> const cycle{{{0, 1}, {1, 2}, {2, 0}}};
+		return atl::graph::count_spanning_trees<mint>(4, k4) == mint(16)
+			&& atl::graph::count_out_arborescences<mint>(3, cycle, 1) == mint(1)
+			&& atl::graph::count_in_arborescences<mint>(3, cycle, 2) == mint(1)
+			&& atl::graph::count_spanning_trees<atl::mod_int32<12>>(4, k4).value() == 4;
+	}
+
+	constexpr bool wide_capacity() {
+		atl::int128 const capacity = atl::int128(1) << 80;
+		std::array<atl::graph::flow_arc<atl::int128>, 2> const net{{{0, 1, capacity}, {1, 2, capacity}}};
+		std::array<atl::graph::bounded_flow_arc<atl::int128>, 1> const bounded{{{0, 1, 1, capacity}}};
+		return atl::graph::max_flow(3, net, 0, 2).value == capacity
+			&& atl::graph::max_flow_value(3, net, 0, 2) == capacity
+			&& atl::experimental::max_flow_by_capacity_scaling_dinic(3, net, 0, 2).value == capacity
+			&& atl::experimental::max_flow_by_capacity_scaling_edmonds_karp(3, net, 0, 2).value == capacity
+			&& atl::graph::bounded_max_flow(2, bounded, 0, 1)->value == capacity
+			&& atl::graph::bounded_min_flow(2, bounded, 0, 1)->value == 1;
+	}
+
+	static_assert(maximum_flow());
+	static_assert(lower_bounds());
+	static_assert(matrix_tree());
+	static_assert(wide_capacity());
+}
+
+TEST_CASE("maximum flow and matrix-tree APIs support constant evaluation", "[graph][constexpr]") {
+	CHECK(graph_flow_checks::maximum_flow());
+	CHECK(graph_flow_checks::lower_bounds());
+	CHECK(graph_flow_checks::matrix_tree());
+	CHECK(graph_flow_checks::wide_capacity());
+}
+
+namespace graph_assignment_checks {
+	constexpr bool square() {
+		auto const r = atl::graph::assignment(std::array<std::array<int, 3>, 3>{{{4, 1, 3}, {2, 0, 5}, {3, 2, 2}}});
+		return r.cost == 5 && r.row_to_col[0] == 1 && r.row_to_col[1] == 0 && r.row_to_col[2] == 2;
+	}
+
+	constexpr bool wide() {
+		auto const r = atl::graph::assignment(std::array<std::array<int, 3>, 2>{{{5, 1, 9}, {2, 8, 3}}});
+		return r.cost == 3 && r.row_to_col[0] == 1 && r.row_to_col[1] == 0 && r.col_to_row[2] == atl::graph::none;
+	}
+
+	constexpr bool monge() {
+		auto const r = atl::graph::assignment(std::array<std::array<int, 3>, 3>{{{0, 1, 2}, {1, 0, 1}, {2, 1, 0}}});
+		return r.cost == 0 && r.row_to_col[2] == 2;
+	}
+
+	constexpr bool tall() {
+		auto const r = atl::graph::assignment(std::array<std::array<int, 2>, 3>{{{5, 2}, {1, 9}, {8, 3}}});
+		return r.cost == 3 && r.row_to_col[0] == 1 && r.row_to_col[1] == 0 && r.row_to_col[2] == atl::graph::none;
+	}
+
+	constexpr bool portable_wide_sum() {
+		std::array<std::array<int, 2>, 2> const costs{{{5, 1}, {2, 8}}};
+		return atl::graph::assignment<atl::int128>(costs).cost == 3;
+	}
+
+	static_assert(square());
+	static_assert(wide());
+	static_assert(monge());
+	static_assert(tall());
+	static_assert(portable_wide_sum());
+}
+
+TEST_CASE("assignment supports constant evaluation on each solver path", "[graph][constexpr]") {
+	CHECK(graph_assignment_checks::square());
+	CHECK(graph_assignment_checks::wide());
+	CHECK(graph_assignment_checks::monge());
+	CHECK(graph_assignment_checks::tall());
+	CHECK(graph_assignment_checks::portable_wide_sum());
+}
+
+namespace graph_matching_checks {
+	constexpr bool matching_and_certificates() {
+		std::array<atl::graph::arc<>, 5> const edges{{{0, 0}, {1, 0}, {1, 1}, {2, 1}, {2, 2}}};
+		auto const match = atl::graph::bipartite_matching(3, 3, edges);
+		auto const cover = atl::graph::minimum_vertex_cover(3, 3, edges, match);
+		auto const independent = atl::graph::maximum_independent_set(3, 3, edges, match);
+		auto const roles = atl::graph::matching_edge_roles(3, 3, edges, match);
+		return match.size == 3 && match.left_pair[0] == 0 && cover.size == 3 && independent.size == 3
+			&& roles[0] == atl::graph::matching_edge::mandatory && roles[1] == atl::graph::matching_edge::forbidden;
+	}
+
+	constexpr bool dag_covers() {
+		std::array<atl::graph::arc<>, 4> const dag{{{0, 1}, {0, 2}, {1, 3}, {2, 3}}};
+		auto const paths = atl::graph::minimum_path_cover(4, dag);
+		auto const chains = atl::graph::minimum_chain_cover(4, dag);
+		return paths.count == 2 && paths.paths().size() == 2 && chains.count == 2 && chains.chains().size() == 2
+			&& chains.antichain[1] == 1 && chains.antichain[2] == 1 && chains.antichain[0] == 0;
+	}
+
+	constexpr bool sidetrack_queries() {
+		atl::experimental::sidetrack_lists const lists{{0, 0, 1}, {{2, 0}}};
+		return lists.of(0).empty() && lists.of(1)[0].extra == 2
+			&& atl::experimental::cheaper_sidetrack{}({2, 0}, {1, 1})
+			&& atl::experimental::detail::walk_sum(1, 2) == 3;
+	}
+
+	static_assert(matching_and_certificates());
+	static_assert(dag_covers());
+	static_assert(sidetrack_queries());
+}
+
+TEST_CASE("bipartite matching DAG covers and sidetrack queries support constant evaluation", "[graph][constexpr]") {
+	CHECK(graph_matching_checks::matching_and_certificates());
+	CHECK(graph_matching_checks::dag_covers());
+	CHECK(graph_matching_checks::sidetrack_queries());
 }
