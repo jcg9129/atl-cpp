@@ -475,18 +475,18 @@ namespace atl::graph {
 			requires(!owns_marks)
 			: g_(&g), source_(source), marker_(&marker) { atl_assert(source < graph::vertex_count(g)); }
 
+		/** @brief Start with the supplied graph, valid source(s), and optional persistent marker. */
 		template<typename Sources>
 			requires vertex_range<Sources const>
-		/** @brief Start with the supplied graph, valid source(s), and optional persistent marker. */
 		constexpr bfs_view(Graph const &g, Sources const &sources)
 			requires(owns_marks)
 			: g_(&g) {
 			for (auto const &s : sources) sources_.push_back(vertex_id(s));
 		}
 
+		/** @brief Start with the supplied graph, valid source(s), and optional persistent marker. */
 		template<typename Sources>
 			requires vertex_range<Sources const>
-		/** @brief Start with the supplied graph, valid source(s), and optional persistent marker. */
 		constexpr bfs_view(Graph const &g, Sources const &sources, marker_param &marker)
 			requires(!owns_marks)
 			: g_(&g), marker_(&marker) {
@@ -1092,7 +1092,7 @@ namespace atl::graph {
 	/**
 	 * @brief Bundle 1-3 dfs event callables given **in any order**, roles
 	 *        inferred from their signatures (the three arities are distinct),
-	 *        missing roles filled with @ref atl::graph::skip:
+	 *        missing roles filled with @ref atl::graph::skip, as in
 	 *        `dfs_visit(g, s, events([&](vertex_id v, vertex_id p) { ... }))`.
 	 *
 	 * Rejected at compile time: a callable matching no role, a catch-all

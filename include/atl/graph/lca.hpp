@@ -593,7 +593,7 @@ namespace atl::graph {
 				while (parent[v] != v) v = parent[v] = parent[parent[v]];
 				return v;
 			};
-			auto const enter = [&](vertex_id v, vertex_id p, uint32, uint32) {
+			auto const enter = [&](vertex_id v, [[maybe_unused]] vertex_id p, uint32, uint32) {
 				if constexpr (IsRooted)
 					tree[v] = 1;
 				else

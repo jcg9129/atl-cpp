@@ -8,11 +8,11 @@
 #include <catch2/catch.hpp>
 #include <concepts>
 #include <cstddef>
-#include <expect_abort.hpp>
 #include <functional>
 #include <random>
 #include <utility>
 #include <vector>
+#include "../expect_abort.hpp"
 
 using atl::uint32;
 using atl::experimental::graph_event;

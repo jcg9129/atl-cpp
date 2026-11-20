@@ -49,7 +49,7 @@ namespace atl::experimental {
 													std::size_t, std::span<Edge const>>;
 		graph::detail::centroid_bisect_engine<is_weighted>(
 			g, [&](graph::vertex_id c, std::span<cpv const> comp, std::size_t n0,
-				   std::span<Edge const> ec) {
+				   [[maybe_unused]] std::span<Edge const> ec) {
 				if constexpr (is_weighted)
 					f(c, comp, n0, ec);
 				else

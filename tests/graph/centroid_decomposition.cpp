@@ -254,9 +254,9 @@ TEST_CASE("centroid_visit: parallel edge span for weighted top-down values", "[g
 			std::size_t const from = i;
 			uint32 const br = comp[i].branch;
 			for (; i < comp.size() && comp[i].branch == br; ++i)
-				if (wdist[comp[i].vertex] <= W) ans += seen[W - wdist[comp[i].vertex]];
+				if (wdist[comp[i].vertex] <= W) ans += seen[std::size_t(W - wdist[comp[i].vertex])];
 			for (std::size_t j = from; j < i; ++j)
-				if (wdist[comp[j].vertex] <= W) ++seen[wdist[comp[j].vertex]];
+				if (wdist[comp[j].vertex] <= W) ++seen[std::size_t(wdist[comp[j].vertex])];
 		}
 	});
 	REQUIRE(ans == brute);

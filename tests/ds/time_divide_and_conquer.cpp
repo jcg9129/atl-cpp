@@ -590,13 +590,12 @@ TEST_CASE("time_divide_and_conquer accepts const-only ranges and nonassignable t
 	static_assert(atl::lifetime_range<decltype(lifetimes)>);
 	REQUIRE(lifetimes.values == std::vector<atl::item_lifetime>{{0, 2}});
 	item_stack state;
-	auto mode = atl::by_rollback{
-		[](item_stack &s) { return review_token{s.items.size()}; },
-		[](item_stack &s, review_token token) { s.items.resize(token.time); }};
+	auto const save = [](item_stack &s) { return review_token{s.items.size()}; };
+	auto const restore = [](item_stack &s, review_token token) { s.items.resize(token.time); };
 	static_assert(std::move_constructible<review_token> && !std::movable<review_token>);
-	static_assert(atl::restore_mode<decltype(mode), item_stack>);
+	static_assert(atl::restore_mode<decltype(atl::by_rollback{save, restore}), item_stack>);
 	std::vector<std::size_t> observed;
-	atl::time_divide_and_conquer(state, events.size(), lifetimes, [](item_stack &s, uint32 item) { s.items.push_back(item); }, [&](item_stack &s, uint32) { observed.push_back(s.items.size()); }, mode);
+	atl::time_divide_and_conquer(state, events.size(), lifetimes, [](item_stack &s, uint32 item) { s.items.push_back(item); }, [&](item_stack &s, uint32) { observed.push_back(s.items.size()); }, atl::by_rollback{save, restore});
 	REQUIRE(observed == std::vector<std::size_t>{1, 1, 0});
 	REQUIRE(state.items.empty());
 }

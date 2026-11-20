@@ -136,10 +136,10 @@ TEST_CASE("ternarization_of + centroid: weighted path counting over reals", "[gr
 			uint32 const br = comp[i].branch;
 			for (; i < comp.size() && comp[i].branch == br; ++i)
 				if (t.is_real(comp[i].vertex) && wdist[comp[i].vertex] <= W)
-					ans += seen[W - wdist[comp[i].vertex]];
+					ans += seen[std::size_t(W - wdist[comp[i].vertex])];
 			for (std::size_t j = from; j < i; ++j)
 				if (t.is_real(comp[j].vertex) && wdist[comp[j].vertex] <= W)
-					++seen[wdist[comp[j].vertex]];
+					++seen[std::size_t(wdist[comp[j].vertex])];
 		}
 	});
 	REQUIRE(ans == brute);

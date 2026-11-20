@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <catch2/catch.hpp>
 #include <cstddef>
-#include <expect_abort.hpp>
 #include <random>
 #include <set>
 #include <utility>
 #include <vector>
+#include "../expect_abort.hpp"
 
 using atl::uint32;
 using atl::uint8;

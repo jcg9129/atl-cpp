@@ -234,6 +234,7 @@ namespace atl::graph {
 		}
 	};
 
+	/** @brief Deduce the adjacency element from an edge list: `csr rows(n, arcs)`. */
 	template<edge_list R>
 	csr(std::size_t, R &&) -> csr<detail::adjacent_of_t<std::ranges::range_value_t<R>>>;
 

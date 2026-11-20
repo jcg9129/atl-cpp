@@ -212,7 +212,7 @@ namespace atl::graph {
 					}
 				}
 				new_local[c] = 0;
-				auto const place = [&](uint32 u, uint32 rooted_parent, uint32 side, Edge const *edge) {
+				auto const place = [&](uint32 u, uint32 rooted_parent, uint32 side, [[maybe_unused]] Edge const *edge) {
 					component[at[side]++] = {fr.vertices[u], fr.vertices[rooted_parent], rooted_depth[u]};
 					frame &ch = child[side];
 					std::size_t const l = local[side]++;
@@ -297,7 +297,7 @@ namespace atl::graph {
 		constexpr bool is_weighted = weighted_centroid_bisect_event<Event, Graph>;
 		detail::centroid_bisect_engine<is_weighted>(
 			g, [&](vertex_id c, std::span<visit const> component, std::size_t n0,
-				   std::span<Edge const> ec) {
+				   [[maybe_unused]] std::span<Edge const> ec) {
 				auto const a = component.subspan(1, n0);
 				auto const b = component.subspan(1 + n0);
 				if constexpr (is_weighted)

@@ -182,7 +182,7 @@ namespace atl::experimental {
 			for (uint32 k = 1; k < levels; ++k)
 				for (std::size_t i = 0; i + (std::size_t(1) << k) <= len_; ++i)
 					table_[k * len_ + i] = (std::min)(table_[(k - 1) * len_ + i],
-													  table_[(k - 1) * len_ + i + (1u << (k - 1))]);
+													  table_[(k - 1) * len_ + i + (std::size_t(1) << (k - 1))]);
 		}
 
 		/** @brief Hop distance from the root. @pre v is a valid vertex. */
@@ -193,7 +193,7 @@ namespace atl::experimental {
 			auto [l, r] = std::minmax(first_[u], first_[v]);
 			uint32 const k = std::bit_width(uint32(r - l + 1)) - 1;
 			uint64 const best = (std::min)(table_[std::size_t(k) * len_ + l],
-										   table_[std::size_t(k) * len_ + r + 1 - (1u << k)]);
+										   table_[std::size_t(k) * len_ + r + 1 - (std::size_t(1) << k)]);
 			return tour_[uint32(best)];
 		}
 	};
@@ -316,7 +316,7 @@ namespace atl::experimental {
 			// positions (tin[u], tin[v]]
 			uint32 const l = (std::min)(tin_[u], tin_[v]) + 1, r = (std::max)(tin_[u], tin_[v]);
 			uint32 const k = uint32(std::bit_width(r - l + 1)) - 1;
-			return order_[(std::min)(table_[std::size_t(k) * len_ + l], table_[std::size_t(k) * len_ + r + 1 - (1u << k)])];
+			return order_[(std::min)(table_[std::size_t(k) * len_ + l], table_[std::size_t(k) * len_ + r + 1 - (std::size_t(1) << k)])];
 		}
 	};
 
