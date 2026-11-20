@@ -111,7 +111,9 @@ TEST_CASE("csr: out-of-range accessor vertex is asserted, including the wrap-pro
 TEST_CASE("graph accessors: an integral id outside vertex_id is asserted, not wrapped", "[graph]") {
 	REQUIRE(atl_test::aborts([] { (void)g::target(-1); }));
 	REQUIRE(atl_test::aborts([] { (void)g::target(std::int64_t(1) << 32); }));
-	REQUIRE(!atl_test::aborts([] { (void)g::source(g::arc<>{0, (std::numeric_limits<g::vertex_id>::max)()}); }));
+	// the largest id is accepted (a plain call: on Windows, aborts() calls before
+	// a selected death test return true without running)
+	REQUIRE(g::target(g::arc<>{0, (std::numeric_limits<g::vertex_id>::max)()}) == (std::numeric_limits<g::vertex_id>::max)());
 
 	struct wide_arc {
 		std::int64_t from, to;
@@ -126,7 +128,7 @@ TEST_CASE("implicit_graph: a vertex count beyond vertex_id is asserted", "[graph
 	if constexpr (std::numeric_limits<std::size_t>::digits > 32) {
 		REQUIRE(atl_test::aborts([&] { g::implicit_graph(static_cast<std::size_t>(atl::uint64(1) << 32), neighbors); }));
 	}
-	REQUIRE(!atl_test::aborts([&] { g::implicit_graph((std::numeric_limits<g::vertex_id>::max)(), neighbors); }));
+	REQUIRE(g::implicit_graph((std::numeric_limits<g::vertex_id>::max)(), neighbors).vertex_count() == (std::numeric_limits<g::vertex_id>::max)());
 }
 
 TEST_CASE("csr: undirected build inserts both directions", "[graph]") {
