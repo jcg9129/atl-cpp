@@ -453,6 +453,7 @@ iterators; generated rows are owned and resumed by index.
 - [Bipartite matching](bipartite-matching.md): matching, vertex sets, edge roles and DAG covers.
 - [Matrices and matrix-tree counts](matrix.md): spanning trees and directed arborescences.
 - [Lowest common ancestors](lca.md).
+- [Functional graphs](functional-graphs.md).
 - [Virtual trees](virtual-tree.md).
 - [Centroid decomposition](centroid-decomposition.md).
 - [Offline connectivity](time-divide-and-conquer.md).
@@ -482,6 +483,8 @@ prefix-sums starts and fills members in ascending vertex order.
 - [Bipartite matching](bipartite-matching.md) for unweighted matching and DAG covers.
 - [Persistent heaps](persistent-heap.md) for experimental k shortest walks.
 - [Matrices](matrix.md) for matrix-tree counting.
+
+- [Functional graphs](functional-graphs.md) for repeated successors and ordered edge folds.
 
 - [Disjoint sets](dsu.md) for incremental component merging.
 - [Time divide and conquer](time-divide-and-conquer.md) for offline add/remove schedules.

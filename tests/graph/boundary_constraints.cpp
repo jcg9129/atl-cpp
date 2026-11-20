@@ -5,6 +5,7 @@
 #include <atl/experimental/graph/centroid_variants.hpp>
 #include <atl/experimental/graph/csr_variants.hpp>
 #include <atl/experimental/graph/deletion_time_connectivity.hpp>
+#include <atl/experimental/graph/functional_graph_variants.hpp>
 #include <atl/experimental/graph/k_shortest_walks.hpp>
 #include <atl/experimental/graph/k_shortest_walks_variants.hpp>
 #include <atl/experimental/graph/lca_variants.hpp>
@@ -19,6 +20,7 @@
 #include <atl/graph/centroid_bisect.hpp>
 #include <atl/graph/centroid_decomposition.hpp>
 #include <atl/graph/csr.hpp>
+#include <atl/graph/functional_graph.hpp>
 #include <atl/graph/lca.hpp>
 #include <atl/graph/max_flow.hpp>
 #include <atl/graph/min_cost_flow.hpp>
@@ -35,6 +37,7 @@
 #include <concepts>
 #include <cstddef>
 #include <forward_list>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <ranges>
@@ -728,4 +731,72 @@ namespace graph_matching_constraints {
 	static_assert(!accepts_forest_pop<forest, bad_lists>);
 	static_assert(!accepts_forest_pop<int, atl::experimental::sidetrack_lists>);
 	static_assert(!accepts_forest_pop<forest_without_ranges, atl::experimental::sidetrack_lists>);
+}
+
+namespace functional_graph_boundary {
+	namespace g = atl::graph;
+	namespace e = atl::experimental;
+	using successors = std::array<unsigned, 1>;
+	using queries = std::array<g::functional_graph_successor_query, 1>;
+
+	template<typename R>
+	concept public_decomposition = requires(R &&input) { g::functional_graph_decomposition_of(std::forward<R>(input)); };
+
+	template<typename R>
+	concept marking_decomposition = requires(R &&input) { e::functional_graph_decomposition_by_marking(std::forward<R>(input)); };
+
+	template<typename R>
+	constexpr bool rejects_successors = !public_decomposition<R> && !marking_decomposition<R>
+									 && !std::constructible_from<g::functional_graph_successor_index, R>
+									 && !std::constructible_from<e::functional_graph_successor_index_by_lifting, R>
+									 && !std::constructible_from<g::functional_graph_walk_index<unsigned, std::plus<unsigned>>, R, successors, unsigned, std::plus<unsigned>>
+									 && !std::constructible_from<e::functional_graph_walk_index_by_lifting<unsigned, std::plus<unsigned>>, R, successors, unsigned, std::plus<unsigned>>
+									 && !std::constructible_from<e::functional_graph_walk_index_by_chain_prefix<unsigned, std::plus<unsigned>>, R, successors, unsigned, std::plus<unsigned>>
+									 && !requires(R &&input, queries q) { e::functional_graph_successors_by_reverse_dfs(std::forward<R>(input), q); }
+									 && !requires(R &&input, successors v, queries q) { e::functional_graph_walks_by_reverse_dfs(std::forward<R>(input), v, q, 0u, std::plus<unsigned>{}); };
+
+	static_assert(rejects_successors<std::vector<bool>>);
+	static_assert(rejects_successors<std::vector<char>>);
+	static_assert(rejects_successors<std::vector<double>>);
+	static_assert(rejects_successors<std::forward_list<unsigned>>);
+
+	struct void_operation {
+		void operator()(unsigned, unsigned) const;
+	};
+
+	struct mutable_operation {
+		unsigned operator()(unsigned, unsigned);
+	};
+
+	template<typename Operation>
+	concept public_walk = requires { typename g::functional_graph_walk_index<unsigned, Operation>; };
+
+	template<typename Operation>
+	concept lifting_walk = requires { typename e::functional_graph_walk_index_by_lifting<unsigned, Operation>; };
+
+	template<typename Operation>
+	concept prefix_walk = requires { typename e::functional_graph_walk_index_by_chain_prefix<unsigned, Operation>; };
+
+	template<typename Values, typename Queries, typename Operation = std::plus<unsigned>>
+	concept batch_walk = requires(successors s, Values &&v, Queries &&q, Operation op) {
+		e::functional_graph_walks_by_reverse_dfs(s, std::forward<Values>(v), std::forward<Queries>(q), 0u, op);
+	};
+
+	template<typename Queries>
+	concept batch_successors = requires(successors s, Queries &&q) { e::functional_graph_successors_by_reverse_dfs(s, std::forward<Queries>(q)); };
+
+	static_assert(!public_walk<void_operation> && !lifting_walk<void_operation> && !prefix_walk<void_operation>);
+	static_assert(!public_walk<mutable_operation> && !lifting_walk<mutable_operation> && !prefix_walk<mutable_operation>);
+	static_assert(!batch_walk<successors, queries, void_operation> && !batch_walk<successors, queries, mutable_operation>);
+	static_assert(!batch_successors<std::vector<std::pair<unsigned, atl::uint64>>>);
+	static_assert(!batch_successors<std::forward_list<g::functional_graph_successor_query>>);
+	static_assert(!batch_walk<successors, std::vector<std::pair<unsigned, atl::uint64>>>);
+	static_assert(!batch_walk<std::vector<double>, queries>);
+	static_assert(!std::constructible_from<g::functional_graph_walk_index<unsigned, std::plus<unsigned>>, successors, std::vector<double>, unsigned, std::plus<unsigned>>);
+	static_assert(!std::constructible_from<e::functional_graph_walk_index_by_lifting<unsigned, std::plus<unsigned>>, successors, std::vector<double>, unsigned, std::plus<unsigned>>);
+	static_assert(!std::constructible_from<e::functional_graph_walk_index_by_chain_prefix<unsigned, std::plus<unsigned>>, successors, std::vector<double>, unsigned, std::plus<unsigned>>);
+}
+
+TEST_CASE("functional graph constraints reject invalid ranges and monoids", "[graph][constraints][functional_graph]") {
+	STATIC_REQUIRE(functional_graph_boundary::rejects_successors<std::vector<double>>);
 }
