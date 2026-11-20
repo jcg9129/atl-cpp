@@ -5,6 +5,7 @@
 #include <atl/experimental/graph/centroid_variants.hpp>
 #include <atl/experimental/graph/csr_variants.hpp>
 #include <atl/experimental/graph/deletion_time_connectivity.hpp>
+#include <atl/experimental/graph/functional_graph_variants.hpp>
 #include <atl/experimental/graph/k_shortest_walks.hpp>
 #include <atl/experimental/graph/k_shortest_walks_variants.hpp>
 #include <atl/experimental/graph/lca_variants.hpp>
@@ -20,6 +21,7 @@
 #include <atl/graph/centroid_bisect.hpp>
 #include <atl/graph/centroid_decomposition.hpp>
 #include <atl/graph/csr.hpp>
+#include <atl/graph/functional_graph.hpp>
 #include <atl/graph/lca.hpp>
 #include <atl/graph/max_flow.hpp>
 #include <atl/graph/min_cost_flow.hpp>
@@ -43,6 +45,7 @@
 #include <memory>
 #include <ranges>
 #include <span>
+#include <utility>
 #include <vector>
 #include "../expect_abort.hpp"
 
@@ -894,4 +897,106 @@ TEST_CASE("sidetracks count beyond a signed iterator difference limit", "[graph]
 	auto const tree = ex::shortest_paths_to(2, edges, 1);
 	REQUIRE(ex::sidetracks_of(2, edges, tree).items.size() == 199);
 	REQUIRE(ex::k_shortest_walks(2, edges, 0, 1, 3) == std::vector<atl::int64>{1, 1, 1});
+}
+
+namespace functional_graph_accepted {
+	struct const_sum {
+		constexpr unsigned operator()(unsigned a, unsigned b) const & { return a + b; }
+
+		void operator()(unsigned, unsigned) & = delete;
+	};
+
+	static_assert(atl::binary_operation<const_sum, unsigned>);
+	static_assert(!std::invocable<const_sum &, unsigned, unsigned>);
+
+	/** @brief Input references convert to values but expose no value members. */
+	template<std::copyable Element>
+	struct proxy_input {
+		std::span<Element const> elements;
+
+		struct reference {
+			Element const *element;
+
+			operator Element() const { return *element; }
+		};
+
+		struct iterator {
+			using value_type = Element;
+			using difference_type = std::ptrdiff_t;
+			using iterator_concept = std::input_iterator_tag;
+			Element const *element;
+
+			reference operator*() const { return {element}; }
+
+			iterator &operator++() {
+				++element;
+				return *this;
+			}
+
+			void operator++(int) { ++*this; }
+
+			bool operator==(iterator const &) const = default;
+		};
+
+		iterator begin() const { return {elements.data()}; }
+
+		iterator end() const { return {elements.data() + elements.size()}; }
+
+		std::size_t size() const { return elements.size(); }
+	};
+}
+
+TEST_CASE("functional graphs accept proxy inputs and callable categories", "[graph][accepted][functional_graph]") {
+	namespace g = atl::graph;
+	namespace e = atl::experimental;
+	using functional_graph_accepted::proxy_input;
+	std::array const successors{1u, 2u, 1u, 0u};
+	std::array const values{2u, 3u, 5u, 7u};
+	std::array const queries{g::functional_graph_successor_query{3, 4}, g::functional_graph_successor_query{1, 0}};
+	proxy_input<unsigned> successor_input{successors}, value_input{values};
+	proxy_input<g::functional_graph_successor_query> query_input{queries};
+	static_assert(g::successor_range<decltype(successor_input)>);
+	static_assert(g::functional_graph_value_range<decltype(value_input), unsigned>);
+	static_assert(g::functional_graph_query_range<decltype(query_input)>);
+	REQUIRE(g::functional_graph_decomposition_of(successor_input).cycle_root[3] == 1);
+	REQUIRE(e::functional_graph_decomposition_by_marking(successor_input).cycle_root[3] == 1);
+	g::functional_graph_successor_index const endpoint(successor_input);
+	e::functional_graph_successor_index_by_lifting const lifting_endpoint(successor_input);
+	REQUIRE(endpoint.successor(3, 4) == 1);
+	REQUIRE(lifting_endpoint.successor(3, 4) == 1);
+	std::vector<g::vertex_id> const owned_successors(successors.begin(), successors.end());
+	auto const metadata = g::functional_graph_decomposition_of(owned_successors);
+	e::detail::functional_graph_reverse_dfs(owned_successors, metadata, &std::vector<g::vertex_id>::size);
+	auto exercise = [&]<atl::binary_operation<unsigned> Operation>(Operation operation)
+		requires std::copyable<Operation>
+	{
+		g::functional_graph_walk_index<unsigned, Operation> const walk(successor_input, value_input, 0u, operation);
+		e::functional_graph_walk_index_by_lifting<unsigned, Operation> const lifting(successor_input, value_input, 0u, operation);
+		e::functional_graph_walk_index_by_chain_prefix<unsigned, Operation> const prefix(successor_input, value_input, 0u, operation);
+		auto const batch = e::functional_graph_walks_by_reverse_dfs(successor_input, value_input, query_input, 0u, operation);
+		REQUIRE(walk.walk(3, 4).fold == 17);
+		REQUIRE(lifting.walk(3, 4).fold == 17);
+		REQUIRE(prefix.walk(3, 4).fold == 17);
+		REQUIRE(batch[0].fold == 17);
+		REQUIRE(batch[1].fold == 0);
+	};
+	unsigned modulus = 101;
+	auto const captured = [modulus](unsigned a, unsigned b) { return (a + b) % modulus; };
+	auto mutable_callable = [modulus](unsigned a, unsigned b) mutable { return (a + b) % modulus; };
+	exercise(std::plus<unsigned>{});
+	exercise(functional_graph_accepted::const_sum{});
+	exercise(std::cref(captured));
+	exercise(std::ref(mutable_callable));
+	auto const endpoints = e::functional_graph_successors_by_reverse_dfs(successor_input, query_input);
+	REQUIRE(endpoints == std::vector<g::vertex_id>{1, 1});
+
+	std::vector<bool> bits{true, false, true, false};
+	g::functional_graph_walk_index<bool, std::not_equal_to<bool>> const bit_walk(successors, bits, false, {});
+	e::functional_graph_walk_index_by_lifting<bool, std::not_equal_to<bool>> const bit_lifting(successors, bits, false, {});
+	e::functional_graph_walk_index_by_chain_prefix<bool, std::not_equal_to<bool>> const bit_prefix(successors, bits, false, {});
+	auto const bit_batch = e::functional_graph_walks_by_reverse_dfs(successors, bits, query_input, false, std::not_equal_to<bool>{});
+	REQUIRE_FALSE(bit_walk.walk(3, 4).fold);
+	REQUIRE_FALSE(bit_lifting.walk(3, 4).fold);
+	REQUIRE_FALSE(bit_prefix.walk(3, 4).fold);
+	REQUIRE_FALSE(bit_batch[0].fold);
 }

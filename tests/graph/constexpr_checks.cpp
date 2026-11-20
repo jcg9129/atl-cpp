@@ -1,6 +1,7 @@
 #include <atl/experimental/graph/biconnected_components_variants.hpp>
 #include <atl/experimental/graph/centroid_bisect_variants.hpp>
 #include <atl/experimental/graph/centroid_variants.hpp>
+#include <atl/experimental/graph/functional_graph_variants.hpp>
 #include <atl/experimental/graph/k_shortest_walks.hpp>
 #include <atl/experimental/graph/lca_variants.hpp>
 #include <atl/experimental/graph/max_flow_variants.hpp>
@@ -14,6 +15,7 @@
 #include <atl/graph/centroid_decomposition.hpp>
 #include <atl/graph/concepts.hpp>
 #include <atl/graph/csr.hpp>
+#include <atl/graph/functional_graph.hpp>
 #include <atl/graph/lca.hpp>
 #include <atl/graph/max_flow.hpp>
 #include <atl/graph/min_cost_flow.hpp>
@@ -27,7 +29,9 @@
 #include <atl/nt/mod_int.hpp>
 #include <array>
 #include <catch2/catch.hpp>
+#include <concepts>
 #include <cstddef>
+#include <functional>
 #include <span>
 #include <utility>
 #include <vector>
@@ -582,4 +586,255 @@ TEST_CASE("bipartite matching DAG covers and sidetrack queries support constant 
 	CHECK(graph_matching_checks::matching_and_certificates());
 	CHECK(graph_matching_checks::dag_covers());
 	CHECK(graph_matching_checks::sidetrack_queries());
+}
+
+namespace functional_graph_constexpr_checks {
+	namespace g = atl::graph;
+	namespace e = atl::experimental;
+
+	struct affine {
+		unsigned a, b;
+		constexpr bool operator==(affine const &) const = default;
+	};
+
+	struct compose {
+		constexpr affine operator()(affine x, affine y) const {
+			return {(x.a * y.a) % 7, (x.b * y.a + y.b) % 7};
+		}
+	};
+
+	/** @brief Independent finite-state repetition oracle for huge constexpr noncommutative walks. */
+	template<std::size_t Vertices>
+	constexpr g::functional_graph_walk_result<affine> finite_oracle(std::array<unsigned, Vertices> const &successors,
+																	std::array<affine, Vertices> const &values, unsigned start, atl::uint64 steps) {
+		std::array<atl::uint64, Vertices * 49> seen{};
+		std::vector<g::functional_graph_walk_result<affine>> states;
+		auto v = start;
+		affine fold{1, 0};
+		while (true) {
+			if (states.size() == steps) return {v, fold};
+			auto &first = seen[v * 49 + fold.a * 7 + fold.b];
+			if (first) {
+				auto const begin = first - 1;
+				return states[std::size_t(begin + (steps - begin) % (states.size() - begin))];
+			}
+			first = states.size() + 1;
+			states.push_back({v, fold});
+			fold = compose{}(fold, values[v]);
+			v = successors[v];
+		}
+	}
+
+	using functional_successors = std::array<unsigned, 9>;
+	using functional_values = std::array<affine, 9>;
+
+	constexpr functional_successors successors_for_proof() { return {1u, 2u, 0u, 2u, 3u, 3u, 5u, 6u, 8u}; }
+
+	constexpr functional_values values_for_proof() {
+		return {affine{2, 1}, affine{3, 2}, affine{0, 4}, affine{1, 5}, affine{4, 0},
+				affine{2, 3}, affine{1, 1}, affine{5, 2}, affine{3, 1}};
+	}
+
+	constexpr bool metadata_checks() {
+		auto const successors = successors_for_proof();
+		auto const metadata = g::functional_graph_decomposition_of(successors);
+		auto const marking = e::functional_graph_decomposition_by_marking(successors);
+		return metadata.cycle_id == marking.cycle_id && metadata.cycle_root == marking.cycle_root
+			&& metadata.depth_to_cycle == marking.depth_to_cycle && metadata.cycle_position == marking.cycle_position
+			&& metadata.cycles.members == marking.cycles.members && metadata.cycles.offsets == marking.cycles.offsets
+			&& metadata.cycles.count() == 2 && metadata.cycle_position[7] == g::none
+			&& metadata.cycle_root[7] == 2 && metadata.depth_to_cycle[7] == 4;
+	}
+
+	template<typename Index>
+	concept endpoint_engine = std::constructible_from<Index, functional_successors const &>
+						   && requires(Index const &index, unsigned start, atl::uint64 steps) {
+								  { index.size() } -> std::same_as<std::size_t>;
+								  { index.decomposition() } -> std::same_as<g::functional_graph_decomposition const &>;
+								  { index.successor(start, steps) } -> std::same_as<g::vertex_id>;
+							  };
+
+	template<endpoint_engine Index>
+	constexpr bool endpoint_checks(unsigned start) {
+		auto const successors = successors_for_proof();
+		auto const values = values_for_proof();
+		Index const index(successors);
+		if (index.size() != 9 || index.decomposition().cycles.count() != 2) return false;
+		auto at = start;
+		for (atl::uint64 steps = 0; steps <= 20; ++steps) {
+			if (index.successor(start, steps) != at) return false;
+			at = successors[at];
+		}
+		auto const huge = g::maximum_functional_graph_steps;
+		for (auto steps : {huge, huge - 1, (atl::uint64(1) << 32) + 1})
+			if (index.successor(start, steps) != finite_oracle(successors, values, start, steps).vertex) return false;
+		return index.successor(7, huge) == 2;
+	}
+
+	template<typename Index>
+	concept walk_engine = std::constructible_from<Index, functional_successors const &, functional_values const &, affine, compose>
+					   && requires(Index const &index, unsigned start, atl::uint64 steps) {
+							  { index.size() } -> std::same_as<std::size_t>;
+							  { index.decomposition() } -> std::same_as<g::functional_graph_decomposition const &>;
+							  { index.successor(start, steps) } -> std::same_as<g::vertex_id>;
+							  { index.walk(start, steps) } -> std::same_as<g::functional_graph_walk_result<affine>>;
+						  };
+
+	template<walk_engine Index>
+	constexpr bool walk_checks(unsigned start) {
+		auto const successors = successors_for_proof();
+		auto const values = values_for_proof();
+		affine const identity{1, 0};
+		Index const index(successors, values, identity, compose{});
+		if (index.size() != 9 || index.decomposition().cycles.count() != 2) return false;
+		auto at = start;
+		affine fold = identity;
+		for (atl::uint64 steps = 0; steps <= 20; ++steps) {
+			auto const result = index.walk(start, steps);
+			if (result.vertex != at || result.fold != fold || index.successor(start, steps) != at) return false;
+			fold = compose{}(fold, values[at]);
+			at = successors[at];
+		}
+		auto const huge = g::maximum_functional_graph_steps;
+		for (auto steps : {huge, huge - 1, (atl::uint64(1) << 32) + 1}) {
+			auto const expected = finite_oracle(successors, values, start, steps);
+			auto const result = index.walk(start, steps);
+			if (result.vertex != expected.vertex || result.fold != expected.fold
+				|| index.successor(start, steps) != expected.vertex) return false;
+		}
+		return true;
+	}
+
+	constexpr bool batch_checks(unsigned start) {
+		auto const successors = successors_for_proof();
+		auto const values = values_for_proof();
+		affine const identity{1, 0};
+		std::vector<g::functional_graph_successor_query> queries;
+		for (atl::uint64 steps = 0; steps <= 20; ++steps) queries.push_back({start, steps});
+		auto const huge = g::maximum_functional_graph_steps;
+		for (auto steps : {huge, huge - 1, (atl::uint64(1) << 32) + 1}) queries.push_back({start, steps});
+		auto const batch = e::functional_graph_successors_by_reverse_dfs(successors, queries);
+		auto const folds = e::functional_graph_walks_by_reverse_dfs(successors, values, queries, identity, compose{});
+		for (std::size_t q = 0; q < queries.size(); ++q) {
+			g::functional_graph_walk_result<affine> expected{start, identity};
+			if (queries[q].steps <= 20) {
+				for (atl::uint64 step = 0; step < queries[q].steps; ++step) {
+					expected.fold = compose{}(expected.fold, values[expected.vertex]);
+					expected.vertex = successors[expected.vertex];
+				}
+			} else {
+				expected = finite_oracle(successors, values, start, queries[q].steps);
+			}
+			if (batch[q] != expected.vertex || folds[q].vertex != expected.vertex || folds[q].fold != expected.fold) return false;
+		}
+		return true;
+	}
+
+	constexpr bool empty_graph() {
+		std::array<unsigned, 0> successors{}, values{};
+		std::array<g::functional_graph_successor_query, 0> queries{};
+		g::functional_graph_successor_index const endpoint(successors);
+		g::functional_graph_walk_index<unsigned, std::bit_xor<unsigned>> const walk(successors, values, 0, {});
+		e::functional_graph_successor_index_by_lifting const lift(successors);
+		e::functional_graph_walk_index_by_lifting<unsigned, std::bit_xor<unsigned>> const lifting(successors, values, 0, {});
+		e::functional_graph_walk_index_by_chain_prefix<unsigned, std::bit_xor<unsigned>> const prefix(successors, values, 0, {});
+		auto const decomposition = g::functional_graph_decomposition_of(successors);
+		auto const marking = e::functional_graph_decomposition_by_marking(successors);
+		return endpoint.size() == 0 && walk.size() == 0 && lift.size() == 0 && lifting.size() == 0 && prefix.size() == 0
+			&& decomposition.cycles.offsets == std::vector<unsigned>{0} && marking.cycles.offsets == std::vector<unsigned>{0}
+			&& e::functional_graph_successors_by_reverse_dfs(successors, queries).empty()
+			&& e::functional_graph_walks_by_reverse_dfs(successors, values, queries, 0u, std::bit_xor<unsigned>{}).empty();
+	}
+
+	constexpr bool self_loop() {
+		std::array successors{0u};
+		std::array values{7u};
+		g::functional_graph_walk_index<unsigned, std::bit_xor<unsigned>> const walk(successors, values, 0, {});
+		e::functional_graph_walk_index_by_lifting<unsigned, std::bit_xor<unsigned>> const lift(successors, values, 0, {});
+		e::functional_graph_walk_index_by_chain_prefix<unsigned, std::bit_xor<unsigned>> const prefix(successors, values, 0, {});
+		auto const steps = g::maximum_functional_graph_steps - 1;
+		std::array queries{g::functional_graph_successor_query{0, steps}};
+		auto const batch = e::functional_graph_walks_by_reverse_dfs(successors, values, queries, 0u, std::bit_xor<unsigned>{});
+		return walk.walk(0, steps).fold == 7 && lift.walk(0, steps).fold == 7 && prefix.walk(0, steps).fold == 7
+			&& batch[0].fold == 7 && walk.walk(0, 0).fold == 0;
+	}
+
+	static_assert(metadata_checks());
+	using proof_endpoint = g::functional_graph_successor_index;
+	using proof_lifting_endpoint = e::functional_graph_successor_index_by_lifting;
+	using proof_walk = g::functional_graph_walk_index<affine, compose>;
+	using proof_lifting = e::functional_graph_walk_index_by_lifting<affine, compose>;
+	using proof_prefix = e::functional_graph_walk_index_by_chain_prefix<affine, compose>;
+
+	static_assert(endpoint_checks<proof_endpoint>(0));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(0));
+	static_assert(walk_checks<proof_walk>(0));
+	static_assert(walk_checks<proof_lifting>(0));
+	static_assert(walk_checks<proof_prefix>(0));
+	static_assert(endpoint_checks<proof_endpoint>(1));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(1));
+	static_assert(walk_checks<proof_walk>(1));
+	static_assert(walk_checks<proof_lifting>(1));
+	static_assert(walk_checks<proof_prefix>(1));
+	static_assert(endpoint_checks<proof_endpoint>(2));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(2));
+	static_assert(walk_checks<proof_walk>(2));
+	static_assert(walk_checks<proof_lifting>(2));
+	static_assert(walk_checks<proof_prefix>(2));
+	static_assert(endpoint_checks<proof_endpoint>(3));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(3));
+	static_assert(walk_checks<proof_walk>(3));
+	static_assert(walk_checks<proof_lifting>(3));
+	static_assert(walk_checks<proof_prefix>(3));
+	static_assert(endpoint_checks<proof_endpoint>(4));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(4));
+	static_assert(walk_checks<proof_walk>(4));
+	static_assert(walk_checks<proof_lifting>(4));
+	static_assert(walk_checks<proof_prefix>(4));
+	static_assert(endpoint_checks<proof_endpoint>(5));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(5));
+	static_assert(walk_checks<proof_walk>(5));
+	static_assert(walk_checks<proof_lifting>(5));
+	static_assert(walk_checks<proof_prefix>(5));
+	static_assert(endpoint_checks<proof_endpoint>(6));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(6));
+	static_assert(walk_checks<proof_walk>(6));
+	static_assert(walk_checks<proof_lifting>(6));
+	static_assert(walk_checks<proof_prefix>(6));
+	static_assert(endpoint_checks<proof_endpoint>(7));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(7));
+	static_assert(walk_checks<proof_walk>(7));
+	static_assert(walk_checks<proof_lifting>(7));
+	static_assert(walk_checks<proof_prefix>(7));
+	static_assert(endpoint_checks<proof_endpoint>(8));
+	static_assert(endpoint_checks<proof_lifting_endpoint>(8));
+	static_assert(walk_checks<proof_walk>(8));
+	static_assert(walk_checks<proof_lifting>(8));
+	static_assert(walk_checks<proof_prefix>(8));
+	static_assert(batch_checks(0));
+	static_assert(batch_checks(1));
+	static_assert(batch_checks(2));
+	static_assert(batch_checks(3));
+	static_assert(batch_checks(4));
+	static_assert(batch_checks(5));
+	static_assert(batch_checks(6));
+	static_assert(batch_checks(7));
+	static_assert(batch_checks(8));
+	static_assert(empty_graph());
+	static_assert(self_loop());
+}
+
+TEST_CASE("functional graph ordered, empty and self-loop walks constant-evaluate", "[graph][constexpr][functional_graph]") {
+	using namespace functional_graph_constexpr_checks;
+	CHECK(metadata_checks());
+	for (unsigned start = 0; start < 9; ++start) {
+		CHECK(endpoint_checks<proof_endpoint>(start));
+		CHECK(endpoint_checks<proof_lifting_endpoint>(start));
+		CHECK(walk_checks<proof_walk>(start));
+		CHECK(walk_checks<proof_lifting>(start));
+		CHECK(walk_checks<proof_prefix>(start));
+		CHECK(batch_checks(start));
+	}
+	CHECK(functional_graph_constexpr_checks::empty_graph());
+	CHECK(functional_graph_constexpr_checks::self_loop());
 }
