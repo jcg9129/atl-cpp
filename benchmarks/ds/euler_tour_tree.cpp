@@ -6,12 +6,14 @@
  * operations depend on earlier mutations. Untimed runs compare answer checksums.
  * Xeon Platinum 8168, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-25,
  * -O2 / -O2 -march=native. Connectivity churn: library 180 / 173 ms, by splay 208 / 208 ms.
- * Full tables: docs/euler-tour-tree.md.
+ * Static preorder/Fenwick: 27.7 ms with either flag set; tour library 158 / 165 ms plain / native. Full tables: docs/euler-tour-tree.md.
  */
+#include <atl/ds/binary_indexed_tree.hpp>
 #include <atl/ds/euler_tour_tree.hpp>
 #include <atl/ds/link_cut_tree.hpp>
 #include <atl/ds/subtree_link_cut_tree.hpp>
 #include <atl/experimental/ds/euler_tour_tree_variants.hpp>
+#include <atl/graph/lca.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/vertex.hpp>
 #include <catch2/catch.hpp>
@@ -268,25 +270,44 @@ TEST_CASE("euler_tour_tree benchmarks: static vertex add + subtree sum", "[euler
 		v = uint32(rng() % n);
 		x = rng() % 2 ? ll(rng() % 1'000'000) : -1; // -1: a subtree query
 	}
+	auto const run = [&]<typename Update, typename Fold>(Update update, Fold fold)
+		requires std::invocable<Update &, uint32, ll> && std::is_invocable_r_v<ll, Fold &, uint32>
+	{
+		ll acc = 0;
+		for (auto const &[v, x] : ops) {
+			if (x >= 0)
+				update(v, x);
+			else
+				acc += fold(v);
+		}
+		return acc;
+	};
 	for_each_ett([&]<ett_kind Kind>(Kind) {
 		{
 			auto const row = label(Kind::name, "static vertex add + subtree sum");
 			auto run_workload = [&] {
 				auto t = Kind::make(values, 0LL, mod_add{});
 				t.assign_parents(parents);
-				ll acc = 0;
-				for (auto const &[v, x] : ops) {
-					if (x >= 0)
-						t.update(v, [x](ll a) { return mod_add{}(a, x); });
-					else
-						acc += v == 0 ? t.component_fold(0) : t.subtree_fold(v, parents[v]);
-				}
-				return acc;
+				return run([&](uint32 v, ll x) { t.update(v, [x](ll a) { return mod_add{}(a, x); }); },
+						   [&](uint32 v) { return v == 0 ? t.component_fold(0) : t.subtree_fold(v, parents[v]); });
 			};
 			check_answers(answers, row, run_workload);
 			BENCHMARK(std::string(row)) { return run_workload(); };
 		}
 	});
+	{
+		auto const row = label("subtree_sum_by_preorder_fenwick", "static vertex add + subtree sum");
+		auto run_workload = [&] {
+			atl::graph::lca h(parents);
+			std::vector<ll> ordered(n);
+			for (uint32 v = 0; v < n; ++v) ordered[h.entry_time(v)] = values[v];
+			atl::binary_indexed_tree<ll> bit(ordered, 0LL);
+			return run([&](uint32 v, ll x) { bit.update(x, h.entry_time(v)); },
+					   [&](uint32 v) { return (bit.prefix_fold(h.exit_time(v)) - bit.prefix_fold(h.entry_time(v))) % mod; });
+		};
+		check_answers(answers, row, run_workload);
+		BENCHMARK(std::string(row)) { return run_workload(); };
+	}
 }
 
 TEST_CASE("euler_tour_tree benchmarks: connectivity churn vs link_cut_tree<>", "[euler_tour_tree]") {

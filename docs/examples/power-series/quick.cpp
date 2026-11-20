@@ -8,13 +8,22 @@ int main() {
 	std::vector<coefficient> const unit{1, 1};
 	std::vector<coefficient> const zero{0, 1};
 
-	for (auto const value : atl::series_inverse(unit, 5)) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : atl::series_inverse(unit, 5)) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 
 	auto const logarithm = atl::series_logarithm(unit, 5);
-	for (auto const value : atl::series_exponential(logarithm, 5)) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : atl::series_exponential(logarithm, 5)) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 
-	for (auto const value : atl::series_exponential(zero, 5)) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : atl::series_exponential(zero, 5)) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 }

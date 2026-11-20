@@ -109,14 +109,15 @@ Documented only:
 Measurements using `benchmarks/ds/euler_tour_tree.cpp`, 2026-10-25, Xeon Platinum
 8168, GCC 15.2, RelWithDebInfo, assertions off, minimum ms over 3 runs,
 `-O2 -march=native` / plain `-O2`, N = Q = 2e5. The contenders
-use a parent-linked treap (library) or a splay tree (by splay). Static
-preorder/Fenwick comparisons return with the graph pages.
+use a parent-linked treap (library) or a splay tree (by splay). The static `subtree_sum_by_preorder_fenwick` contender uses [lca preorder](lca.md)
+with a Fenwick tree instead of a dynamic tour. It uses the same operation loop
+and untimed checksum agreement checks.
 
 | shape | library | by splay | reference |
 |---|---|---|---|
 | subtree add + subtree sum under edge replacement | 744 / 724 | 759 / 749 | |
 | vertex add + subtree sum under edge replacement | 337 / 329 | 375 / 355 | `subtree_link_cut_tree` 290 / 283 |
-| static vertex add + subtree sum | 165 / 158 | 246 / 238 |  |
+| static vertex add + subtree sum | 165 / 158 | 246 / 238 | by preorder Fenwick 27.7 / 27.7 |
 | build: `assign_parents` (random tree) | 42.1 / 42.8 | 41.0 / 39.9 | |
 | build: N - 1 `link` calls | 91.4 / 91.7 | 116 / 115 | `link_cut_tree<>` 1.7 / 1.5 |
 | `assign_parents` + churn (cut / link / connected thirds) | 173 / 180 | 208 / 208 | `link_cut_tree<>` 137 / 134 |

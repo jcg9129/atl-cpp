@@ -11,6 +11,9 @@ int main() {
 	atl::online_convolution<coefficient> square;
 	std::vector<coefficient> catalan{1};
 	for (std::size_t n = 0; n < 11; ++n) catalan.push_back(square.push(catalan[n], catalan[n]));
-	for (auto const value : catalan) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : catalan) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 }

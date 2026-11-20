@@ -7,9 +7,10 @@
 int main() {
 	using coefficient = atl::mod_int32<998244353>;
 	auto const print = [](std::vector<coefficient> const &polynomial) {
-		for (auto const value : polynomial) {
+		for (char const *separator = ""; auto const value : polynomial) {
 			std::int64_t const centered = value.value() > coefficient::mod() / 2 ? std::int64_t(value.value()) - coefficient::mod() : value.value();
-			std::cout << centered << ' ';
+			std::cout << separator << centered;
+			separator = " ";
 		}
 		std::cout << '\n';
 	};

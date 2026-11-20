@@ -141,8 +141,12 @@ not checked.
 
 `benchmarks/ds/link_cut_tree.cpp` measures complete dependent workloads,
 including construction. Contenders change rerooting, size storage, ancestor
-pushing or node layout; commutative folding is a public mode. Static
-heavy-light comparisons return with the graph pages.
+pushing or node layout; commutative folding is a public mode. Static contenders use [lca::path](lca.md) over a segment tree for point-add
+path sums and direction-aware affine composition, or a lazy segment tree for
+affine path updates. They share the dynamic contenders' operation loops and
+check answer agreement outside timing. The supplied 2026-10-25 Xeon Platinum
+8168 records cover churn and edge workloads; these static contenders are
+**not measured yet** for either plain `-O2` or `-O2 -march=native`.
 
 Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-25,
 `-O2 -march=native`, N = Q = 5e5. Minimum milliseconds over three runs:

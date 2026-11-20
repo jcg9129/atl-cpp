@@ -6,14 +6,17 @@
  * operations depend on earlier mutations. Untimed runs compare answer checksums.
  * Xeon Platinum 8168, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-25,
  * -O2 / -O2 -march=native. Path-sum path N=Q=5e5: library 864 / 824 ms, by per-splay push 975 / 975 ms.
- * Full tables: docs/top-tree.md.
+ * Static HLD contenders are not measured yet. Full tables: docs/top-tree.md.
  */
 #include <atl/ds/euler_tour_tree.hpp>
+#include <atl/ds/lazy_segment_tree.hpp>
 #include <atl/ds/link_cut_tree.hpp>
+#include <atl/ds/segment_tree.hpp>
 #include <atl/ds/subtree_link_cut_tree.hpp>
 #include <atl/ds/top_clusters.hpp>
 #include <atl/ds/top_tree.hpp>
 #include <atl/experimental/ds/top_tree_variants.hpp>
+#include <atl/graph/lca.hpp>
 #include <atl/types/algebraic.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/vertex.hpp>
@@ -267,6 +270,53 @@ namespace {
 	using structure_top_tree = atl::top_tree<nothing, nothing, nothing, no_compress, no_rake, no_vertex, no_edge, atl::commutative_fold_t>;
 }
 
+namespace {
+	/** @brief Static path additions and sums through HLD and a lazy segment tree. */
+	struct path_sum_by_heavy_light {
+		atl::graph::lca h;
+		atl::lazy_segment_tree<sum_count, ll, sum_op, add_mapping, std::plus<>> seg;
+
+		path_sum_by_heavy_light(std::vector<uint32> const &parents, std::size_t count)
+			: h(parents), seg(std::vector<sum_count>(count, {1, 1}), sum_count{}, 0LL, sum_op{}, add_mapping{}, std::plus<>{}) {}
+
+		void path_add(uint32 u, uint32 v, ll x) {
+			h.path(u, v, [&](uint32 l, uint32 r, bool) { seg.apply(l, r, x); });
+		}
+
+		ll path_sum(uint32 u, uint32 v) {
+			ll acc = 0;
+			h.path(u, v, [&](uint32 l, uint32 r, bool) { acc += seg.fold(l, r).sum; });
+			return acc;
+		}
+	};
+
+	/** @brief Static affine composition through direction-aware HLD segments. */
+	struct path_composite_by_heavy_light {
+		atl::graph::lca h;
+		atl::segment_tree<two_way, two_way_compress> seg;
+
+		path_composite_by_heavy_light(std::vector<uint32> const &parents, std::vector<affine> const &values)
+			: h(parents), seg(values.size(), two_way{}) {
+			std::vector<two_way> ordered(values.size());
+			for (uint32 v = 0; v < values.size(); ++v) ordered[h.entry_time(v)] = {values[v], values[v]};
+			seg = atl::segment_tree<two_way, two_way_compress>(ordered, two_way{});
+		}
+
+		void assign_parents(std::vector<uint32> const &) {}
+
+		void set(uint32 u, affine f) { seg.set(h.entry_time(u), two_way{f, f}); }
+
+		affine fold(uint32 u, uint32 v) {
+			affine f{};
+			h.path(u, v, [&](uint32 l, uint32 r, bool is_reversed) {
+				two_way const part = seg.fold(l, r);
+				f = then(f, is_reversed ? part.backward : part.forward);
+			});
+			return f;
+		}
+	};
+}
+
 TEST_CASE("top_tree benchmarks: static shapes - path add + path sum", "[top_tree]") {
 	std::map<std::string, long long> answers;
 	for (shape const s : all_shapes) {
@@ -274,6 +324,24 @@ TEST_CASE("top_tree benchmarks: static shapes - path add + path sum", "[top_tree
 			auto const parents = make_parents(s, n, 11);
 			std::vector<ll> const values(n, 1);
 			workload const w(n, 12);
+			auto const run_paths = [&]<typename Add, typename Fold>(Add add, Fold fold)
+				requires std::invocable<Add &, uint32, uint32, ll> && std::is_invocable_r_v<ll, Fold &, uint32, uint32>
+			{
+				ll acc = 0;
+				for (std::size_t i = 0; i < n; ++i) {
+					auto const [u, v] = endpoints(s, w.x[i], w.y[i], n);
+					if (w.op[i] % 2 == 0)
+						add(u, v, w.value[i]);
+					else
+						acc += fold(u, v);
+				}
+				return acc;
+			};
+			auto const run = [&]<typename Tree>(Tree &t)
+				requires requires(Tree &tree) { tree.path_add(uint32{}, uint32{}, ll{}); tree.path_sum(uint32{}, uint32{}); }
+			{
+				return run_paths([&](uint32 u, uint32 v, ll x) { t.path_add(u, v, x); }, [&](uint32 u, uint32 v) { return t.path_sum(u, v); });
+			};
 			for_each_kind<library, top_tree_by_cached_vertex_cluster, top_tree_by_rerooting, top_tree_by_interleaved_layout, top_tree_by_per_splay_push, top_tree_by_rake_append>([&]<typename Kind>(Kind)
 																																													  requires requires { typename Kind::template type<tc::diameter<ll>, atl::edge_values_t>; }
 																																												  {
@@ -282,15 +350,7 @@ TEST_CASE("top_tree benchmarks: static shapes - path add + path sum", "[top_tree
 																																														  auto run_workload = [&] {
 																																															  typename Kind::template type<tc::sum<ll>> t(values);
 																																															  t.assign_parents(parents);
-																																															  ll acc = 0;
-																																															  for (std::size_t i = 0; i < n; ++i) {
-																																																  auto const [u, v] = endpoints(s, w.x[i], w.y[i], n);
-																																																  if (w.op[i] % 2 == 0)
-																																																	  t.path_add(u, v, w.value[i]);
-																																																  else
-																																																	  acc += t.path_sum(u, v);
-																																															  }
-																																															  return acc;
+																																															  return run(t);
 																																														  };
 																																														  check_answers(answers, row, run_workload);
 																																														  BENCHMARK(std::string(row)) { return run_workload(); };
@@ -302,16 +362,14 @@ TEST_CASE("top_tree benchmarks: static shapes - path add + path sum", "[top_tree
 					atl::link_cut_tree t(atl::commutative_fold, std::vector<sum_count>(n, {1, 1}), sum_count{}, 0LL, sum_op{},
 										 add_mapping{}, std::plus<>{});
 					t.assign_parents(parents);
-					ll acc = 0;
-					for (std::size_t i = 0; i < n; ++i) {
-						auto const [u, v] = endpoints(s, w.x[i], w.y[i], n);
-						if (w.op[i] % 2 == 0)
-							t.apply(u, v, w.value[i]);
-						else
-							acc += t.fold(u, v).sum;
-					}
-					return acc;
+					return run_paths([&](uint32 u, uint32 v, ll x) { t.apply(u, v, x); }, [&](uint32 u, uint32 v) { return t.fold(u, v).sum; });
 				};
+				check_answers(answers, row, run_workload);
+				BENCHMARK(std::string(row)) { return run_workload(); };
+			}
+			{
+				auto const row = label("by heavy light", shape_name(s), n);
+				auto run_workload = [&] { path_sum_by_heavy_light t(parents, n); return run(t); };
 				check_answers(answers, row, run_workload);
 				BENCHMARK(std::string(row)) { return run_workload(); };
 			}
@@ -378,6 +436,12 @@ TEST_CASE("top_tree benchmarks: point set + affine path composite (reversal mode
 				atl::link_cut_tree t(values, affine{}, affine_then{});
 				return run(t, [](affine const &f) { return f; });
 			};
+			check_answers(answers, row, run_workload);
+			BENCHMARK(std::string(row)) { return run_workload(); };
+		}
+		{
+			auto const row = label("by heavy light", "set + affine composite", n);
+			auto run_workload = [&] { path_composite_by_heavy_light t(parents, values); return run(t, [](affine const &f) { return f; }); };
 			check_answers(answers, row, run_workload);
 			BENCHMARK(std::string(row)) { return run_workload(); };
 		}

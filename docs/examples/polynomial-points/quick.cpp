@@ -9,15 +9,27 @@ int main() {
 
 	atl::polynomial_point_tree<coefficient> const tree(points);
 	auto const values = tree.evaluate(polynomial);
-	for (auto const value : values) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : values) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 
-	for (auto const value : tree.interpolate(values)) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : tree.interpolate(values)) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 
-	for (auto const value : atl::polynomial_taylor_shift(polynomial, coefficient(1))) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : atl::polynomial_taylor_shift(polynomial, coefficient(1))) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 
-	for (auto const value : atl::polynomial_from_roots(points)) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : atl::polynomial_from_roots(points)) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 }

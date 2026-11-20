@@ -563,3 +563,40 @@ namespace {
 		return true;
 	}());
 }
+
+namespace {
+	template<typename Element>
+	struct review_const_range {
+		std::vector<Element> values;
+		auto begin() = delete;
+		auto end() = delete;
+
+		auto begin() const { return values.begin(); }
+
+		auto end() const { return values.end(); }
+
+		auto size() const { return values.size(); }
+	};
+
+	struct review_token {
+		std::size_t const time;
+	};
+}
+
+TEST_CASE("time_divide_and_conquer accepts const-only ranges and nonassignable tokens", "[time_divide_and_conquer][constraints]") {
+	review_const_range<atl::item_event<int>> events{{{atl::event_kind::add, 7}, {atl::event_kind::query, 0}, {atl::event_kind::remove, 7}}};
+	static_assert(atl::item_event_range<decltype(events)>);
+	review_const_range<atl::item_lifetime> lifetimes{atl::lifetimes_of(events)};
+	static_assert(atl::lifetime_range<decltype(lifetimes)>);
+	REQUIRE(lifetimes.values == std::vector<atl::item_lifetime>{{0, 2}});
+	item_stack state;
+	auto mode = atl::by_rollback{
+		[](item_stack &s) { return review_token{s.items.size()}; },
+		[](item_stack &s, review_token token) { s.items.resize(token.time); }};
+	static_assert(std::move_constructible<review_token> && !std::movable<review_token>);
+	static_assert(atl::restore_mode<decltype(mode), item_stack>);
+	std::vector<std::size_t> observed;
+	atl::time_divide_and_conquer(state, events.size(), lifetimes, [](item_stack &s, uint32 item) { s.items.push_back(item); }, [&](item_stack &s, uint32) { observed.push_back(s.items.size()); }, mode);
+	REQUIRE(observed == std::vector<std::size_t>{1, 1, 0});
+	REQUIRE(state.items.empty());
+}
