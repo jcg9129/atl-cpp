@@ -227,7 +227,11 @@ rows only within one record), asserts off, min ms over 3 runs,
 `-march=native -O2` / plain `-O2`, N = Q = 5e5 (the record also has 2e5).
 Euler-tour measurements below use the by-splay contender. The benchmark
 reference uses the library treap backend, so those rows need remeasurement.
-Static heavy-light comparisons return with the graph pages.
+Static contenders use [lca::path](lca.md), a lazy segment tree for path
+addition and sums, and a direction-aware segment tree for affine composition.
+They share the dynamic contenders' operation loops and verify answer agreement
+outside timing. These restored contenders are **not measured yet** in the
+supplied record for either flag set.
 
 | shape | library top_tree | link_cut_tree | other |
 |---|---|---|---|
@@ -276,7 +280,7 @@ not measured in the supplied x86-64 record; the benchmark includes all of them.
 
 | Need on a changing forest | Take |
 |---|---|
-| path folds / lazy path updates only | [`link_cut_tree`](link-cut-tree.md): 1.40-4.01x faster on non-star path sums, 15.77x on stars; static trees: HLD, faster still on paths and caterpillars |
+| path folds / lazy path updates only | [`link_cut_tree`](link-cut-tree.md): 1.40-4.01x faster on non-star path sums, 15.77x on stars; static HLD comparison not measured yet |
 | subtree folds over a commutative **group** (sum, xor), point updates, maybe path folds | [`subtree_link_cut_tree`](subtree-link-cut-tree.md): vertex add + subtree sum 850 ms vs 1906 for the top tree (and 1247 for the splay ETT) |
 | subtree / component folds and lazy subtree updates, no paths | [`euler_tour_tree`](euler-tour-tree.md) for component and edge-side operations |
 | path AND subtree updates together, a non-invertible subtree fold (min, max) with paths or re-rooting, or a whole-tree shape aggregate (diameter, farthest vertex, distance sums) | **`top_tree`** |

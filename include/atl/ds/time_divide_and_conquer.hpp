@@ -171,7 +171,7 @@ namespace atl {
 	template<typename R>
 	concept lifetime_range =
 		std::ranges::forward_range<R const> && std::ranges::sized_range<R const>
-		&& (detail::member_lifetime<std::ranges::range_value_t<R>> || detail::pair_lifetime<std::ranges::range_value_t<R>>)
+		&& (detail::member_lifetime<std::ranges::range_value_t<R const>> || detail::pair_lifetime<std::ranges::range_value_t<R const>>)
 		&& requires(std::remove_reference_t<std::ranges::range_reference_t<R const>> const &e) { detail::lifetime_bounds(e); };
 
 	/** @brief `insert(s, i)` applies item `i` (a `uint32`) to the structure.
@@ -193,12 +193,14 @@ namespace atl {
 	 * @brief A restore mode of @ref atl::time_divide_and_conquer for `Structure`:
 	 *        @ref atl::by_copy_t when `Structure` is copyable, or a @ref atl::by_rollback whose
 	 *        `save` is invocable on `Structure &` and whose `restore` is invocable on
-	 *        `Structure &` and `save`'s result.
+	 *        `Structure &` and a stored token moved from `save`'s result. The
+	 *        stored token type must be move-constructible and destructible;
+	 *        assignment is not required.
 	 * @tparam Mode Restoration policy. @tparam Structure State restored by the policy.
 	 */
 	template<typename Mode, typename Structure>
 	concept restore_mode = (std::same_as<Mode, by_copy_t> && std::copyable<Structure>) || (detail::is_by_rollback<Mode> && requires(Mode &m, Structure &s) {
-							   { std::invoke(m.save, s) } -> std::movable;
+							   requires std::move_constructible<detail::rollback_token_t<decltype(m.save), Structure>>;
 							   std::invoke(m.restore, s, std::invoke(m.save, s));
 						   });
 
@@ -229,7 +231,7 @@ namespace atl {
 		 */
 		template<typename Structure, typename Save, typename Restore>
 			requires std::invocable<Save &, Structure &> && std::move_constructible<Save> && std::move_constructible<Restore>
-				  && std::movable<rollback_token_t<Save, Structure>>
+				  && std::move_constructible<rollback_token_t<Save, Structure>>
 				  && std::invocable<Restore &, Structure &, rollback_token_t<Save, Structure>>
 		class rollback_frames {
 			using token = rollback_token_t<Save, Structure>;
@@ -569,17 +571,17 @@ namespace atl {
 	 */
 	template<typename R>
 	concept item_event_range =
-		std::ranges::input_range<R const> && detail::is_item_event<std::ranges::range_value_t<R>>
-		&& std::default_initializable<decltype(std::ranges::range_value_t<R>::key)>
-		&& std::copyable<decltype(std::ranges::range_value_t<R>::key)>
-		&& std::equality_comparable<decltype(std::ranges::range_value_t<R>::key)>
-		&& detail::nothrow_hasher_for<hash<decltype(std::ranges::range_value_t<R>::key)>, decltype(std::ranges::range_value_t<R>::key)>
+		std::ranges::input_range<R const> && detail::is_item_event<std::ranges::range_value_t<R const>>
+		&& std::default_initializable<decltype(std::ranges::range_value_t<R const>::key)>
+		&& std::copyable<decltype(std::ranges::range_value_t<R const>::key)>
+		&& std::equality_comparable<decltype(std::ranges::range_value_t<R const>::key)>
+		&& detail::nothrow_hasher_for<hash<decltype(std::ranges::range_value_t<R const>::key)>, decltype(std::ranges::range_value_t<R const>::key)>
 		&& requires(std::remove_reference_t<std::ranges::range_reference_t<R const>> const &event,
-					flat_hash_map<decltype(std::ranges::range_value_t<R>::key), uint32> &map) {
+					flat_hash_map<decltype(std::ranges::range_value_t<R const>::key), uint32> &map) {
 			   bool(event.kind == event_kind::add);
 			   bool(event.kind == event_kind::remove);
 			   { map[event.key] } -> std::same_as<uint32 &>;
-			   { map.find(event.key) } -> std::same_as<typename flat_hash_map<decltype(std::ranges::range_value_t<R>::key), uint32>::iterator>;
+			   { map.find(event.key) } -> std::same_as<typename flat_hash_map<decltype(std::ranges::range_value_t<R const>::key), uint32>::iterator>;
 		   };
 
 	/**
@@ -604,7 +606,7 @@ namespace atl {
 	 */
 	template<item_event_range Events>
 	[[nodiscard]] std::vector<item_lifetime> lifetimes_of(Events const &events) {
-		using key_type = decltype(std::ranges::range_value_t<Events>::key);
+		using key_type = decltype(std::ranges::range_value_t<Events const>::key);
 		constexpr uint32 none = (std::numeric_limits<uint32>::max)();
 		std::vector<item_lifetime> lifetimes;
 		// per key a FIFO of its live copies, linked through next_live; the map

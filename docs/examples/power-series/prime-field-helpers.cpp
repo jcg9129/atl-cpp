@@ -12,12 +12,21 @@ int main() {
 	std::cout << table.binomial(10, 3).value() << '\n';
 
 	std::vector<coefficient> const polynomial{3, 4, 5};
-	for (auto const value : atl::series_derivative(polynomial)) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : atl::series_derivative(polynomial)) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
-	for (auto const value : atl::series_integral(polynomial)) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : atl::series_integral(polynomial)) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 
-	for (auto const value : atl::batch_inverse(std::vector<coefficient>{2, 3})) std::cout << (value * coefficient(6)).value() << ' ';
+	for (char const *separator = ""; auto const value : atl::batch_inverse(std::vector<coefficient>{2, 3})) {
+		std::cout << separator << (value * coefficient(6)).value();
+		separator = " ";
+	}
 	std::cout << '\n';
 
 	std::cout << atl::square_root_mod(coefficient(4))->value() << ' ' << atl::square_root_mod(4, 17).value() << ' '

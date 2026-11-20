@@ -7,7 +7,7 @@
  * Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-23,
  * -O2 / -O2 -march=native (also -g -DNDEBUG -std=c++23): rank-leftist DAG
  * branch/reuse 143 / 142 ms versus select/reuse 168 / 170.
- * Graph comparisons return with the graph pages; docs/persistent-heap.md has tables.
+ * The k-shortest-walk comparisons are not published yet; docs/persistent-heap.md has tables.
  */
 
 #include <atl/experimental/ds/persistent_heap_variants.hpp>

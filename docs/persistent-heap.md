@@ -128,7 +128,7 @@ the pool (the pool is a `std::vector` that may grow); copy the value out first.
 `benchmarks/ds/persistent_heap.cpp` races randomized, rank-leftist and
 weight-biased melds, class versus forest versions, lazy shifts and in-arena
 versus temporary-vector heapify. Loops measure whole scripts including allocation.
-The k-shortest-walk comparisons return with the graph pages.
+The k-shortest-walk comparisons are not published yet.
 
 Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off.
 Milliseconds, minimum of three run means; each pair is plain `-O2` /
@@ -165,7 +165,7 @@ compiler, build type and flags. All experimental rows use vector heapify.
 
 `benchmarks/ds/persistent_heap_tuning.cpp` varies root ordering and whether
 fresh nodes are reused. Measured 2026-10-23 with the same CPU, compiler,
-build type and flags; its graph comparison returns with the graph pages.
+build type and flags; its k-shortest-walk comparison is not published yet.
 
 | method / knob | DAG 5e5 | linear 1e6 | keep-all |
 |---|---:|---:|---:|
@@ -222,7 +222,7 @@ directly in consecutive arena nodes, then link the implicit complete binary
 tree and sift values down by holes in a descending pass. No temporary value
 vector is allocated; one meld joins the fresh block to the version.
 
-Graph comparisons return with the graph pages.
+The k-shortest-walk comparisons are not published yet.
 
 ## See also
 

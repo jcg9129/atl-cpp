@@ -14,8 +14,8 @@
  * 1014 / 1015) but loses on linear push/pop (124 / 125 versus 101 / 98.2).
  * These records are 2026-10-23 / 2026-10-24, with the same CPU and flags.
  * Persistent skew and pairing heaps are excluded because repeated expensive
- * operations on one version defeat their amortized bounds. Graph comparisons
- * return with the graph pages. Tests certify all variants by a multiset per version.
+ * operations on one version defeat their amortized bounds. The k-shortest-walk
+ * comparisons are not published yet. Tests certify all variants by a multiset per version.
  */
 
 #include <atl/ds/detail/forward_element.hpp>

@@ -18,6 +18,9 @@ int main() {
 	atl::online_fixed_convolution<coefficient> sums(sigma);
 	std::vector<coefficient> partitions{1};
 	for (std::size_t n = 1; n < length; ++n) partitions.push_back(sums.push(partitions[n - 1]) / coefficient(n));
-	for (auto const value : partitions) std::cout << value.value() << ' ';
+	for (char const *separator = ""; auto const value : partitions) {
+		std::cout << separator << value.value();
+		separator = " ";
+	}
 	std::cout << '\n';
 }

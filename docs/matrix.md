@@ -220,8 +220,8 @@ Other operations (plain -O2 / -march=native):
 | `inverse` n=200 / n=500 | 18.8 / 297 | 18.9 / 295 |
 | `bit_matrix` `solve_linear_system`, n=2000 | 33.3 | 35.2 |
 
-The spanning-tree comparison returns with the graph pages. Its measured rows
-are omitted here until that comparison is available.
+The spanning-tree comparison is not published yet; its measured rows are
+omitted until it is.
 
 ## Pitfalls and notes
 

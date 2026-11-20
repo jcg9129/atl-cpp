@@ -4,7 +4,7 @@
  * class and forest forms, optional lazy shifts, and in-arena versus vector heapify.
  * Measures complete-script throughput on random version DAGs, linear push/pop,
  * keep-all versions, million-element construction and chained three-element ranges.
- * Graph comparisons return with the graph pages. Xeon Platinum 8280, GCC 15.2,
+ * The k-shortest-walk comparisons are not published yet. Xeon Platinum 8280, GCC 15.2,
  * RelWithDebInfo, assertions off, 2026-11-01, -O2 / -O2 -march=native
  * (also -g -DNDEBUG -std=c++23): range build library 10.0 / 9.2 ms versus
  * vector heapify 11.3 / 11.2. See docs/persistent-heap.md for the full tables.

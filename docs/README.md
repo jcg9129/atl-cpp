@@ -72,3 +72,8 @@ where to put guide prose, executable examples and API comments.
 - [Series composition](series-composition.md): composition, power projection and compositional inverse of power series over prime fields.
 - [Polynomial gcd](polynomial-gcd.md): gcd, extended gcd, modular inverses and Pade approximants of polynomials over prime fields.
 - [Online convolution](online-convolution.md): relaxed products of coefficient streams, with feedback, over prime fields.
+- [Graphs](graph.md): edge vocabulary, CSR and generated representations, traversal views and visitors, markers and partitions.
+- [Graph components](graph-components.md): directed SCCs, bridge components, edge blocks and articulation points.
+- [Lowest common ancestors](lca.md): static forest queries and heavy-first path intervals.
+- [Virtual trees](virtual-tree.md): sparse key sets closed under LCA.
+- [Centroid decomposition](centroid-decomposition.md): ranking separators, balanced bisection and ternarization.
