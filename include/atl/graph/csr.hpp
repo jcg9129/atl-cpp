@@ -135,7 +135,10 @@ namespace atl::graph {
 			offset_[0] = 0;
 		}
 
-		csr() = default;
+		// user-provided, not defaulted: MSVC rejects constant evaluation of a
+		// private defaulted constructor called from a static member (C2248)
+		constexpr csr(std::vector<uint32> offsets, std::vector<Edge> edges) noexcept
+			: offset_(std::move(offsets)), edges_(std::move(edges)) {}
 
 	public:
 		/** @brief Stored adjacency element type. */
@@ -182,7 +185,7 @@ namespace atl::graph {
 			requires detail::adjacent_buildable<Edge, std::ranges::range_value_t<R>>
 				  && detail::adjacent_buildable<Edge, std::remove_cvref_t<detail::list_reference_t<R>>>
 		[[nodiscard]] static constexpr csr undirected(std::size_t n, R const &arcs) {
-			csr g;
+			csr g(std::vector<uint32>{}, std::vector<Edge>{});
 			g.build<true>(n, arcs, []<list_edge A>(A const &a, vertex_id to)
 							  requires detail::adjacent_buildable<Edge, A>
 						  { return detail::adjacent_from<Edge>(a, to); });
@@ -207,10 +210,7 @@ namespace atl::graph {
 			atl_assert(std::ranges::is_sorted(offsets));
 			atl_assert(std::ranges::all_of(
 				edges, [n = offsets.size() - 1](Edge const &e) { return std::size_t(graph::target(e)) < n; }));
-			csr result;
-			result.offset_ = std::move(offsets);
-			result.edges_ = std::move(edges);
-			return result;
+			return csr(std::move(offsets), std::move(edges));
 		}
 
 		/** @brief Number of row slices. @complexity O(1) */

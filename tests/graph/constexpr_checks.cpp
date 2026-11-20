@@ -152,12 +152,12 @@ namespace graph_checks {
 	static_assert(vocabulary());
 	static_assert(event_roles());
 	static_assert(markers());
-	// MSVC rejects constant evaluation of dfs_fold and of csr's private default
-	// construction; the runtime TEST_CASE below runs the same checks there
+	static_assert(compressed_rows());
+	// MSVC rejects constant evaluation of dfs_fold; the runtime TEST_CASE below
+	// runs the same checks there
 #if !defined(_MSC_VER) || defined(__clang__)
 	static_assert(overloads());
 	static_assert(eager_traversals());
-	static_assert(compressed_rows());
 #endif
 	static_assert(partitions());
 	static_assert(lazy_traversals());
