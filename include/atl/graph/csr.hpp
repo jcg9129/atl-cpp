@@ -136,7 +136,7 @@ namespace atl::graph {
 		}
 
 		// user-provided, not defaulted: MSVC rejects constant evaluation of a
-		// private defaulted constructor called from a static member (C2248)
+		// defaulted private constructor (C2248)
 		constexpr csr(std::vector<uint32> offsets, std::vector<Edge> edges) noexcept
 			: offset_(std::move(offsets)), edges_(std::move(edges)) {}
 
@@ -185,7 +185,9 @@ namespace atl::graph {
 			requires detail::adjacent_buildable<Edge, std::ranges::range_value_t<R>>
 				  && detail::adjacent_buildable<Edge, std::remove_cvref_t<detail::list_reference_t<R>>>
 		[[nodiscard]] static constexpr csr undirected(std::size_t n, R const &arcs) {
-			csr g(std::vector<uint32>{}, std::vector<Edge>{});
+			// starts from adopt's prvalue: MSVC rejects constant evaluation of a
+			// private constructor initializing a named local here (C2248)
+			csr g = adopt({0}, {});
 			g.build<true>(n, arcs, []<list_edge A>(A const &a, vertex_id to)
 							  requires detail::adjacent_buildable<Edge, A>
 						  { return detail::adjacent_from<Edge>(a, to); });
