@@ -167,6 +167,33 @@ Document new conventions here alongside their technical rationale.
   included header: MSVC warns that the local hides the global (C4459), which
   `/W4 /WX` turns into an error. Keep fixtures function-local or give them
   distinctive names.
+- Other MSVC `/W4` warnings that GCC and Clang do not give, all fatal under
+  `/WX`: a parameter read in only one `if constexpr` branch is unused in the
+  other (C4100; mark it `[[maybe_unused]]`); `1u << k` widened to
+  `std::size_t` (C4334; shift in the target type); a 64-bit index or count
+  stored into `std::size_t` on x86 (C4244); a local, parameter or lambda
+  parameter that shadows an enclosing one (C4456, C4457).
+- Arithmetic on a value type narrower than `int` (`int16_t` flows or costs)
+  promotes to `int`: convert the result back (`F(a - b)`, `F(-delta)`) before
+  storing it or passing it to `(std::min)`/`(std::max)`, which otherwise fail
+  to deduce. Code whose constraints admit such types gets an accepted-call
+  test that instantiates it with them.
+- MSVC rejects the constant evaluation of a defaulted private constructor
+  reached through a static factory (C2248), and of a named local built from
+  one: give the constructor a user-provided body and return a prvalue
+  (`return csr(std::move(offsets), std::move(edges));`).
+- `std::numeric_limits<T>::min()` is the smallest positive value for a
+  floating `T`; a "minus infinity" starting value is `lowest()`.
+- Count edges or other range elements in a checked `std::size_t`
+  accumulator, not with `std::ranges::distance`, whose signed difference type
+  can overflow on 32-bit targets before the bound check runs.
+- clang-tidy's `modernize-use-ranges` flags `std::iota`, and libc++ has no
+  `std::ranges::iota`: fill index arrays with a plain loop.
+- Death tests include `"../expect_abort.hpp"` (quoted, relative). Never
+  negate `aborts()`: in the Windows re-exec child every earlier `aborts()`
+  call reports true, so a negated check fails there and breaks the death
+  tests after it. Check the non-aborting case with a plain `REQUIRE` on its
+  result.
 - No code copied from attribution-licensed sources (MIT/BSD/Apache/CC-BY
   included): cite the reference in a comment, implement independently.
 
@@ -205,6 +232,16 @@ component. Generated files go in the build tree, never in `docs/`.
   `congruence<U>`: written bare, Doxygen reads `<U>` as an HTML tag.
 - API docs use `/** ... */`; trailing member docs may use `///<`. No `///`
   line docs.
+- Every public namespace has a Doxygen block (the list lives in
+  `cmake/Documentation.cmake`); without one, Doxygen drops the namespace's
+  free functions from the reference and `FAIL_ON_WARNINGS` fails on every
+  link to them. A new public namespace adds its brief there.
+- A doc comment goes before the whole declaration, `template<...>` and
+  `template<>` lines included. Deduction guides need their own brief.
+  `@ref` targets are bare names (no trailing `:`).
+- Guide pages put no backslash before a letter in prose: Doxygen reads it as
+  a command and `FAIL_ON_WARNINGS` fails the build.
+  Write such notation in words ("L minus Z").
 - Every runtime-only (non-constexpr) public API states why in its docs:
   `@note Not constexpr (uses std::sort on a heap buffer)`.
 - `//` comments only for in-body non-obvious notes: the why, a subtlety, an
