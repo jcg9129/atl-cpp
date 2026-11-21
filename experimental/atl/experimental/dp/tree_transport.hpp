@@ -153,7 +153,7 @@ namespace atl::experimental {
 
 		// heap 2v: the right side of f_v (k >= 0), keyed by slope; heap 2v + 1:
 		// the left side (k <= 0), keyed by minus the slope
-		HeapForest forest(2 * n, transport_segment_order{}, int64{0});
+		HeapForest forest(uint32(2 * n), transport_segment_order{}, int64{0});
 		forest.reserve(2 * n);
 		// the sum of f_v(0) over the subtrees processed so far: at most `penalty * sum
 		// demand` < 2^126 and never negative (every cost is), so int128 holds it

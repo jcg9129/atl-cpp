@@ -188,6 +188,12 @@ namespace atl::experimental {
 		std::vector<Slope> weights_;
 
 	public:
+		/** @brief `set` as a heap id of both pools. @pre `set < set_count()` (asserted) */
+		[[nodiscard]] constexpr uint32 heap_of(std::size_t set) const {
+			atl_assert(set < leftmost_first_.heap_count());
+			return uint32(set);
+		}
+
 		/** @brief `set_count` empty sets. */
 		constexpr explicit breakpoint_pool_by_tunable_pairing_pops(std::size_t set_count)
 			: leftmost_first_(set_count), rightmost_first_(set_count) {}
@@ -213,26 +219,26 @@ namespace atl::experimental {
 			atl_assert(weights_.size() < std::numeric_limits<uint32>::max());
 			auto const record = uint32(weights_.size());
 			weights_.push_back(weight);
-			leftmost_first_.push(set, entry{position, record});
-			rightmost_first_.push(set, entry{position, record});
+			leftmost_first_.push(heap_of(set), entry{position, record});
+			rightmost_first_.push(heap_of(set), entry{position, record});
 		}
 
 		/** @brief `position += d` for every breakpoint now in `set`. */
 		constexpr void translate(std::size_t set, Position const &d) {
-			leftmost_first_.add_to_all(set, d);
-			rightmost_first_.add_to_all(set, d);
+			leftmost_first_.add_to_all(heap_of(set), d);
+			rightmost_first_.add_to_all(heap_of(set), d);
 		}
 
 		/** @brief Move every breakpoint of `from` into `into` (a no-op when equal). O(1). */
 		constexpr void meld(std::size_t into, std::size_t from) {
-			leftmost_first_.meld(into, from);
-			rightmost_first_.meld(into, from);
+			leftmost_first_.meld(heap_of(into), heap_of(from));
+			rightmost_first_.meld(heap_of(into), heap_of(from));
 		}
 
 		/** @brief Empty `set` by repeated pops. */
 		constexpr void clear(std::size_t set) {
-			while (!leftmost_first_.empty(set)) leftmost_first_.pop(set);
-			while (!rightmost_first_.empty(set)) rightmost_first_.pop(set);
+			while (!leftmost_first_.empty(heap_of(set))) leftmost_first_.pop(heap_of(set));
+			while (!rightmost_first_.empty(heap_of(set))) rightmost_first_.pop(heap_of(set));
 		}
 
 		/**
@@ -241,8 +247,8 @@ namespace atl::experimental {
 		 *        same position), and empty the set.
 		 */
 		constexpr void take_all(std::size_t set, std::vector<weighted_breakpoint<Position, Slope>> &out) {
-			while (!leftmost_first_.empty(set)) {
-				entry const top = leftmost_first_.pop(set);
+			while (!leftmost_first_.empty(heap_of(set))) {
+				entry const top = leftmost_first_.pop(heap_of(set));
 				Slope &weight = weights_[top.record];
 				if (weight == 0) continue;
 				if (!out.empty() && !(out.back().position < top.position) && !(top.position < out.back().position)) {
@@ -253,7 +259,7 @@ namespace atl::experimental {
 				}
 				weight = 0;
 			}
-			while (!rightmost_first_.empty(set)) rightmost_first_.pop(set);
+			while (!rightmost_first_.empty(heap_of(set))) rightmost_first_.pop(heap_of(set));
 		}
 	};
 

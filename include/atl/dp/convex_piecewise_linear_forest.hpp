@@ -168,7 +168,11 @@ namespace atl {
 			constexpr Position eat(std::size_t set, Slope amount, Sink &&sink) {
 				uint32 const heap = heap_of(set);
 				auto &h = heaps<IsFromLeft>();
-				for (;;) {
+				atl_assert(amount > 0);
+				// A loop with an exit condition, not `for (;;)` with a return inside: MSVC's constant evaluation
+				// reports the endless form as reaching the end of the function.
+				Position last{};
+				while (amount != 0) {
 					atl_assert(!h.empty(heap));
 					entry const &top = h.top(heap);
 					Slope &weight = weights_[top.record];
@@ -176,14 +180,14 @@ namespace atl {
 						h.pop(heap);
 						continue;
 					}
-					Position const position = top.position;
-					Slope const taken = std::min(weight, amount);
-					weight -= taken;
-					amount -= taken;
-					sink(position, taken);
+					last = top.position;
+					Slope const taken = (std::min)(weight, amount);
+					weight = Slope(weight - taken);
+					amount = Slope(amount - taken);
+					sink(last, taken);
 					if (weight == 0) h.pop(heap);
-					if (amount == 0) return position;
 				}
+				return last;
 			}
 
 			/**

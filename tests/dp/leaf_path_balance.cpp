@@ -145,7 +145,7 @@ TEST_CASE("balance_leaf_paths: unit weights: the nonnegative bound changes the o
 	check_assignment(tree, nonnegative_unit, 0);
 }
 
-TEST_CASE("balance_leaf_paths: small trees against the table DP", "[dp][leaf_path_balance]") {
+TEST_CASE("balance_leaf_paths: short_path trees against the table DP", "[dp][leaf_path_balance]") {
 	for (unsigned seed = 0; seed < 1500; ++seed) {
 		std::mt19937_64 rng(seed);
 		std::size_t const n = std::uniform_int_distribution<std::size_t>(1, 8)(rng);
@@ -236,13 +236,13 @@ TEST_CASE("balance_leaf_paths_by_fewer_entries on the bounded path the weight ru
 		tree.cost[0] = 0;
 		return tree;
 	};
-	weighted_tree const small = path(2000);
-	auto const example = solve(small, 0);
-	auto const by_fewer_entries = atl::experimental::balance_leaf_paths_by_fewer_entries(small.parent, small.cost, small.weight, 0);
+	weighted_tree const short_path = path(2000);
+	auto const example = solve(short_path, 0);
+	auto const by_fewer_entries = atl::experimental::balance_leaf_paths_by_fewer_entries(short_path.parent, short_path.cost, short_path.weight, 0);
 	REQUIRE(example.total_cost == 0); // one leaf: every cost kept
 	REQUIRE(by_fewer_entries.total_cost == example.total_cost);
 	REQUIRE(by_fewer_entries.path_sum == example.path_sum);
-	check_assignment(small, by_fewer_entries, 0);
+	check_assignment(short_path, by_fewer_entries, 0);
 	// 1e5 vertices: about 5e9 moved pieces for the weight rule, past its record limit
 	weighted_tree const large = path(100'000);
 	auto const result = atl::experimental::balance_leaf_paths_by_fewer_entries(large.parent, large.cost, large.weight, 0);

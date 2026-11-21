@@ -114,7 +114,7 @@ namespace atl::experimental {
 																	  std::span<int64 const> supply, std::span<int64 const> demand) {
 		auto const [order, penalty] = atl::experimental::plan_transport(parent, cost, supply, demand);
 		std::size_t const n = parent.size();
-		atl::experimental::transport_heap_forest_default forest(2 * n, atl::experimental::transport_segment_order{}, int64{0});
+		atl::experimental::transport_heap_forest_default forest(uint32(2 * n), atl::experimental::transport_segment_order{}, int64{0});
 		forest.reserve(2 * n);
 		int128 total = 0;
 		for (uint32 const v : order) {

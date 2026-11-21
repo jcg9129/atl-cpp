@@ -355,15 +355,15 @@ TEST_CASE("convex_piecewise_linear_forest: ids", "[dp][convex_piecewise_linear_f
 TEST_CASE("convex_piecewise_linear_forest: large weights and coordinates", "[dp][convex_piecewise_linear_forest]") {
 	forest_type forest(1);
 	auto const f = forest[forest.id(0)];
-	int64 const far = int64(1) << 61;
-	f.add_absolute(far, 1'000'000);
-	f.add_absolute(-far, 999'999);
+	int64 const distant = int64(1) << 61;
+	f.add_absolute(distant, 1'000'000);
+	f.add_absolute(-distant, 999'999);
 	auto const range = f.clip_slopes(-1, 1);
-	REQUIRE(range.lower == -far);
-	REQUIRE(range.upper == far);
+	REQUIRE(range.lower == -distant);
+	REQUIRE(range.upper == distant);
 	auto const breakpoints = f.take_breakpoints();
-	REQUIRE(breakpoints.size() == 1); // the left end ate the whole breakpoint at -far
-	REQUIRE(breakpoints[0].position == far);
+	REQUIRE(breakpoints.size() == 1); // the left end ate the whole breakpoint at -distant
+	REQUIRE(breakpoints[0].position == distant);
 	REQUIRE(breakpoints[0].weight == 2);
 }
 
