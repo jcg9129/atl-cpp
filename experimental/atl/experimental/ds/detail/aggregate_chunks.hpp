@@ -26,6 +26,9 @@ namespace atl::experimental::detail {
 			std::unique_ptr<block> owned_next;
 			block *next = nullptr; ///< Next active chunk, or next free chunk.
 			block *previous = nullptr;
+
+			// User-provided: MSVC does not treat the implicit destructor of this self-owning type as constexpr.
+			constexpr ~block() {} // NOLINT(modernize-use-equals-default)
 		};
 
 	public:

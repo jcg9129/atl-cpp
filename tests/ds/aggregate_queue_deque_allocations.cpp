@@ -219,7 +219,7 @@ TEST_CASE("aggregate containers: allocation failures preserve contents", "[ds][a
 		atl::aggregate_deque<int, std::plus<>> values(0);
 		for (int i = 1; i <= 33; ++i) values.push_back(i);
 		bool const has_failed = fails_allocation(permitted, [&] { values.pop_front(); });
-		REQUIRE(values.size() == (has_failed ? 33 : 32));
+		REQUIRE(values.size() == (has_failed ? 33u : 32u));
 		REQUIRE(values.front() == (has_failed ? 1 : 2));
 		REQUIRE(values.back() == 33);
 		REQUIRE(values.fold() == (has_failed ? 561 : 560));

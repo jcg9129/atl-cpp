@@ -80,8 +80,10 @@ namespace atl {
 		 */
 		constexpr explicit aggregate_deque(Value identity, Operation operation = Operation{}) : identity_(std::move(identity)), operation_(std::move(operation)) {}
 
+		/** @brief Deep copy, O(n). */
 		constexpr aggregate_deque(aggregate_deque const &) = default;
 
+		/** @brief O(1) container work; the source is left only destructible or assignable. */
 		constexpr aggregate_deque(aggregate_deque &&) = default;
 
 		/** @brief Copy into a temporary, then commit by move, so a failed allocation leaves this object unchanged. */
@@ -95,6 +97,7 @@ namespace atl {
 			return *this;
 		}
 
+		/** @brief O(1) container work plus releasing this object's values; the source is left only destructible or assignable. */
 		constexpr aggregate_deque &operator=(aggregate_deque &&) = default;
 
 		/**
