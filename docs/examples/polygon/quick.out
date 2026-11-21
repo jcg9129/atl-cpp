@@ -1,0 +1,8 @@
+doubled signed area -32, area 16
+winding -1, convex 0
+(1, 1) -> 1
+(2, 4) -> 0
+(3, 3) -> -1
+centroid 1.5 2.5
+lattice points: 20 on the boundary, 7 inside
+normalized: (0, 0) (4, 0) (4, 2) (2, 2) (2, 6) (0, 6)

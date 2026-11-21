@@ -107,3 +107,12 @@ where to put guide prose, executable examples and API comments.
 - [Exact-count optimum](exact-count-optimum.md): the best value with exactly k items by Lagrangian relaxation over a solver that prices items instead.
 - [Convex piecewise-linear functions](convex-piecewise-linear.md): the slope trick for DP rows convex in their state, as breakpoints in two heaps around the minimum: hinges and absolute values, translation, prefix, suffix and window minima, slope clipping and segment insertion, each reporting where its minimum is attained for reconstruction.
 - [Convex piecewise-linear forest](convex-piecewise-linear-forest.md): the slope trick on trees, many weighted convex functions over one breakpoint pool with O(1) sums and slope clips that report their range for reconstruction; worked examples balance root-to-leaf paths at the least weighted change and move units along a tree at the least cost.
+
+## Geometry
+
+- [Geometry overview](geometry.md): coordinate types and widened products, the exact, fast and approximate sign policies and the three precision tiers shared by the folder.
+- [Geometry primitives](geometry-primitives.md): points and vectors, exact orientation, closed segments, directed lines, the area of a union of boxes and the polar-angle sort.
+- [Polygons](polygon.md): signed area, exact point-in-polygon with a boundary class, winding, convexity, removal of duplicate and straight vertices, the area centroid and Pick's lattice-point counts.
+- [Radial sweep](radial-sweep.md): the direction covered by the most closed arcs, and the most points one disk of a fixed radius can cover.
+- [Closest pair](closest-pair.md): the closest pair of a point set by an x-sweep, exact for integer coordinates, raced against divide and conquer and a randomized grid.
+- [Manhattan MST](manhattan-mst.md): the minimum spanning tree under the L1 distance from four octant sweeps and Kruskal, exact over the full integer range.

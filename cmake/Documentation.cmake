@@ -48,7 +48,8 @@ endforeach()
 string(APPEND ATL_DOXYGEN_INPUT " \"${atl_coverage_page}\"")
 file(WRITE "${atl_docs_dir}/namespaces.dox"
     "/** @namespace atl\n * @brief Public algorithms, types and utilities.\n */\n"
-    "/** @namespace atl::graph\n * @brief Graph vocabulary, storage, traversal and graph algorithms.\n */\n")
+    "/** @namespace atl::graph\n * @brief Graph vocabulary, storage, traversal and graph algorithms.\n */\n"
+    "/** @namespace atl::geometry\n * @brief Planar points, exact predicates and sign policies, and geometric algorithms.\n */\n")
 string(APPEND ATL_DOXYGEN_INPUT " \"${atl_docs_dir}/namespaces.dox\"")
 set(ATL_DOXYGEN_STYLES "")
 set(ATL_DOXYGEN_FILES "\"${PROJECT_SOURCE_DIR}/LICENSE\"")
