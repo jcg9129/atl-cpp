@@ -28,10 +28,10 @@ namespace atl::geometry {
 	 * convention (`int(w)` matches an orientation sign).
 	 */
 	enum class winding : int { clockwise = -1,		   ///< Negative orientation, negative signed area.
-							   none = 0,			   ///< Degenerate: no direction (or, for @ref convexity, not convex).
+							   none = 0,			   ///< Degenerate: no direction (or, for @ref atl::geometry::convexity, not convex).
 							   counterclockwise = 1 }; ///< Positive orientation, positive signed area.
 
-	/** @brief Result of @ref convexity_of. */
+	/** @brief Result of @ref atl::geometry::convexity_of. */
 	struct convexity {
 		bool is_convex;	   ///< A convex SIMPLE polygon (collinear vertices allowed).
 		bool is_strict;	   ///< Additionally no collinear vertices; false when not convex.
@@ -147,7 +147,7 @@ namespace atl::geometry {
 	}
 
 	/**
-	 * @brief Result of @ref lattice_count_of.
+	 * @brief Result of @ref atl::geometry::lattice_count_of.
 	 * @tparam Count The signed integer type of the counts.
 	 */
 	template<signed_integral Count>
@@ -321,8 +321,8 @@ namespace atl::geometry {
 
 	/**
 	 * @brief The absolute area of @p poly as `double`, a construction: half
-	 *        the magnitude of @ref polygon_area2.
-	 * @pre As @ref polygon_area2.
+	 *        the magnitude of @ref atl::geometry::polygon_area2.
+	 * @pre As @ref atl::geometry::polygon_area2.
 	 * @complexity O(n)
 	 */
 	template<vertex_range R>

@@ -36,7 +36,7 @@ namespace atl::geometry {
 
 	/**
 	 * @brief Exact squared length (for integral coordinates), see
-	 * @ref squared_distance.
+	 * @ref atl::geometry::squared_distance.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted).
 	 */
 	template<coordinate T>
@@ -92,7 +92,7 @@ namespace atl::geometry {
 	 *        over the rounded length. A point on the segment (exact
 	 *        predicate) returns exactly 0, for floating coordinates too.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted); for
-	 *      floating ones the floating @ref orientation precondition.
+	 *      floating ones the floating @ref atl::geometry::orientation precondition.
 	 * @note Not constexpr (`std::sqrt`).
 	 */
 	template<coordinate T>
@@ -114,7 +114,7 @@ namespace atl::geometry {
 	 *        of one of them, so the value is the least of the four
 	 *        endpoint-to-segment distances. Degenerate segments are points.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted); for
-	 *      floating ones the floating @ref orientation precondition.
+	 *      floating ones the floating @ref atl::geometry::orientation precondition.
 	 * @note Not constexpr (`std::sqrt`).
 	 */
 	template<coordinate T>
@@ -154,7 +154,7 @@ namespace atl::geometry {
 	 *        the dead zone (cross-product units) and the box inflated by eps
 	 *        (coordinate units).
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted); for
-	 *      floating ones the floating @ref orientation precondition.
+	 *      floating ones the floating @ref atl::geometry::orientation precondition.
 	 * @complexity O(1)
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
@@ -170,7 +170,7 @@ namespace atl::geometry {
 	 *        default policy for integral and floating coordinates; degenerate
 	 *        (point) segments are handled.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted); for
-	 *      floating ones the floating @ref orientation precondition.
+	 *      floating ones the floating @ref atl::geometry::orientation precondition.
 	 * @complexity O(1)
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>

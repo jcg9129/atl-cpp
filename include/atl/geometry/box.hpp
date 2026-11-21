@@ -56,7 +56,7 @@ namespace atl::geometry {
 		};
 
 		/**
-		 * @brief The x-sweep input of @ref union_area: the sorted distinct y
+		 * @brief The x-sweep input of @ref atl::geometry::union_area — the sorted distinct y
 		 *        values and, per box with area, an entry and an exit event
 		 *        over its half-open strip range, sorted by x.
 		 */
@@ -74,8 +74,8 @@ namespace atl::geometry {
 		};
 
 		/**
-		 * @brief Builds the @ref klee_events of @p boxes, asserting the
-		 *        @ref union_area preconditions.
+		 * @brief Builds the `klee_events` of @p boxes, asserting the
+		 *        @ref atl::geometry::union_area preconditions.
 		 * @pre `0 < size(boxes) < 2^29`
 		 */
 		template<box_range R>
@@ -117,7 +117,7 @@ namespace atl::geometry {
 	 * @brief The area covered by AT LEAST ONE of the boxes (Klee's measure in
 	 *        the plane): an x-sweep over box edges with a count-and-covered-
 	 *        length segment tree on the compressed y-intervals, updated
-	 *        iteratively bottom-up. Exact in @ref difference_product_t for
+	 *        iteratively bottom-up. Exact in @ref atl::geometry::difference_product_t for
 	 *        integral coordinates; floating coordinates give a rounded
 	 *        `float64` construction (lengths and area accumulate in `double`) with no exactness guarantee. Boxes of zero area contribute
 	 *        nothing; an empty range gives 0.

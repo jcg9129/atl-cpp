@@ -48,7 +48,7 @@ namespace atl::geometry {
 			sizeof(T) == 1, int8,
 			std::conditional_t<sizeof(T) == 2, int16, std::conditional_t<sizeof(T) == 4, int32, int64>>>;
 
-		/** @brief Result type of one product of raw coordinates (see @ref product_t). */
+		/** @brief Result type of one product of raw coordinates (see @ref atl::geometry::product_t). */
 		template<coordinate T>
 		struct product_type {
 			using type = traits::widen_mul_type_t<normalized_int<T>>;
@@ -77,7 +77,7 @@ namespace atl::geometry {
 	 *        `int64 -> int128`), `double` for floating ones.
 	 *
 	 * For integral @p T every value of this type computed by the two-point
-	 * @ref cross and by @ref dot is exact. For `float` each single product is
+	 * @ref atl::geometry::cross and by @ref atl::geometry::dot is exact. For `float` each single product is
 	 * exact in `double`, but a sum or difference of two of them is rounded
 	 * once; for `double` every product and the final sum are rounded. Use the
 	 * predicates for certified signs.
@@ -87,11 +87,11 @@ namespace atl::geometry {
 
 	/**
 	 * @brief Type holding a product of coordinate DIFFERENCES: one more
-	 *        widening step than @ref product_t, since a difference needs one
+	 *        widening step than @ref atl::geometry::product_t, since a difference needs one
 	 *        extra bit (`int16 -> int64`, `int32` and
 	 *        `int64 -> int128`, `double` for floating coordinates). This is
-	 *        the result type of the three-point @ref cross and of
-	 *        @ref squared_distance.
+	 *        the result type of the three-point @ref atl::geometry::cross and of
+	 *        @ref atl::geometry::squared_distance.
 	 *
 	 * For `int64` coordinates no wider type than `int128` exists, so those
 	 * operations carry the magnitude precondition `|x|, |y| < 2^62`
@@ -169,7 +169,7 @@ namespace atl::geometry {
 	}
 
 	namespace detail {
-		/** @brief Whether @p P is some `point<T>` (see @ref vertex_range). */
+		/** @brief Whether @p P is some `point<T>` (see @ref atl::geometry::vertex_range). */
 		template<typename P>
 		struct is_point : std::false_type {};
 
@@ -190,8 +190,8 @@ namespace atl::geometry {
 		&& detail::is_point<std::remove_cvref_t<std::ranges::range_value_t<R>>>::value;
 
 	/**
-	 * @brief Index of a point within a @ref vertex_range, the element type of
-	 * index-valued results such as @ref polar_angle_order (positional, unlike
+	 * @brief Index of a point within a @ref atl::geometry::vertex_range, the element type of
+	 * index-valued results such as @ref atl::geometry::polar_angle_order (positional, unlike
 	 * `graph::vertex_id`, which names a node identity).
 	 */
 	using vertex_index = uint32;
@@ -199,7 +199,7 @@ namespace atl::geometry {
 	/** @brief Index of a triangle within a triangulation result. */
 	using triangle_index = uint32;
 
-	/** @brief Coordinate type of the points of a @ref vertex_range. */
+	/** @brief Coordinate type of the points of a @ref atl::geometry::vertex_range. */
 	template<vertex_range R>
 	using vertex_coordinate_t =
 		typename std::remove_cvref_t<std::ranges::range_value_t<R>>::coordinate_type;
@@ -253,11 +253,11 @@ namespace atl::geometry {
 	}
 
 	/**
-	 * @brief Cross product `a.x * b.y - a.y * b.x` in @ref product_t: exact for
+	 * @brief Cross product `a.x * b.y - a.y * b.x` in @ref atl::geometry::product_t — exact for
 	 *        integral coordinates; for `float` the two products are exact and
 	 *        their difference is rounded once, so the sign is still exact; for
 	 *        `double` a rounded construction with no sign guarantee (for a
-	 *        certified sign use @ref orientation).
+	 *        certified sign use @ref atl::geometry::orientation).
 	 *
 	 * Total for every integral type: the extreme value, `2^(2w-1) - 2^(w-1)`
 	 * for `w`-bit coordinates (`2^127 - 2^63` for `int64`), fits.
@@ -270,11 +270,11 @@ namespace atl::geometry {
 	}
 
 	/**
-	 * @brief Dot product `a.x * b.x + a.y * b.y` in @ref product_t, with the
-	 *        exactness tiers of the two-point @ref cross.
+	 * @brief Dot product `a.x * b.x + a.y * b.y` in @ref atl::geometry::product_t, with the
+	 *        exactness tiers of the two-point @ref atl::geometry::cross.
 	 * @pre For integral coordinates: not all four coordinates equal the
 	 *      type's minimum (the one input whose result, `2^(2w-1)` for
-	 *      `w`-bit coordinates, overflows @ref product_t; asserted).
+	 *      `w`-bit coordinates, overflows @ref atl::geometry::product_t; asserted).
 	 * @complexity O(1)
 	 */
 	template<coordinate T>
@@ -289,12 +289,12 @@ namespace atl::geometry {
 
 	/**
 	 * @brief Cross product of `a - o` and `b - o`, twice the signed area of
-	 *        the triangle `o, a, b`, in @ref difference_product_t. Integral
+	 *        the triangle `o, a, b`, in @ref atl::geometry::difference_product_t. Integral
 	 *        results are exact: the differences and products are widened.
 	 *        For floating coordinates a rounded construction (differences,
 	 *        products and the final difference are each rounded, so it can
 	 *        cancel catastrophically); its sign near zero is what
-	 *        @ref orientation certifies.
+	 *        @ref atl::geometry::orientation certifies.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted).
 	 * @complexity O(1)
 	 */
@@ -314,9 +314,9 @@ namespace atl::geometry {
 	}
 
 	/**
-	 * @brief Squared euclidean length of @p v in @ref product_t, exact for
+	 * @brief Squared euclidean length of @p v in @ref atl::geometry::product_t, exact for
 	 * integral coordinates.
-	 * @pre As @ref dot: for integral coordinates, not both coordinates equal
+	 * @pre As @ref atl::geometry::dot — for integral coordinates, not both coordinates equal
 	 *      the type's minimum (asserted).
 	 * @complexity O(1)
 	 */
@@ -327,7 +327,7 @@ namespace atl::geometry {
 
 	/**
 	 * @brief Squared euclidean distance between @p a and @p b in
-	 *        @ref difference_product_t, computed on widened differences:
+	 *        @ref atl::geometry::difference_product_t, computed on widened differences:
 	 *        exact for integral coordinates.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted).
 	 * @complexity O(1)
@@ -386,8 +386,8 @@ namespace atl::geometry {
 
 	/**
 	 * @brief Euclidean length of @p v as `double`, a construction (rounded):
-	 * compare @ref squared_length values instead in exact decisions.
-	 * @pre As @ref squared_length.
+	 * compare @ref atl::geometry::squared_length values instead in exact decisions.
+	 * @pre As @ref atl::geometry::squared_length.
 	 * @note Not constexpr (`std::sqrt`).
 	 */
 	template<coordinate T>
@@ -397,8 +397,8 @@ namespace atl::geometry {
 
 	/**
 	 * @brief Euclidean distance between @p a and @p b as `double`, a
-	 * construction: compare @ref squared_distance values in exact decisions.
-	 * @pre As @ref squared_distance.
+	 * construction: compare @ref atl::geometry::squared_distance values in exact decisions.
+	 * @pre As @ref atl::geometry::squared_distance.
 	 * @note Not constexpr (`std::sqrt`).
 	 */
 	template<coordinate T>

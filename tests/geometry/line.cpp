@@ -139,8 +139,11 @@ TEST_CASE("line intersection: matches the exact rational point", "[geometry]") {
 							   point<double>{double(m.b.x), double(m.b.y)}, got))
 				<= 1e-6 * 4e6);
 	}
-	// exact axis case
-	REQUIRE(intersection(ln{{0, -5}, {0, 5}}, ln{{-3, 2}, {9, 2}}) == point<double>{0.0, 2.0});
+	// axis case: a rounded construction (t = 7/10 is inexact; FMA contraction or x87 may round the last step
+	// differently), so within the construction's error bound
+	auto const axis = intersection(ln{{0, -5}, {0, 5}}, ln{{-3, 2}, {9, 2}});
+	REQUIRE(std::abs(axis.x - 0.0) <= 1e-15);
+	REQUIRE(std::abs(axis.y - 2.0) <= 1e-15);
 	// segment overload: side relative to the spanned directed line
 	REQUIRE(side_of(segment<std::int64_t>{{0, 0}, {4, 0}}, pt{2, 7}) == side::left);
 	REQUIRE(side_of(segment<std::int64_t>{{0, 0}, {4, 0}}, pt{-100, 0}) == side::on);

@@ -27,12 +27,12 @@ namespace atl::geometry {
 		float64 to{};	///< End angle in radians, reached counterclockwise from `from`.
 	};
 
-	/** @brief A sized random-access range of @ref arc. */
+	/** @brief A sized random-access range of @ref atl::geometry::arc. */
 	template<typename R>
 	concept arc_range = std::ranges::random_access_range<R> && std::ranges::sized_range<R>
 					 && std::same_as<std::remove_cvref_t<std::ranges::range_value_t<R>>, arc>;
 
-	/** @brief Result of @ref max_arc_overlap. */
+	/** @brief Result of @ref atl::geometry::max_arc_overlap. */
 	struct arc_overlap {
 		uint32 count{};	 ///< The most arcs that contain one direction.
 		float64 angle{}; ///< A direction they all contain, in `[0, 2 pi)`; 0 when there are no arcs.
@@ -69,7 +69,7 @@ namespace atl::geometry {
 		}
 
 		/**
-		 * @brief The sweep of @ref max_arc_overlap over arcs given as entry
+		 * @brief The sweep of @ref atl::geometry::max_arc_overlap over arcs given as entry
 		 *        angles in @p entries and exit angles `from + span` in
 		 *        @p exits, index-aligned, on caller-owned scratch: both are
 		 *        sorted as plain arrays and merged, entries first on ties.
@@ -146,7 +146,7 @@ namespace atl::geometry {
 		return detail::max_arc_overlap_events(entries, exits, open);
 	}
 
-	/** @brief Result of @ref max_points_in_circle. */
+	/** @brief Result of @ref atl::geometry::max_points_in_circle. */
 	struct circle_cover {
 		uint32 count{};			 ///< The most points one closed disk of the radius covers.
 		point<float64> center{}; ///< The center of such a disk, a rounded construction.
@@ -158,7 +158,7 @@ namespace atl::geometry {
 	 *        center. Some optimal disk has an input point on its boundary, so
 	 *        for each point the candidate centers form the circle of radius
 	 *        @p radius around it, every other point within `2 radius` cuts a
-	 *        coverage arc into that circle, and @ref max_arc_overlap does the
+	 *        coverage arc into that circle, and @ref atl::geometry::max_arc_overlap does the
 	 *        rest.
 	 *
 	 * Coverage tests are `float64` constructions (distances and angles are

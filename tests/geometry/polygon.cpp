@@ -127,11 +127,15 @@ namespace {
 					   center.y + std::int64_t(rng() % 31) - 15};
 			if (p.x != center.x || p.y != center.y) raw.push_back(p);
 		}
-		// one point per direction from the center (keep the farthest)
+		// one point per direction from the center (keep the farthest), ordered by an exact integer angle
+		// comparison: atan2 keys can compare inconsistently under excess precision (x87), which breaks the
+		// strict weak ordering std::ranges::sort requires
+		auto const upper = [&](pt const p) { return p.y > center.y || (p.y == center.y && p.x > center.x); };
 		std::ranges::sort(raw, [&](pt const a, pt const b) {
-			double const aa = std::atan2(double(a.y - center.y), double(a.x - center.x));
-			double const ab = std::atan2(double(b.y - center.y), double(b.x - center.x));
-			if (aa != ab) return aa < ab;
+			bool const is_upper_a = upper(a), is_upper_b = upper(b);
+			if (is_upper_a != is_upper_b) return is_upper_a;
+			std::int64_t const turn = (a.x - center.x) * (b.y - center.y) - (a.y - center.y) * (b.x - center.x);
+			if (turn != 0) return turn > 0;
 			return std::abs(a.x - center.x) + std::abs(a.y - center.y)
 				 < std::abs(b.x - center.x) + std::abs(b.y - center.y);
 		});

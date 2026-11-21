@@ -326,7 +326,10 @@ TEST_CASE("cross is total on int64; dot asserts its one overflowing input", "[ge
 TEST_CASE("to_float64: coordinatewise conversion", "[geometry]") {
 	using atl::geometry::to_float64;
 	REQUIRE(to_float64(point<int>{3, -4}) == point<double>{3.0, -4.0});
-	REQUIRE(to_float64(point<float>{0.1f, 2.5f}) == point<double>{double(0.1f), 2.5});
+	// a float variable, not the literal: with excess precision (x87) the literal 0.1f may carry more than float's
+	// precision into the double conversion, while the stored coordinate is rounded to float
+	float const tenth = 0.1f;
+	REQUIRE(to_float64(point<float>{tenth, 2.5f}) == point<double>{double(tenth), 2.5});
 	REQUIRE(to_float64(point<std::int64_t>{std::int64_t(1) << 53, -7}) == point<double>{0x1p53, -7.0});
 	static_assert(to_float64(point<int>{1, 2}) == point<double>{1.0, 2.0});
 }

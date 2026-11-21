@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @brief The contender raced against @ref atl::geometry::union_area: the
+ * @brief The contender raced against @ref atl::geometry::union_area — the
  *        recursive top-down Klee tree.
  */
 namespace atl::experimental {

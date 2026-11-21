@@ -132,7 +132,7 @@ namespace atl::geometry {
 
 		/**
 		 * @brief Exact sum when `|a| >= |b|` — one operation cheaper than
-		 * @ref two_sum (Dekker).
+		 * `two_sum` (Dekker).
 		 */
 		constexpr float64 fast_two_sum(float64 const a, float64 const b, float64 &err) {
 			float64 const s = rounded_binary64(a + b);
@@ -186,7 +186,7 @@ namespace atl::geometry {
 		/**
 		 * @name Static filter bounds
 		 * @brief In units of the magnitude sum of the two determinant terms;
-		 *        @ref epsilon is half an ulp of 1 (2^-53).
+		 *        `epsilon` is half an ulp of 1 (2^-53).
 		 * @{
 		 */
 		inline constexpr float64 epsilon = 0x1p-53;
@@ -198,7 +198,7 @@ namespace atl::geometry {
 		/** @} */
 
 		/**
-		 * @brief Adaptive stages of @ref adaptive_cross_sign, entered only when the static
+		 * @brief Adaptive stages of `adaptive_cross_sign`, entered only when the static
 		 * filter could not certify the sign. Successively sharper
 		 * approximations, each with its own certified error bound; the
 		 * final stage is the exact 16-component expansion of the
@@ -262,7 +262,7 @@ namespace atl::geometry {
 		 *        four INDEPENDENT points (edge-direction comparisons): the
 		 *        static filter certifies the common case from one extra
 		 *        comparison, near-degenerate inputs fall through to
-		 *        @ref adaptive_cross_tail. The rounded differences keep the exact
+		 *        `adaptive_cross_tail`. The rounded differences keep the exact
 		 *        signs of the true ones, which is what makes the quick
 		 *        opposite-sign returns sound.
 		 */
@@ -325,7 +325,7 @@ namespace atl::geometry {
 	 * @brief The default sign policy: every sign is EXACT.
 	 *
 	 * Integral coordinates use widened differences and products (see the
-	 * three-point @ref cross). Floating coordinates use the filtered adaptive
+	 * three-point @ref atl::geometry::cross). Floating coordinates use the filtered adaptive
 	 * predicates: the sign returned is the sign of the true real determinant
 	 * of the given values, so near-degenerate inputs cost more but are never
 	 * misclassified. Point equality is plain `==`, which for floating input
@@ -334,7 +334,7 @@ namespace atl::geometry {
 	struct exact {
 		/**
 		 * @brief Exact sign of `(a - o) x (b - o)`: +1 for a left turn, -1 for
-		 * a right turn, 0 for collinear (see @ref orientation).
+		 * a right turn, 0 for collinear (see @ref atl::geometry::orientation).
 		 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted). For
 		 *      floating ones: finite, and no product of coordinate
 		 *      differences overflows or underflows (overflow, NaN and the
@@ -352,7 +352,7 @@ namespace atl::geometry {
 		 * @brief Exact sign of `(b - a) x (d - c)`, the edge-direction
 		 * comparison of four independent points (orientation is the
 		 * shared-origin special case).
-		 * @pre As @ref orientation.
+		 * @pre As @ref atl::geometry::orientation.
 		 */
 		template<coordinate T>
 		[[nodiscard]] constexpr int cross_sign(point<T> const a, point<T> const b, point<T> const c,
@@ -384,7 +384,7 @@ namespace atl::geometry {
 	 *        fallback), so near-degenerate inputs may be misclassified and the
 	 *        result on exact ties may depend on floating contraction
 	 *        (`-ffp-contract`). Integral coordinates are identical to
-	 *        @ref exact. Use it only where the input is known non-degenerate or
+	 *        @ref atl::geometry::exact. Use it only where the input is known non-degenerate or
 	 *        a wrong tie sign is harmless.
 	 */
 	struct fast {
@@ -454,7 +454,7 @@ namespace atl::geometry {
 
 		/**
 		 * @brief Dead-zone sign of `(a - o) x (b - o)`, in cross-product units:
-		 * the three-point @ref cross converted to `double`.
+		 * the three-point @ref atl::geometry::cross converted to `double`.
 		 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted).
 		 */
 		template<coordinate T>
@@ -465,7 +465,7 @@ namespace atl::geometry {
 		/**
 		 * @brief Dead-zone sign of `(b - a) x (d - c)`, in cross-product units.
 		 * Integral coordinates take the exact widened determinant and apply
-		 * the dead zone to its `double` conversion, as @ref orientation does;
+		 * the dead zone to its `double` conversion, as @ref atl::geometry::orientation does;
 		 * floating ones evaluate it in `double` directly.
 		 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted).
 		 */
@@ -511,10 +511,10 @@ namespace atl::geometry {
 	 *        predicates over points of coordinate @p T: a three-point
 	 *        orientation sign, a four-point edge-direction sign
 	 *        `cross_sign(a, b, c, d)` of `(b - a) x (d - c)`, a scalar sign
-	 *        of both widened product types (@ref product_t and
-	 *        @ref difference_product_t values), and point equality, all on a
-	 *        const policy. @ref exact (the default everywhere), @ref fast and
-	 *        @ref approx model it; user policies can too.
+	 *        of both widened product types (@ref atl::geometry::product_t and
+	 *        @ref atl::geometry::difference_product_t values), and point equality, all on a
+	 *        const policy. @ref atl::geometry::exact (the default everywhere), @ref atl::geometry::fast and
+	 *        @ref atl::geometry::approx model it; user policies can too.
 	 */
 	template<typename Policy, typename T>
 	concept sign_policy = coordinate<T> && std::copyable<Policy>
@@ -558,7 +558,7 @@ namespace atl::geometry {
 	 * @brief Orientation of the triple `(o, a, b)`: +1 if `b` lies
 	 *        counterclockwise of `a` as seen from `o` (left turn), -1 if
 	 *        clockwise, 0 if collinear; the sign of `cross(a - o, b - o)` as
-	 *        certified by the policy. With @ref exact (the default) the sign
+	 *        certified by the policy. With @ref atl::geometry::exact (the default) the sign
 	 *        is exact for integral and floating coordinates; duplicate points
 	 *        give 0.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted). For

@@ -25,7 +25,7 @@ namespace atl::geometry {
 	 * contains some L1 minimum spanning tree.
 	 *
 	 * All sweep keys and lengths are sums and differences of coordinates in
-	 * the widened @ref product_t, so for integral coordinates the tree is
+	 * the widened @ref atl::geometry::product_t, so for integral coordinates the tree is
 	 * EXACTLY minimal over the full range of the type, with no magnitude
 	 * bound. For floating coordinates the keys are rounded `double` values
 	 * (exact for `float` coordinates whose magnitudes are close enough for

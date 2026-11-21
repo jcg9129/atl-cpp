@@ -17,7 +17,7 @@ namespace atl::geometry {
 	 *        relative to it, so a directed line also describes the closed
 	 *        half-plane on its left. Aggregate; `==` is representational (the
 	 *        same two points in the same order); geometric coincidence is
-	 *        @ref same_line.
+	 *        @ref atl::geometry::same_line.
 	 * @pre `a != b` for every operation below (asserted there).
 	 */
 	template<coordinate T>
@@ -50,10 +50,10 @@ namespace atl::geometry {
 							left = 1 }; ///< Counterclockwise of the direction (positive orientation).
 
 	/**
-	 * @brief Side of @p q relative to the directed line: @ref orientation of
+	 * @brief Side of @p q relative to the directed line: @ref atl::geometry::orientation of
 	 * `(l.a, l.b, q)` as a classification.
 	 * @pre `l.a != l.b` (asserted); for `int64` coordinates `|x|, |y| < 2^62`
-	 *      (asserted); for floating ones the floating @ref orientation
+	 *      (asserted); for floating ones the floating @ref atl::geometry::orientation
 	 *      precondition. The same holds for every predicate below.
 	 * @complexity O(1)
 	 */
@@ -63,7 +63,7 @@ namespace atl::geometry {
 		return side(p.orientation(l.a, l.b, q));
 	}
 
-	/** @brief Whether @p q lies on the line. @pre As @ref side_of. */
+	/** @brief Whether @p q lies on the line. @pre As @ref atl::geometry::side_of. */
 	template<coordinate T, sign_policy<T> Policy = exact>
 	[[nodiscard]] constexpr bool contains(line<T> const l, point<T> const q, Policy const p = {}) {
 		return side_of(l, q, p) == side::on;
@@ -72,7 +72,7 @@ namespace atl::geometry {
 	/**
 	 * @brief Whether the two lines have the same or opposite direction (this
 	 * includes coinciding lines).
-	 * @pre As @ref side_of, for both lines.
+	 * @pre As @ref atl::geometry::side_of, for both lines.
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
 	[[nodiscard]] constexpr bool parallel(line<T> const l, line<T> const m, Policy const p = {}) {
@@ -83,7 +83,7 @@ namespace atl::geometry {
 	/**
 	 * @brief Whether the two lines coincide as point sets (either direction) —
 	 * the geometric equality that the representational `==` is not.
-	 * @pre As @ref side_of, for both lines.
+	 * @pre As @ref atl::geometry::side_of, for both lines.
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
 	[[nodiscard]] constexpr bool same_line(line<T> const l, line<T> const m, Policy const p = {}) {
@@ -93,7 +93,7 @@ namespace atl::geometry {
 	/**
 	 * @brief Whether the two lines share at least one point: non-parallel, or
 	 * coinciding.
-	 * @pre As @ref side_of, for both lines.
+	 * @pre As @ref atl::geometry::side_of, for both lines.
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
 	[[nodiscard]] constexpr bool intersects(line<T> const l, line<T> const m, Policy const p = {}) {
@@ -104,7 +104,7 @@ namespace atl::geometry {
 	 * @brief Whether the line meets the CLOSED segment: the endpoints lie on
 	 * opposite sides, or either touches the line. A degenerate segment is a
 	 * point.
-	 * @pre As @ref side_of.
+	 * @pre As @ref atl::geometry::side_of.
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
 	[[nodiscard]] constexpr bool intersects(line<T> const l, segment<T> const s, Policy const p = {}) {
@@ -121,7 +121,7 @@ namespace atl::geometry {
 	/**
 	 * @brief Side of @p q relative to the directed line SPANNED by the segment —
 	 * the polygon-edge side test without spelling the line out.
-	 * @pre `s.a != s.b` (asserted); otherwise as @ref side_of.
+	 * @pre `s.a != s.b` (asserted); otherwise as @ref atl::geometry::side_of.
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
 	[[nodiscard]] constexpr side side_of(segment<T> const s, point<T> const q, Policy const p = {}) {
@@ -157,7 +157,7 @@ namespace atl::geometry {
 	 *        origin. A `double` construction: an integer-coefficient line
 	 *        need not contain any integer point (`2x + 2y - 1 = 0`).
 	 *
-	 * Takes the array @ref line_coefficients returns, so the two round-trip:
+	 * Takes the array @ref atl::geometry::line_coefficients returns, so the two round-trip:
 	 * @p Coefficient may be any signed integer (`atl::int128` included) or
 	 * floating type, each coefficient converted to `double` once.
 	 * @pre All formed squares and pairwise products of converted coefficients
@@ -197,7 +197,7 @@ namespace atl::geometry {
 	 * @brief Distance between two lines, a `double` construction: exactly 0
 	 *        unless they are parallel and distinct (the exact predicate
 	 *        decides), then the point-to-line distance of `m.a`.
-	 * @pre As @ref side_of, for both lines.
+	 * @pre As @ref atl::geometry::side_of, for both lines.
 	 * @note Not constexpr (`std::sqrt`).
 	 */
 	template<coordinate T>
@@ -211,7 +211,7 @@ namespace atl::geometry {
 	 *        construction: exactly 0 when they meet (exact predicate first); a
 	 *        disjoint segment lies on one side, so the gap is at the nearer
 	 *        endpoint.
-	 * @pre As @ref side_of.
+	 * @pre As @ref atl::geometry::side_of.
 	 * @note Not constexpr (`std::sqrt`).
 	 */
 	template<coordinate T>
@@ -270,7 +270,7 @@ namespace atl::geometry {
 	 *        exact), or the exact collinear overlap segment. Degenerate
 	 *        segments are points.
 	 * @pre For `int64` coordinates: `|x|, |y| < 2^62` (asserted); for
-	 *      floating ones the floating @ref orientation precondition.
+	 *      floating ones the floating @ref atl::geometry::orientation precondition.
 	 * @complexity O(1)
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
@@ -330,7 +330,7 @@ namespace atl::geometry {
 	 *        point (an endpoint on the line, exact, or a crossing,
 	 *        constructed), or the whole segment when it lies on the line
 	 *        (exact, endpoints lexicographically ordered).
-	 * @pre As @ref side_of.
+	 * @pre As @ref atl::geometry::side_of.
 	 * @complexity O(1)
 	 */
 	template<coordinate T, sign_policy<T> Policy = exact>
@@ -376,7 +376,7 @@ namespace atl::geometry {
 	 * @brief Distance from @p q to the line, a `double` construction: exactly
 	 * 0 for points on the line (exact predicate), else the cross value over
 	 * the rounded length.
-	 * @pre As @ref side_of.
+	 * @pre As @ref atl::geometry::side_of.
 	 * @note Not constexpr (`std::sqrt`).
 	 */
 	template<coordinate T>

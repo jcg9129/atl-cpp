@@ -140,9 +140,9 @@ namespace atl::geometry {
 	}
 
 	/**
-	 * @brief The two points of @ref closest_pair_indices, in the same order.
-	 * @pre As @ref closest_pair_indices.
-	 * @note Not constexpr (as @ref closest_pair_indices).
+	 * @brief The two points of @ref atl::geometry::closest_pair_indices, in the same order.
+	 * @pre As @ref atl::geometry::closest_pair_indices.
+	 * @note Not constexpr (as @ref atl::geometry::closest_pair_indices).
 	 * @complexity O(n log n)
 	 */
 	template<vertex_range R>

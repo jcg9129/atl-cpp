@@ -29,7 +29,7 @@ namespace atl::geometry {
 		/**
 		 * @brief The orientation of `(0, a, b)` under @p policy: for integral
 		 * coordinates the policy's sign of the two-point cross, which fits
-		 * @ref product_t for every input (`int64` needs no 2^62 bound,
+		 * @ref atl::geometry::product_t for every input (`int64` needs no 2^62 bound,
 		 * `int32` no 128-bit products).
 		 */
 		template<coordinate T, sign_policy<T> Policy>
@@ -53,12 +53,12 @@ namespace atl::geometry {
 	 * A comparison object, so it drops into the standard algorithms and
 	 * containers directly: `std::ranges::stable_sort(pts, polar_angle_less{})`,
 	 * `std::set<point<int64>, polar_angle_less<>>`. One-off comparisons read
-	 * `polar_angle_less{}(a, b)`. With @ref exact (any coordinate type), and
-	 * with @ref fast on integral coordinates, it is a strict weak ordering on
+	 * `polar_angle_less{}(a, b)`. With @ref atl::geometry::exact (any coordinate type), and
+	 * with @ref atl::geometry::fast on integral coordinates, it is a strict weak ordering on
 	 * every input.
-	 * @tparam Policy The sign policy (@ref exact by default), checked as
+	 * @tparam Policy The sign policy (@ref atl::geometry::exact by default), checked as
 	 *         `sign_policy<Policy, T>` for the compared coordinate type.
-	 * @pre For floating coordinates: the floating @ref orientation
+	 * @pre For floating coordinates: the floating @ref atl::geometry::orientation
 	 *      precondition. Integral coordinates take the two-point cross,
 	 *      exact over the whole range of the type.
 	 * @complexity O(1) per comparison
@@ -88,12 +88,12 @@ namespace atl::geometry {
 	 *        order among same-direction points (duplicates and zero vectors
 	 *        included) is unspecified; use `std::ranges::stable_sort(points,
 	 *        polar_angle_less{})` if input order must be kept within a ray,
-	 *        or @ref polar_angle_order for the stable argsort.
+	 *        or @ref atl::geometry::polar_angle_order for the stable argsort.
 	 * @pre The policy induces a strict weak ordering on the input (the sort
-	 *      is undefined otherwise): @ref exact always does; @ref fast on
+	 *      is undefined otherwise): @ref atl::geometry::exact always does; @ref atl::geometry::fast on
 	 *      floating coordinates only when rounding misclassifies no pair of
-	 *      directions; @ref approx in general does not (its dead zone is not
-	 *      transitive). Coordinate bounds as @ref polar_angle_less.
+	 *      directions; @ref atl::geometry::approx in general does not (its dead zone is not
+	 *      transitive). Coordinate bounds as @ref atl::geometry::polar_angle_less.
 	 * @complexity O(n log n) comparisons
 	 */
 	template<vertex_range R, sign_policy<vertex_coordinate_t<R>> Policy = exact>
@@ -105,13 +105,13 @@ namespace atl::geometry {
 	/**
 	 * @brief Indices of @p points in polar-angle order (see @ref
 	 *        polar_angle_less): the argsort counterpart of
-	 *        @ref sort_by_polar_angle, and STABLE: same-direction points
+	 *        @ref atl::geometry::sort_by_polar_angle, and STABLE: same-direction points
 	 *        (duplicates and zero vectors included) keep their input order,
 	 *        the `lexicographic_order` convention. An empty input gives an
 	 *        empty result.
 	 * @pre `size(points) < 2^32` (asserted); coordinate bounds as
-	 *      @ref polar_angle_less; the policy induces a strict weak ordering
-	 *      on the input, as for @ref sort_by_polar_angle.
+	 *      @ref atl::geometry::polar_angle_less; the policy induces a strict weak ordering
+	 *      on the input, as for @ref atl::geometry::sort_by_polar_angle.
 	 * @complexity O(n log n) time, O(n) memory
 	 */
 	template<vertex_range R, sign_policy<vertex_coordinate_t<R>> Policy = exact>
