@@ -17,7 +17,7 @@
 
 namespace atl {
 	/**
-	 * @brief The frozen counterpart of @ref atl::trie: built once from a full word
+	 * @brief The frozen counterpart of @ref atl::trie, built once from a full word
 	 *        list, then queried — no insert/erase. Children live as contiguous
 	 *        runs of `(symbol, target)` pairs **sorted by symbol** in one flat
 	 *        array, so lookups are cache-local binary searches (linear at small
@@ -190,8 +190,11 @@ namespace atl {
 				return id;
 			};
 			while (!stack.empty()) {
-				auto const [lo, hi, depth, parent_edge] = stack.back();
+				// plain locals, not a structured binding: the lambdas below capture depth, and
+				// AppleClang 17 rejects a captured binding in constant evaluation
+				frame const top = stack.back();
 				stack.pop_back();
+				uint32 const lo = top.lo, hi = top.hi, depth = top.depth, parent_edge = top.parent_edge;
 				uint32 id = open_node(lo, hi, parent_edge);
 				if (hi - lo == 1) {
 					uint32 const w = ids[lo];
@@ -331,6 +334,7 @@ namespace atl {
 
 		/** @brief The child of @p n along @p sym, or `std::nullopt`.
 		 * @tparam Sym Integral symbol type.
+		 * @param n The node to leave.
 		 * @param sym Numeric edge label; out-of-alphabet values miss or reset.
 		 * @pre The node handle belongs to this object (asserted).
 		 */

@@ -2,6 +2,7 @@
 #include <atl/types/alias.hpp>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <ranges>
 #include <type_traits>
@@ -77,6 +78,35 @@ namespace atl::detail {
 		} else {
 			return a == b;
 		}
+	}
+
+	/**
+	 * @brief The type @ref atl::detail::symbol_at returns for an element reference `Ref`
+	 *        projected by `Proj`: the projection's own result when it is an lvalue reference, or
+	 *        any reference while `Ref` is itself a reference (the element outlives the call);
+	 *        otherwise the cv-unqualified value, since a reference into a prvalue element (a
+	 *        proxy forwarded by `std::identity`) dangles once the call returns.
+	 */
+	template<typename Proj, typename Ref>
+	using symbol_at_t = std::conditional_t<
+		std::is_lvalue_reference_v<std::invoke_result_t<Proj &, Ref>> || std::is_reference_v<Ref>,
+		std::invoke_result_t<Proj &, Ref>, std::remove_cvref_t<std::invoke_result_t<Proj &, Ref>>>;
+
+	/**
+	 * @brief The projected symbol `proj(first[i])`, safe to keep past the expression that reads
+	 *        it: a reference when the element is one or the projection returns an lvalue
+	 *        reference, otherwise a value (@ref atl::detail::symbol_at_t).
+	 * @tparam I A random-access iterator.
+	 * @tparam Proj A projection invocable on `I`'s reference type.
+	 * @param proj The projection.
+	 * @param first The iterator the index is relative to.
+	 * @param i The element index.
+	 */
+	template<std::random_access_iterator I, typename Proj>
+		requires std::invocable<Proj &, std::iter_reference_t<I>>
+	[[nodiscard]] constexpr symbol_at_t<Proj, std::iter_reference_t<I>> symbol_at(Proj &proj, I const &first,
+																				  std::iter_difference_t<I> const i) {
+		return std::invoke(proj, first[i]);
 	}
 
 	/**

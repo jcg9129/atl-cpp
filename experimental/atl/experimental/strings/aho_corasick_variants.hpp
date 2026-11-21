@@ -383,16 +383,19 @@ namespace atl::experimental {
 			zeroed.resize(cells);
 			table = zeroed.data();
 		}
-		constexpr std::size_t ahead = 8;
-		bool const is_prefetched = Rows != row_prefetch::none && cells >= prefetch_min_cells;
+		[[maybe_unused]] bool const is_prefetched = cells >= prefetch_min_cells; // read only when Rows prefetches
 		auto const order = ac.nodes_by_depth();
 		std::size_t const count = order.size();
 		std::size_t next_child = 1;
 		for (std::size_t i = 0; i < count; ++i) {
-			if (is_prefetched && i + ahead < count) {
-				uint32 const w = order[i + ahead];
-				detail::prefetch_row<Rows == row_prefetch::all_lines_write, Rows>(table + std::size_t(w) * sigma, sigma);
-				detail::prefetch_row<false, Rows>(table + std::size_t(ac.suffix_link(w)) * sigma, sigma);
+			if constexpr (Rows != row_prefetch::none) {
+				constexpr std::size_t ahead = 8;
+				if (is_prefetched && i + ahead < count) {
+					uint32 const w = order[i + ahead];
+					detail::prefetch_row<Rows == row_prefetch::all_lines_write, Rows>(table + std::size_t(w) * sigma,
+																					  sigma);
+					detail::prefetch_row<false, Rows>(table + std::size_t(ac.suffix_link(w)) * sigma, sigma);
+				}
 			}
 			uint32 const v = order[i];
 			uint32 *const row = table + std::size_t(v) * sigma;

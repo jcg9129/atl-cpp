@@ -25,7 +25,7 @@ namespace atl::baseline {
 		requires comparable_text<R, Proj>
 	[[nodiscard]] constexpr std::vector<uint32> border_lengths_by_repeated_projection(R &&text, Proj proj = {}) {
 		auto const first = std::ranges::begin(text);
-		auto const symbol = [&](uint32 i) -> decltype(auto) { return std::invoke(proj, first[i]); };
+		auto const symbol = [&](uint32 i) -> decltype(auto) { return atl::detail::symbol_at(proj, first, i); };
 		atl_assert(std::ranges::size(text) < (uint64(1) << 32));
 		uint32 const n = uint32(std::ranges::size(text));
 		std::vector<uint32> border(n);
@@ -52,7 +52,7 @@ namespace atl::baseline {
 		requires comparable_text<R, Proj>
 	[[nodiscard]] constexpr std::vector<uint32> common_prefix_lengths_by_box_expansion(R &&text, Proj proj = {}) {
 		auto const first = std::ranges::begin(text);
-		auto const symbol = [&](uint32 i) -> decltype(auto) { return std::invoke(proj, first[i]); };
+		auto const symbol = [&](uint32 i) -> decltype(auto) { return atl::detail::symbol_at(proj, first, i); };
 		atl_assert(std::ranges::size(text) < (uint64(1) << 32));
 		uint32 const n = uint32(std::ranges::size(text));
 		std::vector<uint32> lcp(n);
@@ -153,7 +153,7 @@ namespace atl::baseline {
 		if (m == 0 || m > n) return starts;
 		uint32 matched = 0;
 		for (uint32 i = 0; i < n; ++i) {
-			auto &&c = std::invoke(proj, text_first[i]);
+			auto &&c = atl::detail::symbol_at(proj, text_first, i);
 			if (matched == m) matched = border_first[matched - 1]; // keep scanning past a match
 			while (matched > 0 && !atl::detail::symbol_equal(std::invoke(proj, pattern_first[matched]), c)) matched = border_first[matched - 1];
 			if (atl::detail::symbol_equal(std::invoke(proj, pattern_first[matched]), c)) ++matched;

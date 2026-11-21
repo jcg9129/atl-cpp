@@ -104,8 +104,10 @@ namespace atl {
 		 * The clone's sibling BST is a structural copy of q's: the pool's
 		 * seed and the symbols are the same, so the same shape is valid, and
 		 * appending the entries with rebased links needs no hashing.
+		 * @param p The state whose `sym` transition leads to @p q.
 		 * @param t The pool entry of p's `sym` transition (target q), found
 		 *          by the caller.
+		 * @param q The state to split.
 		 * @return The clone's id.
 		 */
 		uint32 split(uint32 p, uint32 t, uint32 q) {

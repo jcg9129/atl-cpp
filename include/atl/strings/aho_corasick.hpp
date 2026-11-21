@@ -24,37 +24,37 @@ namespace atl {
 	 * @brief The Aho–Corasick automaton over the symbol alphabet
 	 *        `[0, Alphabet)`: the trie of a pattern collection plus suffix
 	 *        links, frozen at construction, laid out for a large sparse
-	 *        alphabet. Scan any text through @ref atl::aho_corasick automata::step and every pattern
-	 *        occurrence is found — @ref atl::aho_corasick automata::match_count per position in O(1).
+	 *        alphabet. Scan any text through @ref atl::aho_corasick::step and every pattern
+	 *        occurrence is found — @ref atl::aho_corasick::match_count per position in O(1).
 	 *
 	 * Nodes are the distinct pattern prefixes, ids in first-touch creation
-	 * order (insert order over the words, then depth). @ref atl::aho_corasick automata::suffix_link
+	 * order (insert order over the words, then depth). @ref atl::aho_corasick::suffix_link
 	 * points to the node of the longest proper suffix that is itself a
 	 * pattern prefix; links can point to YOUNGER ids, so link-tree DPs
-	 * iterate @ref atl::aho_corasick automata::nodes_by_depth (BFS order, parents preceding children in
+	 * iterate @ref atl::aho_corasick::nodes_by_depth (BFS order, parents preceding children in
 	 * both trees) — unlike the palindromic_tree, creation order is NOT topological
 	 * here.
 	 *
 	 * The node fuses into a shared hashed child-pool entry like the
 	 * trie's (~40 B/node plus 8 B/node and 8 B/pattern of side arrays, at
 	 * most total pattern length + 1 nodes). There are
-	 * no per-node transition tables: @ref atl::aho_corasick automata::step resolves a missing edge by
+	 * no per-node transition tables: @ref atl::aho_corasick::step resolves a missing edge by
 	 * walking suffix links, which is amortized O(log(1 + degree)) expected per symbol over a
 	 * forward text scan (the KMP argument) and what keeps `Alphabet` up to
 	 * 10^6 free.
 	 *
 	 * Patterns form a multiset: duplicates count with multiplicity in
-	 * @ref atl::aho_corasick automata::word_count / @ref atl::aho_corasick automata::match_count. The empty pattern ends at the
+	 * @ref atl::aho_corasick::word_count / @ref atl::aho_corasick::match_count. The empty pattern ends at the
 	 * root and is counted as matching at every position.
 	 *
 	 * Match enumeration is output-sensitive: at scan state `v`, the patterns
-	 * ending at the current position are @ref atl::aho_corasick automata::words_at of `v` (when
-	 * @ref atl::aho_corasick automata::word_count is nonzero) and of each node down its
-	 * @ref atl::aho_corasick automata::output_link chain — O(1 + matches), never a walk over suffix
+	 * ending at the current position are @ref atl::aho_corasick::words_at of `v` (when
+	 * @ref atl::aho_corasick::word_count is nonzero) and of each node down its
+	 * @ref atl::aho_corasick::output_link chain — O(1 + matches), never a walk over suffix
 	 * links that end no pattern.
 	 *
 	 * @tparam Alphabet Exclusive upper bound on symbols; checked on build.
-	 *         Text symbols outside the alphabet are legal in @ref atl::aho_corasick automata::step and
+	 *         Text symbols outside the alphabet are legal in @ref atl::aho_corasick::step and
 	 *         simply reset the scan to the root.
 	 *
 	 * @pre Pattern count fits uint32; a new node requires fewer than 2^32 - 1
@@ -107,12 +107,12 @@ namespace atl {
 
 		/**
 		 * @brief Fill @p next (root row zeroed, `node_count() × sigma`) with the
-		 *        transition function, for @ref atl::aho_corasick automata::transition_table.
+		 *        transition function, for @ref atl::aho_corasick::transition_table.
 		 *
 		 * BFS order: suffix_link(v) is shallower, so its row is final when v
 		 * copies it; v's children then overwrite their own columns. The ctor
 		 * enqueued each node's children as one run, in the order the nodes
-		 * themselves are dequeued, so one cursor over @ref atl::aho_corasick automata::by_depth_ yields
+		 * themselves are dequeued, so one cursor over `by_depth_` yields
 		 * them without touching the sibling BSTs. Rows are indexed by id, not
 		 * BFS position, so on a large table every node costs a few cache
 		 * misses; @p IsPrefetched requests them a few nodes ahead.
@@ -214,7 +214,7 @@ namespace atl {
 
 		/**
 		 * @brief The automaton of no patterns: just the root, at which every
-		 *        @ref atl::aho_corasick automata::step stays.
+		 *        @ref atl::aho_corasick::step stays.
 		 * @note Not constexpr (runtime node storage and hashing).
 		 */
 		aho_corasick() : by_depth_{0}, word_offset_{0, 0} { pool_.add(); }
@@ -236,10 +236,11 @@ namespace atl {
 		 *             with one child lookup per hop. Tabulating every
 		 *             (state, symbol) pair through step therefore costs up to
 		 *             O(nodes · depth · sigma), e.g. Θ(k² σ) on the pattern a^k;
-		 *             @ref atl::aho_corasick automata::transition_table builds the same table in
+		 *             @ref atl::aho_corasick::transition_table builds the same table in
 		 *             O(nodes · sigma).
 		 * @note Not constexpr (runtime node storage and hashing).
 		 * @tparam Sym Integral symbol type.
+		 * @param v The state to read from.
 		 * @param sym Numeric edge label; out-of-alphabet values miss or reset.
 		 * @pre The node handle belongs to this object (asserted).
 		 */
@@ -273,7 +274,7 @@ namespace atl {
 			atl_assert(sigma <= max_cells / states);
 			auto next = std::make_unique_for_overwrite<uint32[]>(states * sigma);
 			// Every non-root row is copied in full from its completed suffix row.
-			std::ranges::fill_n(next.get(), sigma, uint32(0));
+			std::ranges::fill_n(next.get(), std::ptrdiff_t(sigma), uint32(0)); // sigma <= max_cells < PTRDIFF_MAX
 			// Large tables use lookahead to overlap row and payload cache misses.
 			if (states * sigma >= (std::size_t(1) << 18))
 				fill_transitions<true>(next.get(), sigma);
@@ -283,7 +284,7 @@ namespace atl {
 		}
 
 		/**
-		 * @brief @ref atl::aho_corasick automata::transition_table over the whole alphabet: `table(v, c) ==
+		 * @brief @ref atl::aho_corasick::transition_table over the whole alphabet: `table(v, c) ==
 		 *        step(v, c)` for every node and every `c < Alphabet`.
 		 * @pre `Alphabet > 0` (a constraint: a table needs at least one column).
 		 * @complexity O(node_count · Alphabet) time and memory
@@ -297,10 +298,11 @@ namespace atl {
 		/**
 		 * @brief The pure trie edge: the node of @p v's prefix extended by
 		 *        @p sym, or `std::nullopt` if that is not a pattern prefix
-		 *        (unlike @ref atl::aho_corasick automata::step, no suffix-link fallback).
+		 *        (unlike @ref atl::aho_corasick::step, no suffix-link fallback).
 		 * @complexity O(log degree) expected
 		 * @note Not constexpr (runtime node storage and hashing).
 		 * @tparam Sym Integral symbol type.
+		 * @param v The node to leave.
 		 * @param sym Numeric edge label; out-of-alphabet values miss or reset.
 		 * @pre The node handle belongs to this object (asserted).
 		 */

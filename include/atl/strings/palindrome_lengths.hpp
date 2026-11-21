@@ -1,5 +1,6 @@
 #pragma once
 #include <atl/strings/comparable_text.hpp>
+#include <atl/strings/detail/symbols.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/utils/assert.hpp>
 #include <algorithm>
@@ -17,7 +18,7 @@ namespace atl {
 	 *        longest palindromic substring, total palindrome counts) are
 	 *        one-line caller folds over the accessors, deliberately not API.
 	 *
-	 * This is the lightweight counterpart to @ref atl::palindromic_tree: one flat uint32
+	 * This is the lightweight counterpart to @ref atl::palindromic_tree, with one flat uint32
 	 * radius array over the `2n + 1` virtual centers of the `#`-interleaved
 	 * text (~8 B per symbol, no nodes, text not retained), built in a single
 	 * pass, giving per-center geometry where the palindromic_tree gives the
@@ -52,7 +53,7 @@ namespace atl {
 			requires comparable_text<R, Proj>
 		constexpr explicit palindrome_lengths(R &&text, Proj proj = {}) {
 			auto const first = std::ranges::begin(text);
-			auto const symbol = [&](uint32 i) -> decltype(auto) { return std::invoke(proj, first[i]); };
+			auto const symbol = [&](uint32 i) -> decltype(auto) { return atl::detail::symbol_at(proj, first, i); };
 			// Virtual centers occupy 2n + 1 uint32-indexed entries.
 			atl_assert(std::ranges::size(text) < (uint64(1) << 31));
 			uint32 const n = uint32(std::ranges::size(text));

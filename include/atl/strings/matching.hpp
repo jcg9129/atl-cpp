@@ -24,7 +24,7 @@ namespace atl {
 		requires comparable_text<R, Proj>
 	[[nodiscard]] constexpr std::vector<uint32> border_lengths(R &&text, Proj proj = {}) {
 		auto const first = std::ranges::begin(text);
-		auto const symbol = [&](uint32 i) -> decltype(auto) { return std::invoke(proj, first[i]); };
+		auto const symbol = [&](uint32 i) -> decltype(auto) { return atl::detail::symbol_at(proj, first, i); };
 		atl_assert(std::ranges::size(text) < (uint64(1) << 32));
 		uint32 const n = uint32(std::ranges::size(text));
 		std::vector<uint32> border(n);
@@ -51,7 +51,7 @@ namespace atl {
 		requires comparable_text<R, Proj>
 	[[nodiscard]] constexpr std::vector<uint32> common_prefix_lengths(R &&text, Proj proj = {}) {
 		auto const first = std::ranges::begin(text);
-		auto const symbol = [&](uint32 i) -> decltype(auto) { return std::invoke(proj, first[i]); };
+		auto const symbol = [&](uint32 i) -> decltype(auto) { return atl::detail::symbol_at(proj, first, i); };
 		atl_assert(std::ranges::size(text) < (uint64(1) << 32));
 		uint32 const n = uint32(std::ranges::size(text));
 		std::vector<uint32> lcp(n);
@@ -138,7 +138,8 @@ namespace atl {
 	 * @param pattern Pattern read in place.
 	 * @param borders The result of atl::border_lengths(pattern, proj).
 	 * @param proj Stable projection defining symbol equality.
-	 * @pre Text and pattern lengths are below 2^32; borders has the pattern's size (asserted).
+	 * @pre Text and pattern lengths are below 2^32; borders has the pattern's size, and each
+	 *      entry i the scan reads is at most i (asserted).
 	 * @pre Border values are correct for the projected pattern; projected equality is an equivalence relation.
 	 * @return Matching uint32 positions; no input references are retained.
 	 * @complexity O(text size + pattern size) time, O(matches) result storage, O(1) auxiliary space.
@@ -156,13 +157,28 @@ namespace atl {
 		atl_assert(std::ranges::size(borders) == m);
 		std::vector<uint32> starts;
 		if (m == 0 || m > n) return starts;
+		// the longest proper border of the matched prefix; a border entry past its own index would
+		// index the pattern out of bounds
+		auto const fall_back = [&](uint32 const length) {
+			uint32 const border = border_first[length - 1];
+			atl_assert(border < length);
+			return border;
+		};
 		uint32 matched = 0;
 		for (uint32 i = 0; i < n; ++i) {
-			auto &&c = std::invoke(proj, text_first[i]);
-			if (matched == m) matched = border_first[matched - 1]; // keep scanning past a match
-			while (matched > 0 && !atl::detail::symbol_equal(std::invoke(proj, pattern_first[matched]), c)) matched = border_first[matched - 1];
-			if (atl::detail::symbol_equal(std::invoke(proj, pattern_first[matched]), c)) ++matched;
-			if (matched == m) starts.push_back(i + 1 - m);
+			auto &&c = atl::detail::symbol_at(proj, text_first, i);
+			// matched < m on entry: a full match falls back at once, so each pattern read is in bounds
+			while (true) {
+				if (atl::detail::symbol_equal(std::invoke(proj, pattern_first[matched]), c)) {
+					if (++matched == m) {
+						starts.push_back(i + 1 - m);
+						matched = fall_back(matched); // keep scanning past a match
+					}
+					break;
+				}
+				if (matched == 0) break;
+				matched = fall_back(matched);
+			}
 		}
 		return starts;
 	}

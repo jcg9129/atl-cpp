@@ -265,6 +265,7 @@ namespace atl {
 		/** @brief The child of @p n along @p sym, or `std::nullopt` if there is none.
 		 * @note Not constexpr (runtime node storage and hashing).
 		 * @tparam Sym Integral symbol type.
+		 * @param n The node to leave.
 		 * @param sym Numeric edge label; out-of-alphabet values miss or reset.
 		 * @pre The node handle belongs to this object (asserted).
 		 */
@@ -283,6 +284,7 @@ namespace atl {
 		 * @note Not constexpr (runtime node storage and hashing).
 		 * @pre The node handle belongs to this object (asserted).
 		 * @tparam Visit Invocable on `(uint32 symbol, uint32 child)`.
+		 * @param n The node whose children are visited.
 		 * @param visit Callback; must not change this trie during traversal.
 		 */
 		template<child_visitor Visit>

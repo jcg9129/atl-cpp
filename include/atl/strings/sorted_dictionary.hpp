@@ -185,7 +185,7 @@ namespace atl {
 					return {h, atl::detail::symbol_less(sym_[off + h], std::invoke(proj, first[h])) ? -1 : +1};
 				} else {
 					for (; h < limit; ++h) {
-						auto &&q = std::invoke(proj, first[h]); // a reference: tokens are not copied
+						auto &&q = atl::detail::symbol_at(proj, first, h); // a reference: tokens are not copied
 						if (atl::detail::symbol_less(sym_[off + h], q)) return {h, -1};
 						if (atl::detail::symbol_less(q, sym_[off + h])) return {h, +1};
 					}

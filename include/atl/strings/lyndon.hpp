@@ -1,6 +1,7 @@
 #pragma once
 #include <atl/ds/direct_rmq.hpp>
 #include <atl/strings/comparable_text.hpp>
+#include <atl/strings/detail/symbols.hpp>
 #include <atl/strings/suffix_array.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/utils/assert.hpp>
@@ -33,7 +34,7 @@ namespace atl {
 		requires sortable_text<R, Proj>
 	[[nodiscard]] constexpr std::vector<uint32> lyndon_factorization(R &&text, Proj proj = {}) {
 		auto const first = std::ranges::begin(text);
-		auto const symbol = [&](uint32 i) -> decltype(auto) { return std::invoke(proj, first[i]); };
+		auto const symbol = [&](uint32 i) -> decltype(auto) { return atl::detail::symbol_at(proj, first, i); };
 		atl_assert(std::ranges::size(text) < (uint64(1) << 32));
 		uint32 const n = uint32(std::ranges::size(text));
 		std::vector<uint32> bounds{0};
@@ -70,7 +71,7 @@ namespace atl {
 		// indices into the doubled text reach about 2n, so 2n must fit uint32
 		atl_assert(std::ranges::size(text) < (uint64(1) << 31));
 		uint32 const n = uint32(std::ranges::size(text));
-		auto const symbol = [&](uint32 i) -> decltype(auto) { return std::invoke(proj, first[i < n ? i : i - n]); };
+		auto const symbol = [&](uint32 i) -> decltype(auto) { return atl::detail::symbol_at(proj, first, i < n ? i : i - n); };
 		uint32 i = 0, j = 1, k = 0;
 		while (i < n && j < n && k < n) {
 			auto const &a = symbol(i + k);

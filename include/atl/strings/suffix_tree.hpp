@@ -21,7 +21,7 @@ namespace atl {
 	 *        inserted words, built ONLINE by Ukkonen's algorithm — laid out
 	 *        for a large sparse alphabet.
 	 *
-	 * Streaming is first-class, as in @ref atl::suffix_automaton / @ref atl::palindromic_tree:
+	 * Streaming is first-class, as in @ref atl::suffix_automaton / @ref atl::palindromic_tree;
 	 * @ref atl::suffix_tree::extend appends one symbol to the word in progress (and returns the
 	 * length of the longest suffix that also occurs at an other position —
 	 * the online longest-repeated-suffix); @ref atl::suffix_tree::finish_word seals the word —

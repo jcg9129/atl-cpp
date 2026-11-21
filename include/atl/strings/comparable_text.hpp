@@ -48,7 +48,7 @@ namespace atl {
 
 	/**
 	 * @brief A word collection usable by @ref atl::lexicographic_order and
-	 * @ref atl::sorted_dictionary: an input range whose elements are themselves
+	 * @ref atl::sorted_dictionary — an input range whose elements are themselves
 	 * @ref atl::sortable_text s under `Proj`. Each word being sized lets the
 	 * consumers append its symbols in one bulk copy.
 	 */

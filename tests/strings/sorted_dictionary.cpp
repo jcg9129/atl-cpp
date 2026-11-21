@@ -15,6 +15,7 @@
 #include <random>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -208,6 +209,26 @@ namespace {
 								  .is_descent_lcp = true},
 	};
 
+	/** @brief The symbol-reserving contender's options. */
+	constexpr sorted_dictionary_options reserved_options{.is_sym_reserved = true};
+
+	/** @brief Contender `variant_options[Index]` answers every query as @p library does. */
+	template<std::size_t Index, typename Words, typename Symbol, typename Query>
+		requires atl::sortable_word_range<Words const &>
+	void check_variant(Words const &words, sorted_dictionary<Symbol> const &library, std::vector<Query> const &queries) {
+		sorted_dictionary_by_parts_build<Symbol, variant_options[Index]> const dict(words);
+		REQUIRE(dict.size() == library.size());
+		for (auto const &q : queries) REQUIRE(dict.prefix_interval(q) == library.prefix_interval(q));
+	}
+
+	/** @brief Every contender in `variant_options` answers every query as @p library does. */
+	template<typename Words, typename Symbol, typename Query, std::size_t... Index>
+		requires atl::sortable_word_range<Words const &>
+	void check_every_variant(Words const &words, sorted_dictionary<Symbol> const &library,
+							 std::vector<Query> const &queries, std::index_sequence<Index...>) {
+		(check_variant<Index>(words, library, queries), ...);
+	}
+
 	/**
 	 * @brief Random sorted words over @p make_symbol, with shared stems so
 	 *        intervals run both narrow and past the 16-word upper scan; every
@@ -237,15 +258,7 @@ namespace {
 				for (std::size_t k = std::size_t(rng() % 4); k-- > 0;) q.push_back(make_symbol(1 + std::size_t(rng() % 4)));
 			}
 		}
-		[&]<std::size_t... I>(std::index_sequence<I...>) {
-			(
-				[&] {
-					sorted_dictionary_by_parts_build<Symbol, variant_options[I]> const dict(words);
-					REQUIRE(dict.size() == library.size());
-					for (auto const &q : queries) REQUIRE(dict.prefix_interval(q) == library.prefix_interval(q));
-				}(),
-				...);
-		}(std::make_index_sequence<variant_options.size()>{});
+		check_every_variant(words, library, queries, std::make_index_sequence<variant_options.size()>{});
 	}
 
 	/** @brief The base-4 words "000" .. "333" through contender @p Options, against the library class. */
@@ -260,9 +273,13 @@ namespace {
 		return true;
 	}
 
-	static_assert([]<std::size_t... I>(std::index_sequence<I...>) {
-		return (variant_matches_library<variant_options[I]>() && ...);
-	}(std::make_index_sequence<variant_options.size()>{}));
+	/** @brief Every contender in `variant_options` passes @ref variant_matches_library. */
+	template<std::size_t... Index>
+	constexpr bool every_variant_matches_library(std::index_sequence<Index...>) {
+		return (variant_matches_library<variant_options[Index]>() && ...);
+	}
+
+	static_assert(every_variant_matches_library(std::make_index_sequence<variant_options.size()>{}));
 }
 
 TEST_CASE("sorted_dictionary contenders match the library class", "[strings]") {
@@ -277,12 +294,12 @@ TEST_CASE("sorted_dictionary contenders match the library class", "[strings]") {
 TEST_CASE("sorted_dictionary contenders: the pre-sized build copies each symbol once, moves none", "[strings]") {
 	auto words = counted_words();
 	counted_symbol::copies = counted_symbol::moves = 0;
-	sorted_dictionary_by_parts_build<counted_symbol, {.is_sym_reserved = true}> const copied(words);
+	sorted_dictionary_by_parts_build<counted_symbol, reserved_options> const copied(words);
 	CHECK(counted_symbol::copies == 6);
 	CHECK(counted_symbol::moves == 0);
 
 	counted_symbol::copies = counted_symbol::moves = 0;
-	sorted_dictionary_by_parts_build<counted_symbol, {.is_sym_reserved = true}> const moved(std::move(words));
+	sorted_dictionary_by_parts_build<counted_symbol, reserved_options> const moved(std::move(words));
 	CHECK(counted_symbol::copies == 0);
 	CHECK(counted_symbol::moves == 6);
 	std::vector<counted_symbol> const query{1, 2};
@@ -290,6 +307,7 @@ TEST_CASE("sorted_dictionary contenders: the pre-sized build copies each symbol 
 }
 
 TEST_CASE("sorted_dictionary contenders: intervals around the 16-entry linear upper scan", "[strings]") {
+	std::vector<std::string_view> const queries{"", "b", "ba", "a", "c", "bb", "baa"};
 	for (std::size_t prefix_words = 0; prefix_words <= 2; ++prefix_words)
 		for (std::size_t run = 1; run <= 20; ++run)
 			for (std::size_t suffix_words = 0; suffix_words <= 2; ++suffix_words) {
@@ -297,17 +315,8 @@ TEST_CASE("sorted_dictionary contenders: intervals around the 16-entry linear up
 				words.insert(words.end(), run, "ba");
 				words.insert(words.end(), suffix_words, "c");
 				sorted_dictionary const library(words);
-				[&]<std::size_t... I>(std::index_sequence<I...>) {
-					(
-						[&] {
-							sorted_dictionary_by_parts_build<char, variant_options[I]> const dict(words);
-							for (std::string_view q : {"", "b", "ba", "a", "c", "bb", "baa"}) {
-								INFO(prefix_words << ' ' << run << ' ' << suffix_words << ' ' << q);
-								REQUIRE(dict.prefix_interval(q) == library.prefix_interval(q));
-							}
-						}(),
-						...);
-				}(std::make_index_sequence<variant_options.size()>{});
+				INFO(prefix_words << ' ' << run << ' ' << suffix_words);
+				check_every_variant(words, library, queries, std::make_index_sequence<variant_options.size()>{});
 			}
 }
 

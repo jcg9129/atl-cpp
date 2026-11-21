@@ -159,6 +159,9 @@ Document new conventions here alongside their technical rationale.
   The same holds for a class-type result (a `std::pair`) returned through a
   recursion: recurse on a scalar (two 32-bit ids packed into one `uint64`)
   and build the class once at the top.
+- Constexpr code never captures a structured binding in a lambda: AppleClang
+  17 reports the binding's initializer as not a constant expression (valid on
+  GCC and Clang 22). Copy the members into plain locals first.
 - Never rely on a braced list's left-to-right order when one element copies
   an object and a later one moves from it (`{T(pool_, a), T(std::move(pool_),
   b)}`): MSVC may move first. Copy in a separate statement.

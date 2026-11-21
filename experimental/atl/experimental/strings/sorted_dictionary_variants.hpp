@@ -143,7 +143,7 @@ namespace atl::experimental {
 		}
 
 		/**
-		 * @brief The descent-tree LCPs for @ref atl::experimental::sorted_dictionary_options::is_descent_lcp:
+		 * @brief The descent-tree LCPs for @ref atl::experimental::sorted_dictionary_options::is_descent_lcp —
 		 *        every interval (l, r) the lower-boundary descent can visit,
 		 *        from (0, n - 1), stores its midpoint's two boundary LCPs; each
 		 *        index is the midpoint of at most one interval. O(n).
@@ -222,7 +222,7 @@ namespace atl::experimental {
 					return {h, atl::detail::symbol_less(sym_[off + h], std::invoke(proj, first[h])) ? -1 : +1};
 				} else {
 					for (; h < limit; ++h) {
-						auto &&q = std::invoke(proj, first[h]);
+						auto &&q = atl::detail::symbol_at(proj, first, h);
 						if (atl::detail::symbol_less(sym_[off + h], q)) return {h, -1};
 						if (atl::detail::symbol_less(q, sym_[off + h])) return {h, +1};
 					}
@@ -477,7 +477,7 @@ namespace atl::experimental {
 					return {h, atl::detail::symbol_less(sym_[off + h], std::invoke(proj, first[h])) ? -1 : +1};
 				} else {
 					for (; h < limit; ++h) {
-						auto &&q = std::invoke(proj, first[h]); // a reference: tokens are not copied
+						auto &&q = atl::detail::symbol_at(proj, first, h); // a reference: tokens are not copied
 						if (atl::detail::symbol_less(sym_[off + h], q)) return {h, -1};
 						if (atl::detail::symbol_less(q, sym_[off + h])) return {h, +1};
 					}

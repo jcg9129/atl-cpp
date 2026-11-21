@@ -79,6 +79,12 @@ TEST_CASE("strings GS1: proxies, single-pass inputs and integer widths", "[strin
 	std::vector<bool> bits{true, false, true};
 	REQUIRE(atl::border_lengths(bits)[2] == 1);
 	REQUIRE(atl::common_prefix_lengths(bits)[2] == 1);
+	std::vector<bool> const set_bit{true};
+	REQUIRE(atl::occurrences(bits, set_bit, atl::border_lengths(set_bit)) == std::vector<atl::uint32>{0, 2});
+	std::vector<std::vector<bool>> const bit_words{{false}, {true, false}, {true, true}};
+	atl::sorted_dictionary const bit_dictionary(bit_words);
+	REQUIRE(bit_dictionary.prefix_interval(std::vector<bool>{true, false, true}) == atl::index_interval{2, 2});
+	REQUIRE(bit_dictionary.prefix_interval(set_bit) == atl::index_interval{1, 3});
 	REQUIRE(atl::palindrome_lengths(bits).odd_length(1) == 3);
 	REQUIRE(atl::lyndon_factorization(bits).back() == 3);
 	REQUIRE(atl::minimal_rotation_index(bits) == 1);

@@ -495,7 +495,7 @@ TEST_CASE("aho_corasick: overwrite fill around the prefetch threshold", "[string
 		auto const table = ac.transition_table();
 		CHECK(table.state_count() == states);
 		for (std::uint32_t v = 0; v < states; ++v) {
-			CHECK(table(v, 0) == std::min<std::uint32_t>(v + 1, states - 1));
+			CHECK(table(v, 0) == (std::min)(v + 1, std::uint32_t(states - 1)));
 			for (std::uint32_t c = 1; c < 4; ++c) CHECK(table(v, c) == 0);
 		}
 	}

@@ -21,7 +21,7 @@ namespace atl {
 	 *        holds the targets of state `v`, contiguously. A cell is either a
 	 *        state or @ref atl::dense_transitions::none, so partial tables (a trie, a suffix automaton)
 	 *        are representable as well as complete functions. Produced by
-	 *        @ref atl::aho_corasick automata::transition_table, whose tables are complete, for
+	 *        @ref atl::aho_corasick::transition_table, whose tables are complete, for
 	 *        automaton DPs that read every (state, symbol) pair.
 	 * @note Spans refer to owned cells and survive const operations. Assignment and
 	 *       destruction invalidate them; moving transfers their storage. Copies own
