@@ -100,3 +100,10 @@ where to put guide prose, executable examples and API comments.
 - [Trie](trie.md): dynamic sparse dictionaries and prefix counts.
 - [Static trie](static-trie.md): frozen dictionaries, ordered children and word intervals.
 - [Aho–Corasick](aho-corasick.md): multipattern scans, output links and dense transition snapshots.
+
+## DP optimization
+
+- [DP optimization](dp-optimization.md): row minima of monotone and totally monotone implicit matrices, the decision-monotone 1D/1D DP, exactly-k partitions with their cuts and interval merges with a merge order, all under the quadrangle inequality.
+- [Exact-count optimum](exact-count-optimum.md): the best value with exactly k items by Lagrangian relaxation over a solver that prices items instead.
+- [Convex piecewise-linear functions](convex-piecewise-linear.md): the slope trick for DP rows convex in their state, as breakpoints in two heaps around the minimum: hinges and absolute values, translation, prefix, suffix and window minima, slope clipping and segment insertion, each reporting where its minimum is attained for reconstruction.
+- [Convex piecewise-linear forest](convex-piecewise-linear-forest.md): the slope trick on trees, many weighted convex functions over one breakpoint pool with O(1) sums and slope clips that report their range for reconstruction; worked examples balance root-to-leaf paths at the least weighted change and move units along a tree at the least cost.

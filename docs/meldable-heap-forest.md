@@ -134,7 +134,18 @@ and flags, measured 2026-10-15; plain/native milliseconds:
 | by rank leftist | 33.7 / 31.8 |
 | by binary | 46.6 / 47.4 |
 
-The breakpoint-pool release comparison returns with the dp pages.
+`release` empties a heap in one walk over its links, with no pairing. The
+breakpoint pool of
+[`convex_piecewise_linear_forest`](convex-piecewise-linear-forest.md) uses it
+for `clear` and for the discarded right heap of `take_all`;
+[the forest benchmark](../benchmarks/dp/convex_piecewise_linear_forest.cpp)
+races that pool against the same pool emptying by repeated pops. Same CPU,
+compiler and build, measured 2026-11-01, plain/native milliseconds: clearing
+one set of 1e6 takes 1357 / 1348 with repeated pops and 74.1 / 75.3 with
+release; clearing and refilling 1000 sets of 1000 over three rounds takes
+1724 / 1693 and 632 / 631. The
+[forest page](convex-piecewise-linear-forest.md#measured-performance) has
+every shape.
 
 ## Pitfalls and notes
 
@@ -157,5 +168,6 @@ linear length; tests build that shape with one million elements.
 
 ## See also
 
+- [Convex piecewise-linear forest](convex-piecewise-linear-forest.md): the slope trick on trees over two of these forests (a min-heap and a max-heap per function)
 - [Persistent heap](persistent-heap.md)
 - [Lazy segment tree](lazy-segment-tree.md)
