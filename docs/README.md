@@ -82,3 +82,20 @@ where to put guide prose, executable examples and API comments.
 - [Lowest common ancestors](lca.md): static forest queries and heavy-first path intervals.
 - [Virtual trees](virtual-tree.md): sparse key sets closed under LCA.
 - [Centroid decomposition](centroid-decomposition.md): ranking separators, balanced bisection and ternarization.
+
+## Strings
+
+- [String matching](matching.md): border lengths, Z-arrays and pattern occurrences.
+- [String hashes](string-hash.md): online polynomial fingerprints and substring queries.
+- [Lyndon words](lyndon.md): factorization, least rotation and maximal repetitions.
+- [Palindrome radii](palindrome-lengths.md): static per-center lengths and substring predicates.
+- [Palindromic tree](palindromic-tree.md): online distinct palindromes, links and counts.
+- [Suffix array](suffix-array.md): suffix ranks and adjacent LCP lengths.
+- [Suffix automaton](suffix-automaton.md): online generalized substring recognition and counts.
+- [Suffix tree](suffix-tree.md): online compressed suffix hierarchy and occurrence positions.
+- [Lexicographic order](lexicographic-order.md): stable word argsorts and text concepts.
+- [Sorted dictionary](sorted-dictionary.md): static prefix intervals and insertion points.
+
+- [Trie](trie.md): dynamic sparse dictionaries and prefix counts.
+- [Static trie](static-trie.md): frozen dictionaries, ordered children and word intervals.
+- [Aho–Corasick](aho-corasick.md): multipattern scans, output links and dense transition snapshots.
