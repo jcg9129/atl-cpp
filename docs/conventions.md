@@ -199,6 +199,25 @@ Document new conventions here alongside their technical rationale.
   an uninitialized symbol, or silently wrong contents). Build a local copy.
   Likewise never `push_back` an element read from the same vector
   (`v.push_back(v[i])`): size the vector first and assign by index.
+- A constexpr loop that MSVC must evaluate has an exit condition: a
+  `for (;;)` whose only exit is a `return` inside it is reported as reaching
+  the end of the function (C3615). Loop `while (amount != 0)` and return
+  after the loop.
+- MSVC does not constant-evaluate the implicit destructor of a self-owning
+  node type (a struct holding a `std::unique_ptr` to its own type): give it a
+  user-provided `constexpr` destructor.
+- Clang's `-Wshorten-64-to-32` reports the implicit 64-to-32-bit conversions
+  that MSVC rejects as C4267 and C4244 under `/W4 /WX`, so a local syntax-only
+  run catches them before CI. An argument computed in `std::size_t` for a
+  `uint32` parameter gets an explicit cast, with its bound asserted.
+- A helper that returns `decltype(auto)` of `std::invoke(proj, first[i])`
+  dangles when the element is a prvalue proxy (`std::vector<bool>`) and the
+  projection forwards it (`std::identity`). Keep lvalue-reference results as
+  references and return anything else by value; the same holds for
+  `auto &&x = std::invoke(...)` on such elements.
+- Copy assignment of a class with several allocating members is
+  transactional when its contract promises that a failed allocation leaves
+  the object unchanged: copy into a temporary, then commit by move.
 - Where an invariant guarantees that a `std::optional` is engaged, test it
   anyway (`if (steps < depth && forest)`) with a comment: clang-tidy's
   `bugprone-unchecked-optional-access` cannot see the invariant.
