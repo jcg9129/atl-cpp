@@ -81,7 +81,7 @@ namespace atl::detail {
 
 	/**
 	 * @brief The type the solvers form and compare candidate totals of a
-	 *        `Value` ordered by `Compare` in: @ref dp_wide_t when `Compare` is
+	 *        `Value` ordered by `Compare` in: `dp_wide_t` when `Compare` is
 	 *        a numeric order (`std::less`, `std::greater`, their `ranges`
 	 *        forms), whose meaning carries over to the wide type; `Value`
 	 *        itself for any other comparator, which is only known to order
@@ -92,7 +92,7 @@ namespace atl::detail {
 										  dp_wide_t<Value>, Value>;
 
 	/**
-	 * @brief `Compare` on @ref dp_total_t: `<` or `>` for a numeric order,
+	 * @brief `Compare` on `dp_total_t`: `<` or `>` for a numeric order,
 	 *        else the comparator itself (through `std::invoke`).
 	 */
 	template<typename Value, typename Compare>

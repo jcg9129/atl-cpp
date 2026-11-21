@@ -172,8 +172,8 @@ namespace atl::experimental {
 		 *        a cost breaking the precondition still gets a non-empty scan.
 		 *
 		 * @pre the leftmost best columns are nondecreasing over the rows, row
-		 *      `i`'s at least `first(i)`; `first(i) <= last(i)` and `last(i)
-		 *      >= col_lo` on every row
+		 *      `i`'s at least `first(i)`; `first(i) <= last(i)` and
+		 *      `last(i) >= col_lo` on every row
 		 * @complexity O((rows + columns) log rows) evaluations, fewer when the
 		 *             floors cut into the column ranges
 		 */

@@ -6,21 +6,21 @@
  *        function in two heaps), each named for the one thing it does
  *        differently.
  *
- * - @ref convex_piecewise_linear_by_priority_queue: the textbook form on two
+ * - @ref convex_piecewise_linear_by_priority_queue — the textbook form on two
  *   `std::priority_queue`s, where adding a hinge that moves the minimum is a
  *   pop and a push on one heap and a push on the other. The library replaces
  *   the top in place with one sift-down instead of the pop and push. A race
  *   contender only: it has the unit update and read interface the race
  *   exercises, not `reserve` or `operator()`.
- * - @ref convex_piecewise_linear_by_breakpoint_pool: the same function on the
+ * - @ref convex_piecewise_linear_by_breakpoint_pool — the same function on the
  *   engine of @ref atl::convex_piecewise_linear_forest, split at the minimum
  *   into two sets of its breakpoint pool.
- * - @ref convex_piecewise_linear_by_unit_heaps: unit breakpoints only, bare
+ * - @ref convex_piecewise_linear_by_unit_heaps — unit breakpoints only, bare
  *   positions in two vectors without the weighted machinery: the baseline of
  *   what supporting weights costs the library's unit mode.
  * - @ref convex_piecewise_linear_by_configuration, with the aliases
  *   @ref convex_piecewise_linear_by_floyd_replace_top and
- *   @ref convex_piecewise_linear_by_whole_heap_scan: the library class with
+ *   @ref convex_piecewise_linear_by_whole_heap_scan — the library class with
  *   the farthest right breakpoint found by a scan of the whole heap and, as
  *   an option, Floyd's bottom-up `replace_top`.
  *
@@ -218,7 +218,7 @@ namespace atl::experimental {
 
 	/**
 	 * @brief @ref atl::convex_piecewise_linear on the engine of
-	 *        @ref atl::convex_piecewise_linear_forest: the breakpoints left
+	 *        @ref atl::convex_piecewise_linear_forest — the breakpoints left
 	 *        and right of the minimum are two sets of one
 	 *        `detail::breakpoint_pool` (each breakpoint a weight record in a
 	 *        min-heap and a max-heap of pairing heaps), plus the tracked
@@ -829,8 +829,8 @@ namespace atl::experimental {
 		 * length, x)`. When a stretch of slope exactly `slope` makes several
 		 * points qualify, `p` is the one nearest the minimum: the smallest
 		 * minimizer for `slope == 0`, else the end of the stretch on the
-		 * minimum's side (the slope is `< slope` just left of `p` when `slope
-		 * > 0`, `> slope` just right of it when `slope < 0`).
+		 * minimum's side (the slope is `< slope` just left of `p` when
+		 * `slope > 0`, `> slope` just right of it when `slope < 0`).
 		 *
 		 * @pre `length >= 0` and `slope <= rightmost_slope()` (asserted)
 		 * @complexity O(1) for `slope == 0` or `slope <= leftmost_slope()`;

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * @brief @ref atl::convex_piecewise_linear_forest: many convex
+ * @brief @ref atl::convex_piecewise_linear_forest — many convex
  *        piecewise-linear functions over one shared breakpoint pool, with
  *        weighted breakpoints, an O(1) sum of two functions and slope clipping
  *        (the infimal convolution with `D|t|`): the slope trick of tree DPs.

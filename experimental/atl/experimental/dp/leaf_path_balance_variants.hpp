@@ -5,7 +5,7 @@
  * @brief Contenders for @ref atl::experimental::balance_leaf_paths (the
  *        weighted slope trick over a tree).
  *
- * - @ref atl::experimental::balance_leaf_paths_by_ordered_map: each vertex's
+ * - @ref atl::experimental::balance_leaf_paths_by_ordered_map — each vertex's
  *   function as a `std::map` from position to weight with one lazy offset,
  *   children merged smaller-into-larger (O(n log^2 n) without a bound on
  *   the new costs), clips erasing from
@@ -36,7 +36,7 @@
  * the example does to avoid popping the stale entries of its min-heaps, gains
  * a map nothing. Kept as the differential partner of the tests.
  *
- * - @ref atl::experimental::balance_leaf_paths_by_fewer_entries: the
+ * - @ref atl::experimental::balance_leaf_paths_by_fewer_entries — the
  *   example on the library's breakpoint pool with each bounded edge's segment
  *   inserted by @ref atl::experimental::insert_segment_by_fewer_entries
  *   (the side with fewer entries to the crossing moved, not the side of less
@@ -208,7 +208,7 @@ namespace atl::experimental {
 	/**
 	 * @brief @ref atl::experimental::balance_leaf_paths with each bounded
 	 *        edge's segment inserted by
-	 *        @ref atl::experimental::insert_segment_by_fewer_entries: the
+	 *        @ref atl::experimental::insert_segment_by_fewer_entries — the
 	 *        functions are sets of the library's breakpoint pool with their
 	 *        end slopes beside them, and every operation but the segment is
 	 *        the forest's. Same contract; the same total cost and path total

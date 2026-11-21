@@ -27,7 +27,7 @@
 namespace atl {
 	/**
 	 * @brief A coordinate-and-value type for @ref atl::convex_piecewise_linear
-	 *        and @ref atl::convex_piecewise_linear_forest: totally ordered,
+	 *        and @ref atl::convex_piecewise_linear_forest — totally ordered,
 	 *        closed under `+` and `-`, with `Value{}` its zero, and not an
 	 *        unsigned integer (offsets and values go negative). Any signed
 	 *        integer type (`atl::int128` included) or floating-point type.
@@ -125,7 +125,7 @@ namespace atl {
 	struct unit_weight {};
 
 	/**
-	 * @brief A `Slope` argument of @ref atl::convex_piecewise_linear:
+	 * @brief A `Slope` argument of @ref atl::convex_piecewise_linear —
 	 *        @ref atl::unit_weight (unit breakpoints) or a signed integer type
 	 *        (weighted breakpoints of that weight type).
 	 */
@@ -420,8 +420,8 @@ namespace atl {
 		 * length, x)`. When a stretch of slope exactly `slope` makes several
 		 * points qualify, `p` is the one nearest the minimum: the smallest
 		 * minimizer for `slope == 0`, else the end of the stretch on the
-		 * minimum's side (the slope is `< slope` just left of `p` when `slope
-		 * > 0`, `> slope` just right of it when `slope < 0`).
+		 * minimum's side (the slope is `< slope` just left of `p` when
+		 * `slope > 0`, `> slope` just right of it when `slope < 0`).
 		 *
 		 * @pre `length >= 0` and `slope <= rightmost_slope()` (asserted)
 		 * @complexity O(1) for `slope == 0` or `slope <= leftmost_slope()`;

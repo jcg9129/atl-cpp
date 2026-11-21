@@ -77,7 +77,7 @@ namespace atl::experimental {
 			   forest.add_to_all(heap, shift);
 		   };
 
-	/** @brief The engine of @ref atl::experimental::tree_transport_cost: the library's pairing heaps with a lazy add. */
+	/** @brief The engine of @ref atl::experimental::tree_transport_cost — the library's pairing heaps with a lazy add. */
 	using transport_heap_forest_default =
 		atl::meldable_heap_forest<transport_segment, transport_segment_order, int64>;
 

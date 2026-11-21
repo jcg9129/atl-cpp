@@ -6,10 +6,10 @@
  *        @ref atl::convex_piecewise_linear_forest (`detail::breakpoint_pool`,
  *        which empties a discarded heap with `meldable_heap_forest::release`).
  *
- * - @ref atl::experimental::breakpoint_pool_by_repeated_pops: the library
+ * - @ref atl::experimental::breakpoint_pool_by_repeated_pops — the library
  *   pool with `clear` and the discarded right heap of `take_all` emptied by
  *   repeated pops instead of a release.
- * - @ref atl::experimental::breakpoint_pool_by_tunable_pairing_pops: the same
+ * - @ref atl::experimental::breakpoint_pool_by_tunable_pairing_pops — the same
  *   repeated pops on the tunable pairing-heap contender
  *   (`meldable_heap_forest_by_pairing` at its defaults).
  *
@@ -25,7 +25,7 @@
  *
  * And a contender for the forest's `insert_segment`:
  *
- * - @ref atl::experimental::insert_segment_by_fewer_entries: walks both ends
+ * - @ref atl::experimental::insert_segment_by_fewer_entries — walks both ends
  *   of the function at once, one live entry from each in turn, and moves the
  *   side that reaches the crossing first, i.e. the side with fewer entries
  *   to the crossing, where the library moves the side of less weight. On a
@@ -54,7 +54,7 @@
 #include <vector>
 
 namespace atl::experimental {
-	/** @brief The scratch of @ref atl::experimental::insert_segment_by_fewer_entries: the pieces walked from each end. */
+	/** @brief The scratch of @ref atl::experimental::insert_segment_by_fewer_entries — the pieces walked from each end. */
 	template<piecewise_linear_value Position, signed_integral Slope>
 	struct fewer_entries_scratch {
 		/** @brief The pieces taken from the left end, in walk order (true positions). */

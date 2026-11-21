@@ -7,15 +7,15 @@
  *
  * - @ref atl::experimental::tree_transport_cost_by_skew,
  *   @ref atl::experimental::tree_transport_cost_by_rank_leftist,
- *   @ref atl::experimental::tree_transport_cost_by_binary: the example's loop
+ *   @ref atl::experimental::tree_transport_cost_by_binary — the example's loop
  *   on the other engines of the meldable heap race (iterative skew heaps,
  *   rank-leftist heaps, `std::vector` binary heaps melded smaller-into-larger
  *   with one offset per heap).
- * - @ref atl::experimental::tree_transport_cost_by_pop_and_push: the loop
+ * - @ref atl::experimental::tree_transport_cost_by_pop_and_push — the loop
  *   without the example's two savings: each swap pops both tops, pushes the
  *   longer one's rest back and pushes the two reverse segments at once, also
  *   at the root.
- * - @ref atl::experimental::tree_transport_cost_by_length_records: that loop
+ * - @ref atl::experimental::tree_transport_cost_by_length_records — that loop
  *   with the segment lengths in a side array, so a partial swap shortens the
  *   longer top in place instead of popping it and pushing the rest back.
  *
