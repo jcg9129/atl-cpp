@@ -37,6 +37,7 @@ where to put guide prose, executable examples and API comments.
 - [Segment tree beats](segment-tree-beats.md): conditional range actions.
 - [Dynamic segment tree](dynamic-segment-tree.md): sparse point updates and folds.
 - [Dynamic lazy segment tree](dynamic-lazy-segment-tree.md): sparse range actions and folds.
+- [Aggregate queue and deque](aggregate-queue-deque.md): mutable FIFO and deque with an ordered monoid fold of the live values; experimental contenders are not measured yet.
 - [Treap map](treap-map.md): ordered keys, order statistics and value folds.
 - [Treap sequence](treap-sequence.md): positional surgery, folds, lazy tags and reversal.
 - [Splay engine](splay-engine.md): structural algorithms over caller-owned nodes.

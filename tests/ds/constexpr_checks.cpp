@@ -1554,3 +1554,208 @@ namespace algebra_forwarding_checks {
 			&& atl::detail::invoke_algebra<int>(value_category{}, left, right) == 5;
 	}());
 }
+
+#include <atl/ds/aggregate_deque.hpp>
+#include <atl/ds/aggregate_queue.hpp>
+#include <atl/experimental/ds/aggregate_queue_variants.hpp>
+#include <cstdint>
+
+namespace aggregate_queue_deque_checks {
+	/** @brief Every member, endpoint-aliasing emplaces, copies, self-assignment and moves at compile time. */
+	template<typename Container, bool IsDeque>
+		requires std::constructible_from<Container, int> && std::copyable<Container>
+	constexpr bool members() {
+		Container values(0);
+		values.reserve(0);
+		values.clear();
+		if (!values.empty() || values.size() != 0 || values.fold() != 0) return false;
+		values.reserve(9);
+		values.push_back(2);
+		values.emplace_back(values.front());
+		values.push_back(values.back());
+		if (values.front() != 2 || values.back() != 2 || values.fold() != 6) return false;
+		values.reserve(19);
+		values.reserve(1);
+		if (values.fold() != 6 || values.size() != 3) return false;
+		if constexpr (requires { values.max_size(); }) {
+			if (values.max_size() < 19) return false;
+		}
+		values.pop_front();
+		if constexpr (IsDeque) {
+			values.push_front(3);
+			values.emplace_front(values.back());
+			values.pop_back();
+			if (values.front() != 2 || values.back() != 2 || values.fold() != 7) return false;
+		}
+		auto copy = values;
+		Container assigned(0);
+		assigned = copy;
+		auto const &alias = assigned;
+		assigned = alias;
+		if (assigned.fold() != copy.fold()) return false;
+		copy.clear();
+		if (!copy.empty() || values.empty()) return false;
+		auto destination = std::move(values);
+		values = std::move(copy);
+		if (!values.empty()) return false;
+		while (!destination.empty()) destination.pop_front();
+		destination.emplace_back(5);
+		if (destination.fold() != 5) return false;
+		destination.clear();
+		return destination.empty() && destination.fold() == 0;
+	}
+
+	static_assert(members<atl::aggregate_queue<int, std::plus<>>, false>());
+	static_assert(members<atl::aggregate_deque<int, std::plus<>>, true>());
+	static_assert(members<atl::experimental::aggregate_queue_by_daba_lite_ring<int, std::plus<>>, false>());
+	static_assert(members<atl::experimental::aggregate_queue_by_daba_lite_chunks<int, std::plus<>>, false>());
+
+	/** @brief Every FIFO trace of five steps, against a fixed-array oracle. */
+	template<template<typename, typename> typename Container>
+		requires std::constructible_from<Container<int, std::plus<>>, int>
+	constexpr bool fifo_traces() {
+		for (unsigned code = 0; code < 243; ++code) {
+			Container<unsigned, std::bit_xor<>> values(0);
+			std::array<unsigned, 5> raw{};
+			std::size_t n = 0;
+			auto digits = code;
+			for (unsigned step = 0; step < 5; ++step) {
+				auto const action = digits % 3;
+				digits /= 3;
+				if (action == 2 && n != 0) {
+					values.pop_front();
+					for (std::size_t i = 1; i < n; ++i) raw[i - 1] = raw[i];
+					--n;
+				} else {
+					values.push_back(action + 1);
+					raw[n++] = action + 1;
+				}
+				unsigned fold = 0;
+				for (std::size_t i = 0; i < n; ++i) fold ^= raw[i];
+				if (values.size() != n || values.fold() != fold) return false;
+				if (n != 0 && (values.front() != raw[0] || values.back() != raw[n - 1])) return false;
+			}
+		}
+		return true;
+	}
+
+	static_assert(fifo_traces<atl::aggregate_queue>());
+	static_assert(fifo_traces<atl::experimental::aggregate_queue_by_daba_lite_ring>());
+	static_assert(fifo_traces<atl::experimental::aggregate_queue_by_daba_lite_chunks>());
+
+	/** @brief Ordered affine folds, and deque drains alternating between the ends after filling from one end. */
+	constexpr bool ordering(std::size_t first_size, std::size_t last_size) {
+		using map = std::array<unsigned, 2>;
+		auto operation = [](map a, map b) { return map{b[0] * a[0] % 101, (b[0] * a[1] + b[1]) % 101}; };
+		for (std::size_t n = first_size; n < last_size; ++n) {
+			for (bool is_mirrored : {false, true}) {
+				atl::aggregate_deque values(map{1, 0}, operation);
+				atl::aggregate_queue queue(map{1, 0}, operation);
+				atl::experimental::aggregate_queue_by_daba_lite_ring ring(map{1, 0}, operation);
+				atl::experimental::aggregate_queue_by_daba_lite_chunks chunks(map{1, 0}, operation);
+				std::array<map, 34> raw{};
+				for (std::size_t i = 0; i < n; ++i) {
+					atl_assert(i <= (std::numeric_limits<unsigned>::max)());
+					map const value{unsigned(i % 3), unsigned(i)};
+					if (is_mirrored)
+						values.push_front(value);
+					else
+						values.push_back(value);
+					queue.push_back(value);
+					ring.push_back(value);
+					chunks.push_back(value);
+					raw[i] = value;
+				}
+				std::size_t lo = 0, hi = n;
+				for (std::size_t step = 0; step <= n; ++step) {
+					map fold{1, 0}, fifo_fold{1, 0};
+					for (std::size_t i = lo; i < hi; ++i) fold = operation(fold, raw[is_mirrored ? n - 1 - i : i]);
+					for (std::size_t i = step; i < n; ++i) fifo_fold = operation(fifo_fold, raw[i]);
+					if (values.fold() != fold || queue.fold() != fifo_fold || ring.fold() != fifo_fold || chunks.fold() != fifo_fold) return false;
+					if (step == n) break;
+					queue.pop_front();
+					ring.pop_front();
+					chunks.pop_front();
+					if (step % 2) {
+						values.pop_front();
+						++lo;
+					} else {
+						values.pop_back();
+						--hi;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	static_assert(ordering(0, 10));
+	static_assert(ordering(33, 34));
+
+	static_assert([] {
+		atl::experimental::aggregate_queue_by_monotonic_candidates<int> values(1000);
+		values.reserve(0);
+		values.clear();
+		if (values.fold() != 1000 || !values.empty()) return false;
+		values.reserve(5);
+		values.emplace_back(3);
+		values.push_back(1);
+		values.emplace_back(values.front());
+		values.push_back(1);
+		values.reserve(11);
+		if (values.fold() != 1 || values.front() != 3 || values.back() != 1 || values.size() != 4) return false;
+		auto copy = values;
+		copy.pop_front();
+		copy.pop_front();
+		copy.pop_front();
+		if (copy.fold() != 1 || copy.front() != 1) return false;
+		values = copy;
+		auto moved = std::move(values);
+		values = std::move(copy);
+		moved.pop_front();
+		if (!moved.empty() || moved.fold() != 1000) return false;
+		values.clear();
+		return values.empty();
+	}());
+
+	// Chunk recycling across several chunk boundaries, with copies rebinding the four cursors mid-cycle.
+	static_assert([] {
+		atl::experimental::aggregate_queue_by_daba_lite_chunks<unsigned, std::bit_xor<>> values(0);
+		values.reserve(97);
+		std::array<unsigned, 512> raw{};
+		std::size_t first = 0, last = 0;
+		unsigned expected = 0;
+		for (unsigned step = 0; step < 512; ++step) {
+			if (first == last || step % 160 < 100) {
+				values.push_back(step);
+				raw[last++] = step;
+				expected ^= step;
+			} else {
+				expected ^= raw[first++];
+				values.pop_front();
+			}
+			if (values.fold() != expected || values.size() != last - first) return false;
+			if (step % 37 == 0) {
+				auto copy = values;
+				if (copy.fold() != expected) return false;
+				copy.pop_front();
+				if (copy.fold() != (expected ^ raw[first])) return false;
+				copy = values;
+				if (copy.fold() != expected) return false;
+			}
+		}
+		while (!values.empty()) values.pop_front();
+		return values.fold() == 0;
+	}());
+
+	// Narrow values: std::plus yields int, which the engines convert back explicitly.
+	static_assert([] {
+		atl::aggregate_deque<std::int16_t, std::plus<>> values(0);
+		values.push_back(300);
+		values.push_front(-100);
+		atl::aggregate_queue<std::int16_t, std::plus<>> queue(0);
+		queue.push_back(7);
+		queue.push_back(8);
+		return values.fold() == 200 && queue.fold() == 15;
+	}());
+}
