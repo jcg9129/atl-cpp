@@ -1033,3 +1033,77 @@ namespace owner_interface_constraints {
 	static_assert(can_compact<atl::persistent_treap_sequence<int>>);
 	static_assert(can_compact<atl::persistent_treap_sequence<int, std::plus<>>>);
 }
+
+#include <atl/ds/aggregate_deque.hpp>
+#include <atl/ds/aggregate_queue.hpp>
+#include <atl/experimental/ds/aggregate_queue_variants.hpp>
+
+namespace aggregate_queue_deque_boundaries {
+	/** @brief Whether `Container<Value, Operation>` names a type (its constraints hold). */
+	template<template<typename, typename> typename Container, typename Value, typename Operation>
+	concept instantiable = requires { typename Container<Value, Operation>; };
+
+	/** @brief Callable only through a non-const object. */
+	struct mutable_sum {
+		int operator()(int a, int b) { return a + b; }
+	};
+
+	/** @brief Result not convertible to int. */
+	struct string_result {
+		std::string operator()(int, int) const { return {}; }
+	};
+
+	/** @brief One operand only. */
+	struct unary {
+		int operator()(int a) const { return a; }
+	};
+
+	/** @brief An ordering whose result is not boolean-testable. */
+	struct void_compare {
+		void operator()(int, int) const {}
+	};
+
+	template<template<typename, typename> typename Container>
+	constexpr bool rejects_bad_algebra() {
+		return instantiable<Container, int, std::plus<>> && !instantiable<Container, int, mutable_sum> && !instantiable<Container, int, string_result>
+			&& !instantiable<Container, int, unary> && !instantiable<Container, std::unique_ptr<int>, std::plus<>>;
+	}
+
+	static_assert(rejects_bad_algebra<atl::aggregate_queue>());
+	static_assert(rejects_bad_algebra<atl::aggregate_deque>());
+	static_assert(rejects_bad_algebra<atl::experimental::aggregate_queue_by_daba_lite_ring>());
+	static_assert(rejects_bad_algebra<atl::experimental::aggregate_queue_by_daba_lite_chunks>());
+
+	static_assert(instantiable<atl::experimental::aggregate_queue_by_monotonic_candidates, int, std::less<>>);
+	static_assert(!instantiable<atl::experimental::aggregate_queue_by_monotonic_candidates, int, void_compare>);
+	static_assert(!instantiable<atl::experimental::aggregate_queue_by_monotonic_candidates, int, std::string>);
+	static_assert(!instantiable<atl::experimental::aggregate_queue_by_monotonic_candidates, std::unique_ptr<int>, std::less<>>);
+
+	static_assert(!std::default_initializable<atl::aggregate_queue<int, std::plus<>>>);
+	static_assert(!std::default_initializable<atl::aggregate_deque<int, std::plus<>>>);
+	static_assert(!std::is_convertible_v<int, atl::aggregate_queue<int, std::plus<>>>);
+	static_assert(!std::is_convertible_v<int, atl::aggregate_deque<int, std::plus<>>>);
+
+	/** @brief Whether emplace_back accepts arguments that do not construct an int. */
+	template<typename Container>
+	concept accepts_bad_emplace = requires(Container &values) { values.emplace_back("bad", nullptr); };
+	static_assert(!accepts_bad_emplace<atl::aggregate_queue<int, std::plus<>>>);
+	static_assert(!accepts_bad_emplace<atl::aggregate_deque<int, std::plus<>>>);
+	static_assert(!accepts_bad_emplace<atl::experimental::aggregate_queue_by_daba_lite_ring<int, std::plus<>>>);
+	static_assert(!accepts_bad_emplace<atl::experimental::aggregate_queue_by_daba_lite_chunks<int, std::plus<>>>);
+	static_assert(!accepts_bad_emplace<atl::experimental::aggregate_queue_by_monotonic_candidates<int>>);
+
+	/** @brief Whether the container has front-end insertion or back-end removal. */
+	template<typename Container>
+	concept has_deque_ends = requires(Container &values) {
+		values.push_front(1);
+		values.pop_back();
+	};
+	static_assert(has_deque_ends<atl::aggregate_deque<int, std::plus<>>>);
+	static_assert(!has_deque_ends<atl::aggregate_queue<int, std::plus<>>>);
+	static_assert(!has_deque_ends<atl::experimental::aggregate_queue_by_monotonic_candidates<int>>);
+}
+
+TEST_CASE("aggregate queue and deque reject non-monoid callables and invalid emplaces", "[boundary_constraints][aggregate_queue]") {
+	REQUIRE(aggregate_queue_deque_boundaries::rejects_bad_algebra<atl::aggregate_queue>());
+}

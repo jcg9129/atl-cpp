@@ -1114,3 +1114,105 @@ TEST_CASE("sequence constructors accept const operation types", "[accepted_calls
 	REQUIRE(persistent.fold() == 6);
 	REQUIRE(persistent_tags.fold() == 6);
 }
+
+#include <atl/ds/aggregate_deque.hpp>
+#include <atl/ds/aggregate_queue.hpp>
+#include <atl/experimental/ds/aggregate_queue_variants.hpp>
+#include <cstdint>
+#include <string>
+
+namespace aggregate_queue_deque_accepted_calls {
+	/** @brief Addition with a deleted overload for mutable operands: the engines must pass const operands. */
+	struct const_operand_sum {
+		constexpr int operator()(int const &a, int const &b) const { return a + b; }
+
+		void operator()(int &, int &) const = delete;
+	};
+
+	/** @brief Addition whose non-const call operator is deleted: the engines must call through a const callable. */
+	struct const_call_sum {
+		constexpr int operator()(int a, int b) const { return a + b; }
+
+		int operator()(int, int) = delete;
+	};
+
+	/** @brief Maximum returned by reference into an operand. */
+	struct reference_max {
+		constexpr int const &operator()(int const &a, int const &b) const { return a < b ? b : a; }
+	};
+
+	static_assert(std::same_as<decltype(atl::aggregate_queue(0, std::plus<>{})), atl::aggregate_queue<int, std::plus<>>>);
+	static_assert(std::same_as<decltype(atl::aggregate_deque(0, std::plus<>{})), atl::aggregate_deque<int, std::plus<>>>);
+	static_assert(std::same_as<decltype(std::declval<atl::aggregate_queue<int, std::plus<>> &>().front()), int const &>);
+	static_assert(std::same_as<decltype(std::declval<atl::aggregate_deque<int, std::plus<>> &>().back()), int const &>);
+
+	/** @brief Push 1, 2, 3 at the back, pop the front, and return the fold (5 for a sum). */
+	template<typename Container>
+		requires requires(Container &values) { values.push_back(1); values.pop_front(); values.fold(); }
+	auto fold_of_two_three(Container values) {
+		values.push_back(1);
+		values.push_back(2);
+		values.emplace_back(3);
+		values.pop_front();
+		return values.fold();
+	}
+
+	/** @brief The same calls on every general engine with one operation. */
+	template<typename Operation>
+		requires atl::binary_operation<Operation, int>
+	void general_engines(Operation const &operation, int expected) {
+		REQUIRE(fold_of_two_three(atl::aggregate_queue<int, Operation>(0, operation)) == expected);
+		REQUIRE(fold_of_two_three(atl::aggregate_deque<int, Operation>(0, operation)) == expected);
+		REQUIRE(fold_of_two_three(atl::experimental::aggregate_queue_by_daba_lite_ring<int, Operation>(0, operation)) == expected);
+		REQUIRE(fold_of_two_three(atl::experimental::aggregate_queue_by_daba_lite_chunks<int, Operation>(0, operation)) == expected);
+	}
+}
+
+TEST_CASE("aggregate queue and deque accept const-only callables, wrappers, captures and narrow values", "[accepted_calls][aggregate_queue]") {
+	using namespace aggregate_queue_deque_accepted_calls;
+	general_engines(const_operand_sum{}, 5);
+	general_engines(const_call_sum{}, 5);
+	general_engines(reference_max{}, 3);
+	std::plus<> plus;
+	general_engines(std::ref(plus), 5);
+	general_engines(std::cref(plus), 5);
+	int offset = 10;
+	general_engines([offset](int a, int b) { return a + b + (a != 0 && b != 0 ? offset : 0); }, 15);
+
+	atl::aggregate_deque<int, std::plus<int> const> const_operation(0, std::plus<int>{});
+	const_operation.push_front(4);
+	const_operation.push_back(5);
+	REQUIRE(const_operation.fold() == 9);
+
+	atl::aggregate_deque<std::int16_t, std::plus<>> narrow(0);
+	narrow.push_back(std::int16_t(300));
+	narrow.push_front(std::int16_t(-100));
+	narrow.pop_back();
+	REQUIRE(narrow.fold() == -100);
+	atl::aggregate_queue<std::uint8_t, std::bit_xor<>> bytes(0);
+	bytes.push_back(std::uint8_t(0xf0));
+	bytes.push_back(std::uint8_t(0x0f));
+	REQUIRE(bytes.fold() == 0xff);
+	atl::experimental::aggregate_queue_by_daba_lite_ring<std::int16_t, std::plus<>> narrow_ring(0);
+	narrow_ring.push_back(std::int16_t(2));
+	narrow_ring.push_back(std::int16_t(3));
+	REQUIRE(narrow_ring.fold() == 5);
+
+	atl::aggregate_deque<std::string, std::plus<>> text("");
+	text.emplace_back(3, 'b');
+	text.emplace_front("a");
+	REQUIRE(text.fold() == "abbb");
+
+	std::less<> less;
+	atl::experimental::aggregate_queue_by_monotonic_candidates minimum(std::int8_t(100), std::ref(less));
+	minimum.push_back(std::int8_t(5));
+	minimum.push_back(std::int8_t(-3));
+	minimum.push_back(std::int8_t(7));
+	REQUIRE(minimum.fold() == -3);
+	minimum.pop_front();
+	minimum.pop_front();
+	REQUIRE(minimum.fold() == 7);
+	atl::experimental::aggregate_queue_by_monotonic_candidates<int, std::greater<>> maximum(-1000);
+	maximum.emplace_back(4);
+	REQUIRE(maximum.fold() == 4);
+}
