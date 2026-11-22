@@ -412,10 +412,10 @@ namespace atl::geometry {
 			requires segment_range<R const> && std::same_as<segment_coordinate_t<R>, T>
 		point_location(arrangement const &&, R const &) = delete;
 
-		template<segment_range R>
-			requires segment_range<R const> && std::same_as<segment_coordinate_t<R>, T>
 		/** @brief Builds slab versions; arr must remain unchanged and outlive this object.
 		 * @note Not constexpr (runtime persistent arena). */
+		template<segment_range R>
+			requires segment_range<R const> && std::same_as<segment_coordinate_t<R>, T>
 		point_location(arrangement const &arr, R const &segments)
 			: frame_(arr, segments) {
 			uint32 const group_count = uint32(frame_.boundaries.size());

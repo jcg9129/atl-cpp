@@ -109,10 +109,10 @@ namespace atl::experimental {
 			requires geometry::segment_range<R const> && std::same_as<geometry::segment_coordinate_t<R>, T>
 		point_location_by_trapezoid_map(arrangement const &&, R const &) = delete;
 
-		template<geometry::segment_range R>
-			requires geometry::segment_range<R const> && std::same_as<geometry::segment_coordinate_t<R>, T>
 		/** @brief Builds the randomized map for an unchanged, longer-lived arrangement.
 		 * @note Not constexpr (runtime decomposition). */
+		template<geometry::segment_range R>
+			requires geometry::segment_range<R const> && std::same_as<geometry::segment_coordinate_t<R>, T>
 		point_location_by_trapezoid_map(arrangement const &arr, R const &segments)
 			: arr_(&arr) {
 			atl_assert(std::ranges::size(segments) < (uint64(1) << 32) && arr.vertices.size() < none);
