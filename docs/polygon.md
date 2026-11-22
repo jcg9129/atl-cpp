@@ -88,6 +88,11 @@ Details per function:
   than 3 distinct consecutive vertices (an empty input, one point, `{p, q, q,
   p}`) the deduplicated sequence is returned unchanged.
 
+For strict counterclockwise hulls, `convex_contains` in
+`atl/geometry/convex_hull.hpp` answers the same containment query in O(log n).
+`convex_hull(points)` supplies that form; normalizing its keep-collinear
+output yields the strict hull. See [Convex hulls and layers](convex-hull.md).
+
 ## Preconditions
 
 Asserted (`atl_assert`, active under `-DATL_ASSERT`): for `int64` coordinates

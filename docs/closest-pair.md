@@ -121,6 +121,12 @@ candidate (a fixed slack of 1 would admit every point at small scales). Equal
 points give `best == 0` and stop the sweep. The decisive comparisons are
 `squared_distance` values in `difference_product_t`, exact for integers.
 
+`distance_between_convex_hulls(a, b)` in `atl/geometry/calipers.hpp` measures
+the distance between the filled hull regions, returning zero on overlap or
+touch. See [Rotating calipers](calipers.md). Interior input points do not
+affect that distance; it solves a different problem from a closest pair
+with one point from each set.
+
 ## See also
 
 [Geometry overview](geometry.md) for the coordinate types and the widened

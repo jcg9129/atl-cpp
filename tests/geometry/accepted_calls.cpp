@@ -1,9 +1,16 @@
 #include <atl/experimental/geometry/box_variants.hpp>
 #include <atl/experimental/geometry/closest_pair_variants.hpp>
+#include <atl/experimental/geometry/convex_hull_variants.hpp>
+#include <atl/experimental/geometry/halfplane_intersection_variants.hpp>
 #include <atl/experimental/geometry/manhattan_mst_variants.hpp>
 #include <atl/geometry/angular_sort.hpp>
 #include <atl/geometry/box.hpp>
+#include <atl/geometry/calipers.hpp>
 #include <atl/geometry/closest_pair.hpp>
+#include <atl/geometry/convex_layers.hpp>
+#include <atl/geometry/convex_polygon_operations.hpp>
+#include <atl/geometry/halfplane.hpp>
+#include <atl/geometry/halfplane_intersection.hpp>
 #include <atl/geometry/line.hpp>
 #include <atl/geometry/manhattan_mst.hpp>
 #include <atl/geometry/point.hpp>
@@ -12,14 +19,17 @@
 #include <atl/geometry/radial_sweep.hpp>
 #include <atl/geometry/segment.hpp>
 #include <atl/types/alias.hpp>
+#include <algorithm>
 #include <array>
 #include <catch2/catch.hpp>
+#include <cmath>
 #include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <ranges>
 #include <span>
+#include <string>
 #include <vector>
 
 // a named namespace: unused members of an unnamed one draw unneeded-declaration warnings
@@ -279,4 +289,191 @@ TEST_CASE("polygons: proxy references materialize before point calls", "[geometr
 	std::array const poly64{point<atl::int64>{0, 0}, point<atl::int64>{4, 0}, point<atl::int64>{0, 4}};
 	REQUIRE(atl::geometry::contains(poly64, point{1, 2}) == atl::geometry::containment::inside);
 	REQUIRE(atl::geometry::contains(poly64, {1, 2}) == atl::geometry::containment::inside);
+}
+
+namespace geometry_hull_accepted {
+	template<atl::geometry::vertex_range R, atl::geometry::sign_policy<atl::geometry::vertex_coordinate_t<R>> Policy>
+	void exercise(R &&points, Policy const policy) {
+		using namespace atl::geometry;
+		using T = vertex_coordinate_t<R>;
+		auto const ids = convex_hull_indices(points, policy);
+		auto const hull = convex_hull(points, policy);
+		REQUIRE(ids.size() == 4);
+		REQUIRE(convex_hull_indices(points, keep_collinear, policy) == ids);
+		REQUIRE(convex_hull(points, keep_collinear, policy) == hull);
+		REQUIRE(convex_contains(points, {T(1), T(2)}, policy) == containment::inside);
+		REQUIRE(merge_convex_hulls(points, hull, policy) == hull);
+		REQUIRE(minkowski_sum(points, hull, policy).size() == 4);
+		REQUIRE(convex_layers(points, policy).size() == 1);
+		REQUIRE(std::ranges::distance(antipodal_view(points, policy)) == 8);
+		REQUIRE(std::ranges::distance(dual_support_view(points, hull, policy)) == 8);
+		REQUIRE(std::ranges::distance(dual_support_view(points, hull, anti_parallel, policy)) == 8);
+		auto const pair = farthest_pair_indices(points, policy);
+		REQUIRE(pair[0] != pair[1]);
+		REQUIRE(squared_distance(farthest_pair(points, policy)[0], farthest_pair(points, policy)[1]) == 32);
+		REQUIRE(farthest_pair_between_indices(points, hull, policy)[0] < 4);
+		REQUIRE(squared_distance(farthest_pair_between(points, hull, policy)[0], farthest_pair_between(points, hull, policy)[1]) == 32);
+		REQUIRE(narrowest_strip(points, policy).edge_start != narrowest_strip(points, policy).edge_end);
+		REQUIRE(distance_between_convex_hulls(points, hull, policy) == 0);
+		REQUIRE(min_area_enclosing_rectangle(points, policy).size() == 4);
+		REQUIRE(min_perimeter_enclosing_rectangle(points, policy).size() == 4);
+	}
+
+	template<atl::geometry::vertex_range R, atl::geometry::sign_policy<atl::geometry::vertex_coordinate_t<R>> Policy>
+	void exercise_input(R &&points, Policy const policy) {
+		REQUIRE(atl::geometry::convex_hull_indices(points, policy).size() == 4);
+		REQUIRE(atl::geometry::convex_hull(points, atl::geometry::keep_collinear, policy).size() == 4);
+		REQUIRE(atl::geometry::convex_layers(points, policy).size() == 1);
+	}
+
+	template<atl::geometry::vertex_range R>
+	void exercise_contenders(R &&points) {
+		using namespace atl::geometry;
+		exact const policy{};
+		auto const ids = convex_hull_indices(points);
+		auto const hull = convex_hull(points);
+		REQUIRE(atl::experimental::convex_hull_indices_by_graham_scan(points, policy) == ids);
+		REQUIRE(atl::experimental::convex_hull_indices_by_jarvis_march(points, policy) == ids);
+		REQUIRE(atl::experimental::convex_hull_indices_by_quickhull(points, policy) == ids);
+		REQUIRE(atl::experimental::convex_hull_indices_by_chan(points, policy) == ids);
+		REQUIRE(atl::experimental::merge_convex_hulls_by_streamed_chains(points, hull, policy) == hull);
+		REQUIRE(atl::experimental::merge_convex_hulls_by_materialized_chains(points, hull, policy) == hull);
+		REQUIRE(atl::experimental::merge_convex_hulls_by_copodal_walk(points, hull, policy) == hull);
+		REQUIRE(atl::experimental::convex_hull_union_by_materialized_chains(points, hull, policy) == hull);
+		REQUIRE(atl::experimental::convex_hull_union_by_copodal_walk(points, hull, policy) == hull);
+	}
+
+}
+
+TEST_CASE("hulls and calipers: coordinate types, policies and range storage", "[geometry][accepted]") {
+	using atl::geometry::point;
+	std::array const square{point{0, 0}, point{4, 0}, point{4, 4}, point{0, 4}};
+	geometry_hull_accepted::exercise_input(square, geometry_accepted_values::counting_policy{});
+	geometry_hull_accepted::exercise_input(std::span(square), geometry_accepted_values::derived_policy{});
+	geometry_hull_accepted::exercise_input(std::vector(square.begin(), square.end()), atl::geometry::exact{});
+	geometry_hull_accepted::exercise(std::array{point<atl::int16>{0, 0}, point<atl::int16>{4, 0}, point<atl::int16>{4, 4}, point<atl::int16>{0, 4}}, atl::geometry::exact{});
+	geometry_hull_accepted::exercise_input(std::array{point<float>{0, 0}, point<float>{4, 0}, point<float>{4, 4}, point<float>{0, 4}}, atl::geometry::fast{});
+	geometry_hull_accepted::exercise_input(std::array{point<double>{0, 0}, point<double>{4, 0}, point<double>{4, 4}, point<double>{0, 4}}, atl::geometry::approx{1e-12});
+	using geometry_accepted_values::proxy_iterator;
+	auto const proxies = std::ranges::subrange(proxy_iterator{square.data()}, proxy_iterator{square.data() + square.size()});
+	geometry_hull_accepted::exercise(proxies, atl::geometry::exact{});
+	geometry_hull_accepted::exercise_contenders(proxies);
+}
+
+namespace geometry_operations_accepted {
+	template<atl::geometry::vertex_range R, atl::geometry::sign_policy<atl::geometry::vertex_coordinate_t<R>> Policy>
+	void exercise(R &&points, Policy const p) {
+		using namespace atl::geometry;
+		REQUIRE(intersection_of_convex_polygons(points, points, p).size() == 4);
+		REQUIRE(union_of_convex_polygons(points, points, p).size() == 1);
+		auto const closest = closest_points_between_convex_hulls(points, points, p);
+		REQUIRE(std::hypot(closest[0].x - closest[1].x, closest[0].y - closest[1].y) < 1e-12);
+	}
+
+	template<atl::geometry::coordinate T>
+	void exercise_halfplanes() {
+		using namespace atl::geometry;
+		using hp = halfplane<T>;
+		std::array const hs{hp::at_most(1, 0, 4), hp::at_most(-1, 0, 0), hp::at_most(0, 1, 4), hp::left_of({0, 0}, {4, 0})};
+		REQUIRE(hs[0].contains({T(1), T(1)}) == containment::inside);
+		REQUIRE(contains(hs[0], {T(1), T(1)}, fast{}) == containment::inside);
+		REQUIRE(contains(hs[0], {T(1), T(1)}, approx{1e-12}) == containment::inside);
+		REQUIRE(hs[0].boundary().a != hs[0].boundary().b);
+		REQUIRE(halfplane_sweep_less{}(hs[3], hs[0]));
+		REQUIRE(halfplane_intersection(hs).kind == region_kind::polygon);
+		REQUIRE(halfplane_intersection(std::span(hs), fast{}).kind == region_kind::polygon);
+		REQUIRE(halfplane_intersection(std::vector(hs.begin(), hs.end())).kind == region_kind::polygon);
+		auto values = hs | std::views::transform([](hp const &h) { return h; });
+		REQUIRE(halfplane_intersection(values).kind == region_kind::polygon);
+		REQUIRE((atl::experimental::halfplane_intersection_by_composition<detail::filtered_determinant, detail::deque_pass, atl::experimental::halfplane_sort::key>(values).kind == region_kind::polygon));
+	}
+}
+
+TEST_CASE("convex operations and half-planes accept policies, narrow types and proxy ranges", "[geometry][accepted]") {
+	using atl::geometry::point;
+	std::array const square{point{0, 0}, point{4, 0}, point{4, 4}, point{0, 4}};
+	geometry_operations_accepted::exercise(square, geometry_accepted_values::counting_policy{});
+	geometry_operations_accepted::exercise(std::span(square), geometry_accepted_values::derived_policy{});
+	geometry_operations_accepted::exercise(std::vector(square.begin(), square.end()), atl::geometry::exact{});
+	geometry_operations_accepted::exercise(std::array{point<atl::int16>{0, 0}, point<atl::int16>{4, 0}, point<atl::int16>{4, 4}, point<atl::int16>{0, 4}}, atl::geometry::exact{});
+	geometry_operations_accepted::exercise(std::array{point<float>{0, 0}, point<float>{4, 0}, point<float>{4, 4}, point<float>{0, 4}}, atl::geometry::fast{});
+	geometry_operations_accepted::exercise(std::array{point<double>{0, 0}, point<double>{4, 0}, point<double>{4, 4}, point<double>{0, 4}}, atl::geometry::approx{1e-12});
+	using geometry_accepted_values::proxy_iterator;
+	auto const proxies = std::ranges::subrange(proxy_iterator{square.data()}, proxy_iterator{square.data() + square.size()});
+	geometry_operations_accepted::exercise(proxies, atl::geometry::exact{});
+	geometry_operations_accepted::exercise_halfplanes<atl::int16>();
+	geometry_operations_accepted::exercise_halfplanes<int>();
+	geometry_operations_accepted::exercise_halfplanes<atl::int64>();
+	geometry_operations_accepted::exercise_halfplanes<float>();
+	geometry_operations_accepted::exercise_halfplanes<double>();
+}
+
+namespace geometry_operations_accepted {
+	struct halfplane_proxy {
+		atl::geometry::halfplane<int> const *value;
+
+		operator atl::geometry::halfplane<int>() const { return *value; } // NOLINT(google-explicit-constructor): proxy conversion
+	};
+
+	struct halfplane_proxy_iterator {
+		using value_type = atl::geometry::halfplane<int>;
+		using difference_type = std::ptrdiff_t;
+		using iterator_concept = std::random_access_iterator_tag;
+		value_type const *position{};
+
+		halfplane_proxy operator*() const { return {position}; }
+
+		halfplane_proxy operator[](difference_type i) const { return {position + i}; }
+
+		halfplane_proxy_iterator &operator++() {
+			++position;
+			return *this;
+		}
+
+		halfplane_proxy_iterator operator++(int) {
+			auto copy = *this;
+			++*this;
+			return copy;
+		}
+
+		halfplane_proxy_iterator &operator--() {
+			--position;
+			return *this;
+		}
+
+		halfplane_proxy_iterator operator--(int) {
+			auto copy = *this;
+			--*this;
+			return copy;
+		}
+
+		halfplane_proxy_iterator &operator+=(difference_type i) {
+			position += i;
+			return *this;
+		}
+
+		halfplane_proxy_iterator &operator-=(difference_type i) {
+			position -= i;
+			return *this;
+		}
+
+		friend halfplane_proxy_iterator operator+(halfplane_proxy_iterator it, difference_type i) { return it += i; }
+
+		friend halfplane_proxy_iterator operator+(difference_type i, halfplane_proxy_iterator it) { return it += i; }
+
+		friend halfplane_proxy_iterator operator-(halfplane_proxy_iterator it, difference_type i) { return it -= i; }
+
+		friend difference_type operator-(halfplane_proxy_iterator a, halfplane_proxy_iterator b) { return a.position - b.position; }
+
+		friend auto operator<=>(halfplane_proxy_iterator, halfplane_proxy_iterator) = default;
+	};
+}
+
+TEST_CASE("half-plane ranges materialize prvalue proxy references", "[geometry][accepted]") {
+	using hp = atl::geometry::halfplane<int>;
+	using it = geometry_operations_accepted::halfplane_proxy_iterator;
+	std::array const h{hp{1, 0, 2}, hp{-1, 0, 0}, hp{0, 1, 2}, hp{0, -1, 0}};
+	auto const proxies = std::ranges::subrange(it{h.data()}, it{h.data() + h.size()});
+	STATIC_REQUIRE(atl::geometry::halfplane_range<decltype(proxies)>);
+	CHECK(atl::geometry::halfplane_intersection(proxies).kind == atl::geometry::region_kind::polygon);
 }

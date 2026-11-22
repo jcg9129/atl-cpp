@@ -15,7 +15,9 @@ namespace atl::geometry {
 	 * @brief An infinite DIRECTED line through two distinct points,
 	 *        `a -> b`. The direction is meaningful: `side_of` is signed
 	 *        relative to it, so a directed line also describes the closed
-	 *        half-plane on its left. Aggregate; `==` is representational (the
+	 *        half-plane on its left, represented by @ref atl::geometry::halfplane
+	 *        through @ref atl::geometry::halfplane::left_of and intersected by
+	 *        @ref atl::geometry::halfplane_intersection. Aggregate; `==` is representational (the
 	 *        same two points in the same order); geometric coincidence is
 	 *        @ref atl::geometry::same_line.
 	 * @pre `a != b` for every operation below (asserted there).

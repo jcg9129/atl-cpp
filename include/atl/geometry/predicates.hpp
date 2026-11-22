@@ -531,7 +531,8 @@ namespace atl::geometry {
 		/**
 		 * @brief Angular class of the direction `from -> to` in the [0, 2pi)
 		 * sweep order (0 = +x axis, rotating counterclockwise). Signs of
-		 * coordinate differences are exact even for doubles.
+		 * coordinate differences are exact even for doubles. The hull Minkowski
+		 * merge and rotating calipers share this order.
 		 */
 		template<coordinate T>
 		constexpr int sweep_group(point<T> const from, point<T> const to) {

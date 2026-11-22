@@ -1,9 +1,16 @@
 #include <atl/experimental/geometry/box_variants.hpp>
 #include <atl/experimental/geometry/closest_pair_variants.hpp>
+#include <atl/experimental/geometry/convex_hull_variants.hpp>
+#include <atl/experimental/geometry/halfplane_intersection_variants.hpp>
 #include <atl/experimental/geometry/manhattan_mst_variants.hpp>
 #include <atl/geometry/angular_sort.hpp>
 #include <atl/geometry/box.hpp>
+#include <atl/geometry/calipers.hpp>
 #include <atl/geometry/closest_pair.hpp>
+#include <atl/geometry/convex_layers.hpp>
+#include <atl/geometry/convex_polygon_operations.hpp>
+#include <atl/geometry/halfplane.hpp>
+#include <atl/geometry/halfplane_intersection.hpp>
 #include <atl/geometry/line.hpp>
 #include <atl/geometry/manhattan_mst.hpp>
 #include <atl/geometry/point.hpp>
@@ -18,6 +25,7 @@
 #include <cstdint>
 #include <list>
 #include <ranges>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -324,4 +332,146 @@ TEST_CASE("geometry primitives reject calls outside their constraints", "[geomet
 	CHECK(polar_orderable<std::vector<point<int>> const &>);
 	CHECK(!box_measurable<std::vector<point<int>> const &>);
 	CHECK(!closest_pairable<std::list<point<int>> const &>);
+}
+
+namespace geometry_hull_boundary {
+	using namespace atl::geometry;
+	template<typename R, typename Policy = exact>
+	concept hull_calls = requires(R &&r, Policy p) {
+		convex_hull(r, p);
+		convex_hull(r, keep_collinear, p);
+		convex_hull_indices(r, p);
+		convex_hull_indices(r, keep_collinear, p);
+		convex_layers(r, p);
+		convex_contains(r, {}, p);
+		merge_convex_hulls(r, r, p);
+		minkowski_sum(r, r, p);
+		farthest_pair(r, p);
+		farthest_pair_indices(r, p);
+		farthest_pair_between(r, r, p);
+		farthest_pair_between_indices(r, r, p);
+		narrowest_strip(r, p);
+		distance_between_convex_hulls(r, r, p);
+		min_area_enclosing_rectangle(r, p);
+		min_perimeter_enclosing_rectangle(r, p);
+		antipodal_view(r, p);
+		dual_support_view(r, r, p);
+		dual_support_view(r, r, anti_parallel, p);
+		atl::experimental::convex_hull_indices_by_graham_scan(r, p);
+		atl::experimental::convex_hull_indices_by_jarvis_march(r, p);
+		atl::experimental::convex_hull_indices_by_quickhull(r, p);
+		atl::experimental::convex_hull_indices_by_chan(r, p);
+		atl::experimental::merge_convex_hulls_by_streamed_chains(r, r, p);
+		atl::experimental::merge_convex_hulls_by_materialized_chains(r, r, p);
+		atl::experimental::merge_convex_hulls_by_copodal_walk(r, r, p);
+		atl::experimental::convex_hull_union_by_materialized_chains(r, r, p);
+		atl::experimental::convex_hull_union_by_copodal_walk(r, r, p);
+	};
+
+	template<typename R, typename Policy = exact>
+	constexpr bool rejects_every_call() {
+		return !requires(R &&r, Policy p) { convex_hull(r, p); }
+			&& !requires(R &&r, Policy p) { convex_hull(r, keep_collinear, p); }
+			&& !requires(R &&r, Policy p) { convex_hull_indices(r, p); }
+			&& !requires(R &&r, Policy p) { convex_hull_indices(r, keep_collinear, p); }
+			&& !requires(R &&r, Policy p) { convex_layers(r, p); }
+			&& !requires(R &&r, Policy p) { convex_contains(r, {}, p); }
+			&& !requires(R &&r, Policy p) { merge_convex_hulls(r, r, p); }
+			&& !requires(R &&r, Policy p) { minkowski_sum(r, r, p); }
+			&& !requires(R &&r, Policy p) { farthest_pair(r, p); }
+			&& !requires(R &&r, Policy p) { farthest_pair_indices(r, p); }
+			&& !requires(R &&r, Policy p) { farthest_pair_between(r, r, p); }
+			&& !requires(R &&r, Policy p) { farthest_pair_between_indices(r, r, p); }
+			&& !requires(R &&r, Policy p) { narrowest_strip(r, p); }
+			&& !requires(R &&r, Policy p) { distance_between_convex_hulls(r, r, p); }
+			&& !requires(R &&r, Policy p) { min_area_enclosing_rectangle(r, p); }
+			&& !requires(R &&r, Policy p) { min_perimeter_enclosing_rectangle(r, p); }
+			&& !requires(R &&r, Policy p) { antipodal_view(r, p); }
+			&& !requires(R &&r, Policy p) { dual_support_view(r, r, p); }
+			&& !requires(R &&r, Policy p) { dual_support_view(r, r, anti_parallel, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::convex_hull_indices_by_graham_scan(r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::convex_hull_indices_by_jarvis_march(r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::convex_hull_indices_by_quickhull(r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::convex_hull_indices_by_chan(r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::merge_convex_hulls_by_streamed_chains(r, r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::merge_convex_hulls_by_materialized_chains(r, r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::merge_convex_hulls_by_copodal_walk(r, r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::convex_hull_union_by_materialized_chains(r, r, p); }
+			&& !requires(R &&r, Policy p) { atl::experimental::convex_hull_union_by_copodal_walk(r, r, p); };
+	}
+
+	static_assert(rejects_every_call<std::list<point<int>> &>());
+	static_assert(rejects_every_call<std::vector<int> &>());
+	static_assert(rejects_every_call<std::vector<point<int>> &, geometry_boundary_values::mutable_policy>());
+
+	static_assert(hull_calls<std::vector<point<int>> const &>);
+	static_assert(!hull_calls<std::list<point<int>> &>);
+	static_assert(!hull_calls<std::vector<int> &>);
+	static_assert(!hull_calls<std::vector<point<int>> &, geometry_boundary_values::mutable_policy>);
+	static_assert(!hull_calls<std::vector<point<int>> &, geometry_boundary_values::difference_sign_only>);
+	static_assert(!std::constructible_from<antipodal_view<std::vector<point<int>>>, std::string>);
+	static_assert(!std::constructible_from<dual_support_view<std::vector<point<int>>, std::vector<point<int>>>, std::string, std::string>);
+	template<typename A, typename B>
+	concept mergeable = requires(A a, B b) { merge_convex_hulls(a, b); };
+	static_assert(!mergeable<std::array<point<int>, 3>, std::array<point<double>, 3>>);
+}
+
+namespace geometry_operations_boundary {
+	using namespace atl::geometry;
+
+	template<typename A, typename B = A, typename Policy = exact>
+	constexpr bool rejects_operations() {
+		return !requires(A a, B b, Policy p) { intersection_of_convex_polygons(a, b, p); }
+			&& !requires(A a, B b, Policy p) { union_of_convex_polygons(a, b, p); }
+			&& !requires(A a, B b, Policy p) { closest_points_between_convex_hulls(a, b, p); };
+	}
+
+	static_assert(rejects_operations<std::vector<int>>());
+	static_assert(rejects_operations<std::list<point<int>>>());
+	static_assert(rejects_operations<std::vector<point<int>>, std::vector<point<double>>>());
+	static_assert(rejects_operations<std::vector<point<int>>, std::vector<point<int>>, geometry_boundary_values::mutable_policy>());
+	template<typename T>
+	concept halfplane_type = requires { typename halfplane<T>; };
+	static_assert(halfplane_type<atl::int16> && halfplane_type<double>);
+	static_assert(!halfplane_type<char> && !halfplane_type<signed char> && !halfplane_type<unsigned> && !halfplane_type<long double>);
+	template<typename R, typename Policy = exact>
+	concept intersectable = requires(R const &r, Policy p) { halfplane_intersection(r, p); };
+	static_assert(intersectable<std::array<halfplane<int>, 4>>);
+	static_assert(!intersectable<std::list<halfplane<int>>> && !intersectable<std::vector<point<int>>>);
+	static_assert(!intersectable<std::vector<halfplane<int>>, approx>);
+	template<typename T, typename Policy>
+	concept halfplane_contains = requires(halfplane<T> h, point<T> v, Policy p) { contains(h, v, p); };
+	static_assert(!halfplane_contains<int, geometry_boundary_values::mutable_policy>);
+	static_assert(!halfplane_contains<int, geometry_boundary_values::difference_sign_only>);
+	template<typename T>
+	concept sweep_comparable = requires(T const &a) { halfplane_sweep_less{}(a, a); };
+	static_assert(!sweep_comparable<point<int>>);
+	template<typename R, typename Determinant = detail::filtered_determinant, typename Pass = detail::deque_pass>
+	concept composable = requires(R const &r) {
+		atl::experimental::halfplane_intersection_by_composition<Determinant, Pass, atl::experimental::halfplane_sort::key>(r);
+	};
+	static_assert(composable<std::vector<halfplane<int>>>);
+	static_assert(!composable<std::list<halfplane<int>>>);
+	static_assert(!composable<std::vector<halfplane<int>>, int>);
+	static_assert(!composable<std::vector<halfplane<int>>, detail::filtered_determinant, int>);
+}
+
+namespace geometry_operations_boundary {
+	struct narrow_sign_policy : exact {
+		int sign(atl::int32 const v) const { return (v > 0) - (v < 0); }
+
+		int sign(atl::int64 const v) const { return (v > 0) - (v < 0); }
+	};
+
+	static_assert(sign_policy<narrow_sign_policy, atl::int16>);
+	static_assert(!halfplane_contains<atl::int16, narrow_sign_policy>);
+
+	struct mutable_halfplanes {
+		halfplane<int> *begin();
+		halfplane<int> *end();
+		std::size_t size() const;
+	};
+
+	static_assert(std::ranges::random_access_range<mutable_halfplanes>);
+	static_assert(!intersectable<mutable_halfplanes>);
 }

@@ -18,8 +18,10 @@ its own page:
 - [Manhattan MST](manhattan-mst.md): the minimum spanning tree under the L1
   distance, exact over the full integer range.
 
-Hulls, half-planes, circles, triangulations and arrangements arrive in later
-pull requests.
+- [Convex hulls and layers](convex-hull.md): hulls, merging, Minkowski sums and onion peeling.
+- [Rotating calipers](calipers.md): support events, diameters, strips and rectangles.
+- [Convex polygon operations](convex-polygon-operations.md): intersection, union and closest hull-region points.
+- [Half-plane intersection](halfplane-intersection.md): coefficient constraints, exact region kinds and boundary indices.
 
 The library separates two kinds of computation:
 
