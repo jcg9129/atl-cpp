@@ -371,7 +371,9 @@ namespace atl::geometry {
 			// and top), so a non-exact policy's own output may fail them there
 			for (std::size_t i = 0; i < n; ++i) {
 				std::size_t const middle = (i + 1) % n;
-				if (!std::same_as<Policy, exact> && (middle == 0 || middle == top)) continue;
+				if constexpr (!std::same_as<Policy, exact>) {
+					if (middle == 0 || middle == top) continue;
+				}
 				if (p.orientation(at(i), at(middle), at((i + 2) % n)) <= 0) return false;
 			}
 			return true;

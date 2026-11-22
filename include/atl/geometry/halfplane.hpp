@@ -80,7 +80,7 @@ namespace atl::geometry {
 			float64 const value = rounded_binary64(rounded_binary64(r - px) - qy);
 			// The bound covers two products and two subtractions.
 			float64 const magnitude = rounded_binary64(rounded_binary64((r < 0 ? -r : r) + (px < 0 ? -px : px)) + (qy < 0 ? -qy : qy));
-			atl_assert(std::isfinite(magnitude) && std::isfinite(value));
+			atl_assert(is_finite(magnitude) && is_finite(value));
 			float64 const bound = (4.0 + 32.0 * epsilon) * epsilon * magnitude;
 			if (value > bound || -value > bound) return sign_of(value);
 			float64 px_err = 0, qy_err = 0;
@@ -91,7 +91,7 @@ namespace atl::geometry {
 			int const n = expansion_sum(2, products[0], 2, products[1], sum);
 			float64 const offset[1] = {r};
 			int const m = expansion_sum(n, sum, 1, offset, total);
-			atl_assert(std::isfinite(total[m - 1]));
+			atl_assert(is_finite(total[m - 1]));
 			return sign_of(total[m - 1]);
 		}
 	}
