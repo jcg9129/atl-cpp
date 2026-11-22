@@ -49,8 +49,9 @@ namespace atl::geometry {
 	 *        the view.
 	 */
 	struct antipodal_event {
-		vertex_index edge_start, edge_end; ///< endpoints of the caliper-aligned edge
-		vertex_index opposite;			   ///< support vertex of the anti-parallel caliper
+		vertex_index edge_start; ///< first endpoint of the caliper-aligned edge
+		vertex_index edge_end;	 ///< second endpoint of the caliper-aligned edge
+		vertex_index opposite;	 ///< support vertex of the anti-parallel caliper
 
 		/** @brief Compares all stored indices. */
 		[[nodiscard]] friend constexpr bool operator==(antipodal_event const &, antipodal_event const &) = default;
@@ -210,10 +211,11 @@ namespace atl::geometry {
 	 *        polygon).
 	 */
 	struct support_event {
-		vertex_index edge_start, edge_end; ///< endpoints of the aligned edge, on the
-										   ///< polygon named by `is_on_second`
-		bool is_on_second;				   ///< which polygon's edge the sweep reached
-		vertex_index p_support, q_support; ///< current support vertices on P and Q
+		vertex_index edge_start; ///< first endpoint of the aligned edge, on the polygon named by `is_on_second`
+		vertex_index edge_end;	 ///< second endpoint of the aligned edge, on the same polygon
+		bool is_on_second;		 ///< which polygon's edge the sweep reached
+		vertex_index p_support;	 ///< current support vertex on P
+		vertex_index q_support;	 ///< current support vertex on Q
 
 		/** @brief Compares all stored fields. */
 		[[nodiscard]] friend constexpr bool operator==(support_event const &, support_event const &) = default;
@@ -740,8 +742,9 @@ namespace atl::geometry {
 	 */
 	template<coordinate T>
 	struct strip {
-		point<T> edge_start, edge_end; ///< one boundary line runs through these two
-		point<T> opposite;			   ///< the other boundary passes here, parallel
+		point<T> edge_start; ///< first point of the boundary line through the edge
+		point<T> edge_end;	 ///< second point of that boundary line
+		point<T> opposite;	 ///< the other boundary passes here, parallel
 
 		/** @brief Compares the three defining points. */
 		[[nodiscard]] friend constexpr bool operator==(strip const &, strip const &) = default;
