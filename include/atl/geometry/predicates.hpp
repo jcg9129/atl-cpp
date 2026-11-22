@@ -26,6 +26,13 @@ namespace atl::geometry {
 		 * @{
 		 */
 
+		/**
+		 * @brief Whether @p value is finite (neither infinite nor NaN), usable in constant evaluation: `std::isfinite`
+		 *        is not constexpr on every supported standard library. `v - v` is exactly zero for finite `v` and NaN
+		 *        otherwise.
+		 */
+		[[nodiscard]] constexpr bool is_finite(float64 const value) { return value - value == 0.0; }
+
 		/** @brief Force binary64 rounding on targets with excess evaluation precision. */
 		constexpr float64 rounded_binary64(float64 const value) {
 #if FLT_EVAL_METHOD != 0
@@ -531,7 +538,8 @@ namespace atl::geometry {
 		/**
 		 * @brief Angular class of the direction `from -> to` in the [0, 2pi)
 		 * sweep order (0 = +x axis, rotating counterclockwise). Signs of
-		 * coordinate differences are exact even for doubles.
+		 * coordinate differences are exact even for doubles. The hull Minkowski
+		 * merge and rotating calipers share this order.
 		 */
 		template<coordinate T>
 		constexpr int sweep_group(point<T> const from, point<T> const to) {

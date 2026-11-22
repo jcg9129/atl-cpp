@@ -1,17 +1,30 @@
 #include <atl/experimental/geometry/box_variants.hpp>
 #include <atl/experimental/geometry/closest_pair_variants.hpp>
+#include <atl/experimental/geometry/convex_hull_variants.hpp>
+#include <atl/experimental/geometry/halfplane_intersection_variants.hpp>
 #include <atl/geometry/angular_sort.hpp>
 #include <atl/geometry/box.hpp>
+#include <atl/geometry/calipers.hpp>
+#include <atl/geometry/convex_layers.hpp>
+#include <atl/geometry/convex_polygon_operations.hpp>
+#include <atl/geometry/halfplane.hpp>
+#include <atl/geometry/halfplane_intersection.hpp>
 #include <atl/geometry/line.hpp>
 #include <atl/geometry/point.hpp>
 #include <atl/geometry/polygon.hpp>
 #include <atl/geometry/predicates.hpp>
 #include <atl/geometry/segment.hpp>
 #include <atl/types/alias.hpp>
+#include <atl/utils/radix_sort.hpp>
+#include <algorithm>
 #include <array>
 #include <catch2/catch.hpp>
+#include <cmath>
 #include <compare>
 #include <cstdint>
+#include <initializer_list>
+#include <ranges>
+#include <string>
 #include <vector>
 
 namespace geometry_primitive_checks {
@@ -243,3 +256,191 @@ static_assert(atl::geometry::contains(std::array{atl::geometry::point<atl::int64
 static_assert(atl::geometry::union_area(std::array{atl::geometry::box<float>{{0, -0x1p30f}, {1, -1}},
 												   atl::geometry::box<float>{{0, 0}, {1, 0x1p30f}}})
 			  == 0x1p31 - 1);
+
+namespace geometry_hull_checks {
+	using namespace atl::geometry;
+	constexpr std::array triangle{point{0, 0}, point{4, 0}, point{0, 4}};
+	static_assert(convex_hull(std::array{point{0, 0}, point{4, 0}, point{2, 1}, point{4, 4}, point{0, 4}})
+				  == std::vector{point{0, 0}, point{4, 0}, point{4, 4}, point{0, 4}});
+	static_assert(convex_hull_indices(std::array{point{0, 0}, point{2, 0}, point{4, 0}, point{2, 3}}, keep_collinear)
+				  == std::vector<vertex_index>{0, 1, 2, 3});
+	static_assert(convex_hull(triangle, keep_collinear) == convex_hull(triangle));
+	static_assert([] {
+		std::array<point<int>, 256> grid{};
+		for (int i = 0; i < 256; ++i) grid[std::size_t(i)] = {i % 16, i / 16};
+		return convex_hull(grid) == std::vector{point{0, 0}, point{15, 0}, point{15, 15}, point{0, 15}};
+	}());
+	static_assert(convex_contains(triangle, {1, 1}) == containment::inside);
+	static_assert(merge_convex_hulls(std::array{point{0, 0}, point{2, 0}, point{0, 2}},
+									 std::array{point{1, 3}, point{3, 1}, point{3, 3}})
+				  == std::vector{point{0, 0}, point{2, 0}, point{3, 1}, point{3, 3}, point{1, 3}, point{0, 2}});
+	static_assert(minkowski_sum(triangle, std::array{point{1, 2}}) == std::vector{point{1, 2}, point{5, 2}, point{1, 6}});
+	static_assert([] {
+		auto const layers = convex_layers(std::array{point{0, 0}, point{4, 0}, point{4, 4}, point{0, 4}, point{2, 2}});
+		return layers.size() == 2 && layers[0] == std::vector<vertex_index>{0, 1, 2, 3} && layers[1] == std::vector<vertex_index>{4};
+	}());
+	static_assert(convex_layers(std::array{point{0, 0}, point{2, 0}, point{4, 0}, point{2, 0}}).size() == 1);
+	static_assert(!std::constructible_from<antipodal_view<std::vector<point<int>>>, std::string>);
+	static_assert([] {
+		std::array const square{point{0, 0}, point{2, 0}, point{2, 2}, point{0, 2}};
+		int events = 0;
+		for ([[maybe_unused]] auto const event : dual_support_view(square, square)) ++events;
+		for ([[maybe_unused]] auto const event : dual_support_view(square, square, anti_parallel)) ++events;
+		return events == 16;
+	}());
+	static_assert([] {
+		auto const view = antipodal_view(std::array{point{0, 0}, point{2, 0}, point{2, 2}, point{0, 2}});
+		auto it = view.begin();
+		auto const first = it++;
+		return (*first).antipodal_pairs()[0] == std::array<vertex_index, 2>{0, 2}
+			&& *it == antipodal_event{0, 1, 3} && it != view.end();
+	}());
+	static_assert(support_event{0, 1, false, 0, 3}.support_pairs() == std::array<std::array<vertex_index, 2>, 2>{{{0, 3}, {1, 3}}});
+	static_assert(support_event{2, 3, true, 1, 2}.support_pairs() == std::array<std::array<vertex_index, 2>, 2>{{{1, 2}, {1, 3}}});
+	static_assert(strip<int>{{0, 0}, {1, 0}, {0, 1}} == strip<int>{{0, 0}, {1, 0}, {0, 1}});
+	static_assert(farthest_pair(std::array{point{0, 0}, point{4, 0}, point{1, 1}, point{4, 4}}) == std::array{point{0, 0}, point{4, 4}});
+	static_assert(farthest_pair_between_indices(std::array{point{0, 0}, point{1, 0}, point{0, 1}},
+												std::array{point{5, 5}, point{9, 9}, point{6, 5}})
+				  == std::array<vertex_index, 2>{0, 1});
+	static_assert(farthest_pair_between(std::array{point{0, 0}, point{1, 0}, point{0, 1}},
+										std::array{point{5, 5}, point{9, 9}, point{6, 5}})
+				  == std::array{point{0, 0}, point{9, 9}});
+	static_assert(atl::experimental::convex_hull_indices_by_graham_scan(triangle) == convex_hull_indices(triangle));
+	static_assert(atl::experimental::convex_hull_indices_by_jarvis_march(triangle) == convex_hull_indices(triangle));
+	static_assert(atl::experimental::convex_hull_indices_by_quickhull(triangle) == convex_hull_indices(triangle));
+	static_assert(atl::experimental::convex_hull_indices_by_chan(triangle) == convex_hull_indices(triangle));
+	static_assert(atl::experimental::merge_convex_hulls_by_streamed_chains(
+					  std::array{point{0, 0}, point{1, 0}, point{0, 1}}, std::array{point{3, 0}, point{4, 1}, point{3, 2}})
+				  == std::vector{point{0, 0}, point{3, 0}, point{4, 1}, point{3, 2}, point{0, 1}});
+	static_assert(atl::experimental::merge_convex_hulls_by_materialized_chains(triangle, triangle) == convex_hull(triangle));
+	static_assert(atl::experimental::merge_convex_hulls_by_copodal_walk(triangle, triangle) == convex_hull(triangle));
+	static_assert(atl::experimental::convex_hull_union_by_materialized_chains(triangle, triangle) == convex_hull(triangle));
+	static_assert(atl::experimental::convex_hull_union_by_copodal_walk(triangle, triangle) == convex_hull(triangle));
+}
+
+namespace geometry_halfplane_checks {
+	using namespace atl::geometry;
+	using hp = halfplane<long long>;
+
+	constexpr bool members() {
+		auto const h = hp::left_of({0, 0}, {2, 1});
+		auto const third = halfplane<double>::at_most(3, 0, 1);
+		double const below_third = 1.0 / 3.0;
+		return h.contains({0, 1}) == containment::inside && h.contains({4, 2}) == containment::boundary
+			&& third.contains({below_third, 0}) == containment::inside
+			&& contains(h, point<long long>{0, 1}) == containment::inside
+			&& contains(h, point<long long>{4, 2}, fast{}) == containment::boundary
+			&& contains(third, point<double>{below_third, 0}, exact{}) == containment::inside
+			&& h == hp::at_most(1, -2, 0) && approx{0x1p-48}.equal(direction(h.boundary()), point{2.0, 1.0});
+	}
+
+	static_assert(members());
+	static_assert(halfplane<double>::left_of({0.0, 0.0}, {2.0, 1.0}) == halfplane<double>{1.0, -2.0, 0.0});
+	static_assert(contains(halfplane<int>::at_most(1, 0, 1), point{2, 0}, approx{2.0}) == containment::boundary);
+
+	constexpr bool square_with_diagonal() {
+		std::vector<hp> const h{{1, 0, 1}, {-1, 0, 1}, {0, 1, 1}, {0, -1, 1}, {1, 1, 2}};
+		auto const region = halfplane_intersection(h);
+		return region.kind == region_kind::polygon && region.boundary == std::vector<atl::uint32>{3, 0, 2, 1}
+			&& approx{0x1p-48}.equal(region.vertices[2], point{1.0, 1.0});
+	}
+
+	static_assert(square_with_diagonal());
+
+	constexpr bool degenerate_kinds() {
+		using hd = halfplane<double>;
+		auto const kind = [](std::vector<hd> const &h) { return halfplane_intersection(h).kind; };
+		return kind({{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}}) == region_kind::point
+			&& kind({{0, 1, 1}, {0, -1, -1}, {-1, 0, 0}, {1, 0, 2}}) == region_kind::segment
+			&& kind({{1, 0, -1}, {-1, 0, -1}, {0, 1, 1}, {0, -1, 1}}) == region_kind::empty
+			&& kind({{0, 1, 0}, {0, -1, 0}, {-1, 0, 0}}) == region_kind::unbounded
+			&& kind({}) == region_kind::unbounded;
+	}
+
+	static_assert(degenerate_kinds());
+
+	constexpr bool policies_and_sweep_order() {
+		using hd = halfplane<double>;
+		std::vector<hd> h{{1, 0, 1}, {-1, 0, 1}, {0, 1, 1}, {0, -1, 1}, {1, 1, 2}};
+		std::ranges::sort(h, halfplane_sweep_less{});
+		auto const want = halfplane_intersection(h, exact{});
+		auto const got = halfplane_intersection(h, fast{});
+		return std::ranges::is_sorted(h, halfplane_sweep_less{}) && h[0] == hd{0, -1, 1}
+			&& want.kind == region_kind::polygon && got.kind == want.kind && got.boundary == want.boundary;
+	}
+
+	static_assert(policies_and_sweep_order());
+
+	constexpr bool shared_radix_sort() {
+		using keyed = atl::detail::keyed_position<atl::uint32>;
+		std::vector<keyed> keys{{0x30000u, 0}, {5u, 1}, {0x30000u, 2}, {0u, 3}, {0xffffffffu, 4}};
+		atl::detail::radix_sort<11>(keys);
+		std::vector<atl::uint32> order;
+		for (auto const &k : keys) order.push_back(k.position);
+		return order == std::vector<atl::uint32>{3, 1, 0, 2, 4};
+	}
+
+	static_assert(shared_radix_sort());
+
+	constexpr bool compositions() {
+		namespace ex = atl::experimental;
+		namespace gd = atl::geometry::detail;
+		std::vector<hp> const h{{1, 0, 1}, {-1, 0, 1}, {0, 1, 1}, {0, -1, 1}, {1, 1, 2}};
+		std::vector<halfplane<double>> const hd{{1, 0, 1}, {-1, 0, 1}, {0, 1, 1}, {0, -1, 1}, {1, 1, 2}};
+		auto const want = halfplane_intersection(h).boundary;
+		// 16-bit radix sorts exceed default constexpr step limits; shared_radix_sort proves the radix core.
+		return ex::halfplane_intersection_by_composition<gd::filtered_determinant, gd::deque_pass, ex::halfplane_sort::key>(h).boundary == want
+			&& ex::halfplane_intersection_by_composition<gd::filtered_determinant, ex::detail::corner_cached_pass, ex::halfplane_sort::rotated_runs>(h).boundary == want
+			&& ex::halfplane_intersection_by_composition<gd::filtered_determinant, ex::detail::envelope_pass, ex::halfplane_sort::comparator>(h).boundary == want
+			&& ex::halfplane_intersection_by_composition<gd::filtered_determinant, ex::detail::deque_pass_testing_every_front, ex::halfplane_sort::key_std_sort>(h).boundary == want
+			&& ex::halfplane_intersection_by_composition<ex::detail::always_exact_determinant, gd::deque_pass, ex::halfplane_sort::comparator>(hd).boundary == want
+			&& ex::halfplane_intersection_by_composition<ex::detail::product_filter_determinant, gd::deque_pass, ex::halfplane_sort::key_std_sort>(hd).boundary == want
+			&& ex::halfplane_intersection_by_composition<ex::detail::dekker_determinant, gd::deque_pass, ex::halfplane_sort::key_64_std_sort>(hd).boundary == want
+			&& ex::halfplane_intersection_by_composition<ex::detail::rounded_determinant, gd::deque_pass, ex::halfplane_sort::key>(hd).boundary == want;
+	}
+
+	static_assert(compositions());
+}
+
+TEST_CASE("half-plane constexpr proofs also run with runtime product transforms", "[geometry][constexpr]") {
+	CHECK(geometry_halfplane_checks::members());
+	CHECK(geometry_halfplane_checks::square_with_diagonal());
+	CHECK(geometry_halfplane_checks::degenerate_kinds());
+	CHECK(geometry_halfplane_checks::policies_and_sweep_order());
+	CHECK(geometry_halfplane_checks::shared_radix_sort());
+	CHECK(geometry_halfplane_checks::compositions());
+}
+
+namespace geometry_publication_checks {
+	constexpr bool caliper_initializer_lists() {
+		using namespace atl::geometry;
+		using P = point<int>;
+		auto a = antipodal_view(std::initializer_list<P>{{0, 0}, {4, 0}, {0, 4}});
+		auto d = dual_support_view(std::initializer_list<P>{{0, 0}, {4, 0}, {0, 4}},
+								   std::initializer_list<P>{{0, 0}, {2, 0}, {0, 2}});
+		return (*a.begin()).opposite == 2 && std::ranges::distance(d) == 6;
+	}
+
+	constexpr bool wide_predicates() {
+		namespace gd = atl::geometry::detail;
+		using P = atl::geometry::point<atl::int64>;
+		using L = atl::geometry::line<atl::int64>;
+		atl::int64 const k = atl::int64(1) << 60;
+		std::array<P, 2> const inputs{{{-k, k}, {k, -k}}};
+		L const diagonal{{-k, -k}, {k, k}}, opposite{{-k, k}, {k, -k}}, horizontal{{-k, 0}, {k, 0}};
+		atl::int128 const factor = atl::int128(1) << 124;
+		return gd::check_operation_bounds(inputs)
+			&& gd::compare_wide_products(factor, factor, factor, factor - 1) > 0
+			&& gd::compare_operation_products(factor, factor, factor, factor, true) == 0
+			&& gd::crossing_side(diagonal, opposite, horizontal, true) == 0
+			&& !gd::param_before(horizontal, diagonal, opposite, true);
+	}
+
+	static_assert(caliper_initializer_lists());
+	static_assert(wide_predicates());
+}
+
+TEST_CASE("publication changes evaluate at compile time and runtime", "[geometry][constexpr]") {
+	CHECK(geometry_publication_checks::caliper_initializer_lists());
+	CHECK(geometry_publication_checks::wide_predicates());
+}

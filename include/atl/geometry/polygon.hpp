@@ -345,6 +345,8 @@ namespace atl::geometry {
 	 * segment they span and `outside` elsewhere.
 	 * @pre The polygon is simple (not checked); for `int64` coordinates
 	 *      `|x|, |y| < 2^62` (asserted).
+	 * @note For a strict CCW hull from atl::geometry::convex_hull, use
+	 * atl::geometry::convex_contains for O(log n) queries.
 	 * @complexity O(n)
 	 */
 	template<vertex_range R, sign_policy<vertex_coordinate_t<R>> Policy = exact>

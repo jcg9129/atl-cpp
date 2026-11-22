@@ -182,7 +182,8 @@ namespace atl::geometry {
 	 *        spells "polygon" (vertices in order, closing edge implicit,
 	 *        either orientation) and any other plain point sequence. A
 	 *        `std::vector<point<T>>` qualifies; there is no polygon class
-	 *        because a vertex list carries no invariant to protect.
+	 *        because a vertex list carries no invariant to protect. Hull functions and
+	 *        rotating-caliper views accept this same range vocabulary.
 	 */
 	template<typename R>
 	concept vertex_range =
@@ -191,7 +192,8 @@ namespace atl::geometry {
 
 	/**
 	 * @brief Index of a point within a @ref atl::geometry::vertex_range, the element type of
-	 * index-valued results such as @ref atl::geometry::polar_angle_order (positional, unlike
+	 * index-valued results such as @ref atl::geometry::polar_angle_order, @ref atl::geometry::convex_hull_indices
+	 * and the caliper events (positional, unlike
 	 * `graph::vertex_id`, which names a node identity).
 	 */
 	using vertex_index = uint32;

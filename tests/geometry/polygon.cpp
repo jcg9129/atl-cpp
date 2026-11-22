@@ -1,3 +1,4 @@
+#include <atl/geometry/convex_hull.hpp>
 #include <atl/geometry/point.hpp>
 #include <atl/geometry/polygon.hpp>
 #include <atl/types/alias.hpp>
@@ -683,4 +684,43 @@ TEST_CASE("polygon_centroid: invalid moment magnitude is asserted", "[geometry]"
 	CHECK(atl_test::aborts([] {
 		(void)polygon_centroid(std::vector<point<double>>{{0, 0}, {1e150, 0}, {1e150, 1e150}, {0, 1e150}});
 	}));
+}
+
+TEST_CASE("convexity_of: hull classification in both windings", "[geometry]") {
+	using atl::geometry::convexity;
+	using atl::geometry::convexity_of;
+	using atl::geometry::winding;
+	std::mt19937_64 rng(20260823);
+	for (int iteration = 0; iteration < 100; ++iteration) {
+		std::vector<gp> cloud(5 + static_cast<std::size_t>(rng() % 50));
+		for (auto &p : cloud) p = {static_cast<std::int64_t>(rng() % 41) - 20, static_cast<std::int64_t>(rng() % 41) - 20};
+		auto const strict_hull = atl::geometry::convex_hull(cloud);
+		auto const keep_hull = atl::geometry::convex_hull(cloud, atl::geometry::keep_collinear);
+		if (strict_hull.size() < 3) continue;
+		REQUIRE(convexity_of(strict_hull) == convexity{true, true, winding::counterclockwise});
+		auto reversed_hull = strict_hull;
+		std::ranges::reverse(reversed_hull);
+		REQUIRE(convexity_of(reversed_hull) == convexity{true, true, winding::clockwise});
+		bool const has_straight = keep_hull.size() > strict_hull.size();
+		REQUIRE(convexity_of(keep_hull) == convexity{true, !has_straight, winding::counterclockwise});
+		auto dented = strict_hull;
+		// An exact midpoint makes a straight vertex; rounding one can change its side.
+		if (dented.size() >= 4 && ((dented[0].x + dented[2].x) & 1) == 0 && ((dented[0].y + dented[2].y) & 1) == 0) {
+			dented[1] = {(dented[0].x + dented[2].x) / 2, (dented[0].y + dented[2].y) / 2};
+			REQUIRE(convexity_of(dented) == convexity{true, false, winding::counterclockwise});
+		}
+		std::vector<point<double>> hd;
+		for (auto const p : strict_hull) hd.push_back({static_cast<double>(p.x), static_cast<double>(p.y)});
+		REQUIRE(convexity_of(hd) == convexity_of(strict_hull));
+	}
+}
+
+TEST_CASE("normalized_polygon: keep-collinear hull normalizes to the strict hull", "[geometry]") {
+	auto seed = GENERATE(take(20, random(std::uint64_t(0), std::numeric_limits<std::uint64_t>::max())));
+	std::mt19937_64 rng(seed);
+	std::vector<gp> pts;
+	for (int k = 0; k < 60; ++k) pts.push_back({static_cast<std::int64_t>(rng() % 13) - 6, static_cast<std::int64_t>(rng() % 13) - 6});
+	auto const keep = atl::geometry::convex_hull(pts, atl::geometry::keep_collinear);
+	if (keep.size() < 3 || polygon_area2(keep) == 0) return;
+	REQUIRE(atl::geometry::normalized_polygon(keep) == atl::geometry::convex_hull(pts));
 }

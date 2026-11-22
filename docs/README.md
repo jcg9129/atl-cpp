@@ -116,3 +116,8 @@ where to put guide prose, executable examples and API comments.
 - [Radial sweep](radial-sweep.md): the direction covered by the most closed arcs, and the most points one disk of a fixed radius can cover.
 - [Closest pair](closest-pair.md): the closest pair of a point set by an x-sweep, exact for integer coordinates, raced against divide and conquer and a randomized grid.
 - [Manhattan MST](manhattan-mst.md): the minimum spanning tree under the L1 distance from four octant sweeps and Kruskal, exact over the full integer range.
+
+- [Convex hulls and layers](convex-hull.md): strict and boundary hulls, logarithmic containment, merging, Minkowski sums and onion peeling.
+- [Rotating calipers](calipers.md): support event streams, diameters, narrowest strips, hull-region distance and enclosing rectangles.
+- [Convex polygon operations](convex-polygon-operations.md): hull-region intersection, union and closest points.
+- [Half-plane intersection](halfplane-intersection.md): closed constraints, exact region kinds and boundary indices.
