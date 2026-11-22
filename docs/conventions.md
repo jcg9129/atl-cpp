@@ -199,6 +199,21 @@ Document new conventions here alongside their technical rationale.
   an uninitialized symbol, or silently wrong contents). Build a local copy.
   Likewise never `push_back` an element read from the same vector
   (`v.push_back(v[i])`): size the vector first and assign by index.
+- `<cmath>` classification functions (`std::isfinite`, `std::isnan`) are not
+  constexpr on MSVC: constexpr code tests finiteness with `v - v == 0`
+  (the geometry helper `detail::is_finite`).
+- A condition that is a compile-time constant (`!std::same_as<Policy, exact>
+  && ...`, `!is_exact_v<T> || ...` inside `atl_assert`) is C4127 under
+  `/W4 /WX`: split it into `if constexpr (...)` around the runtime test. Keep
+  the extra parentheses `atl_assert((f<a, b>(x)))` when the condition has
+  template-argument commas.
+- Floating-point tests hold on x87 (32-bit Linux) and with FMA contraction
+  (Clang on ARM and macOS): never require exact equality of a rounded
+  construction (compare within its documented bound), never sort with
+  floating keys computed inside the comparator (an inconsistent order is
+  undefined behaviour in `std::sort`; compare exactly or cache the keys), and
+  store a literal in a typed variable before comparing its conversion
+  (`0.1f` may carry excess precision).
 - A constexpr loop that MSVC must evaluate has an exit condition: a
   `for (;;)` whose only exit is a `return` inside it is reported as reaching
   the end of the function (C3615). Loop `while (amount != 0)` and return
@@ -273,14 +288,16 @@ component. Generated files go in the build tree, never in `docs/`.
 - Put template arguments in Doxygen text in backticks, as in
   `congruence<U>`: written bare, Doxygen reads `<U>` as an HTML tag.
 - API docs use `/** ... */`; trailing member docs may use `///<`. No `///`
-  line docs.
+  line docs. A trailing `///<` documents only the last name of a declaration
+  (`T a, b; ///< ...` leaves `a` undocumented): one member per declaration.
 - Every public namespace has a Doxygen block (the list lives in
   `cmake/Documentation.cmake`); without one, Doxygen drops the namespace's
   free functions from the reference and `FAIL_ON_WARNINGS` fails on every
   link to them. A new public namespace adds its brief there.
 - A doc comment goes before the whole declaration, `template<...>` and
   `template<>` lines included. Deduction guides need their own brief.
-  `@ref` targets are bare names (no trailing `:`).
+  `@ref` targets are fully qualified (`atl::geometry::cross`) with no
+  trailing `:`, and never name a `detail` entity (write it in backticks).
 - Guide pages put no backslash before a letter in prose: Doxygen reads it as
   a command and `FAIL_ON_WARNINGS` fails the build.
   Write such notation in words ("L minus Z").
