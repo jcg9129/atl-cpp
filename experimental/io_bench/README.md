@@ -2,7 +2,7 @@
 
 Compares `atl::io`, `cin/cout`, C++23 `std::println`, and an unlocked-stdio
 parser. `bench.cpp` builds prefix sums and answers half-open range-sum queries;
-the compute is identical in every backend. No unpublished library folder is needed.
+the compute is identical in every backend.
 `micro.cpp` isolates parsing and formatting from that workload.
 
 Run from any working directory with a plain Python 3 installation and a C++23
@@ -56,5 +56,4 @@ still require every listed backend; they perform comparisons and timings only
 when explicitly invoked outside CI.
 
 The programs make no recorded performance claim; results must be collected on
-the target CPU with compiler flags and measurement metadata. The prefix-sum workload replaces an unpublished
-RMQ dependency, so old RMQ timings are not comparable.
+the target CPU with compiler flags and measurement metadata.

@@ -9,7 +9,11 @@
  * Each row is one full call (throughput) on int64 points: 1e5 uniform in a 1e6
  * square; 4e5 uniform over a 1e9 span; 1e5 on a 300 by 300 grid, heavy with
  * duplicates and ties; a noisy descending staircase of 1e5 points with every x
- * distinct. Both contenders must give trees of equal weight.
+ * distinct. The Manhattan contenders must give trees of equal weight.
+ * euclidean_mst builds a different tree on the uniform and grid clouds;
+ * only its n - 1 edge count is checked. It takes 172 / 172 ms and 67.2 / 67.3
+ * ms respectively in the same record. Sorting its precomputed edge keys took
+ * 25.9 ms versus 73.4 ms recomputing lengths (2026-10-14, -O2, same CPU).
  *
  * Result (Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, asserts off,
  * 2026-10-15; ms, `-O2` / `-march=native`): the library wins the uniform
@@ -19,6 +23,7 @@
  * (docs/manhattan-mst.md).
  */
 #include <atl/experimental/geometry/manhattan_mst_variants.hpp>
+#include <atl/geometry/delaunay.hpp>
 #include <atl/geometry/manhattan_mst.hpp>
 #include <atl/geometry/point.hpp>
 #include <atl/types/alias.hpp>
@@ -76,12 +81,16 @@ TEST_CASE("manhattan_mst benchmarks", "[geometry]") {
 	auto const by_fenwick_prefix_minimum = [](std::vector<lp> const &pts) {
 		return atl::experimental::manhattan_mst_by_fenwick_prefix_minimum(pts);
 	};
-	auto const race = [&](std::string const &shape, std::vector<lp> const &pts) {
+	auto const race = [&](std::string const &shape, std::vector<lp> const &pts, bool const with_euclidean) {
 		measure("library -- " + shape, pts, library);
 		measure("by Fenwick prefix minimum -- " + shape, pts, by_fenwick_prefix_minimum);
+		if (with_euclidean) {
+			REQUIRE(atl::geometry::euclidean_mst(pts).size() == pts.size() - 1);
+			BENCHMARK("euclidean_mst -- " + shape) { return atl::geometry::euclidean_mst(pts).size(); };
+		}
 	};
-	race("uniform 100k", uniform);
-	race("uniform 400k, 1e9 span", large);
-	race("gridded 100k (many ties)", gridded);
-	race("staircase 100k (distinct x)", staircase);
+	race("uniform 100k", uniform, true);
+	race("uniform 400k, 1e9 span", large, false);
+	race("gridded 100k (many ties)", gridded, true);
+	race("staircase 100k (distinct x)", staircase, false);
 }

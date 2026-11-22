@@ -246,8 +246,7 @@ Equal contents in separate buffers are treated as a product. Identical contiguou
 storage and length, or the same range object, uses one forward transform for a
 square. The integer entry's coefficient limit is smaller than UINT64_MAX.
 Use modular convolution for signed values reduced modulo a static modulus.
-No polynomial-series comparison is available yet; that comparison returns with
-the later pages.
+For polynomial-series operations, see [formal power series](power-series.md).
 
 ## How it works
 

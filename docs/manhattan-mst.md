@@ -55,8 +55,9 @@ x instead of an ordered map ("by Fenwick prefix minimum"). Each row is one call
 on int64 points: 1e5 uniform in a 1e6 square; 4e5 uniform over a 1e9 span; 1e5
 on a 300 by 300 grid, heavy with duplicates and ties; a noisy descending
 staircase of 1e5 points with every x distinct. Both must give trees of equal
-weight. The comparison with the Euclidean minimum spanning tree on the same
-clouds returns with the Delaunay page.
+weight. The [Euclidean minimum spanning tree](delaunay.md) runs beside these on the
+same uniform and gridded clouds. It builds a different tree; its agreement
+check is only `size() == n - 1`.
 
 Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions
 off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
@@ -67,10 +68,12 @@ milliseconds. Spreads 1.00x to 1.02x.
 |---|---|---:|---:|
 | uniform 1e5 | library | 174 | 175 |
 | uniform 1e5 | by Fenwick prefix minimum | 182 | 178 |
+| uniform 1e5 | euclidean_mst | 172 | 172 |
 | uniform 4e5, 1e9 span | library | 976 | 966 |
 | uniform 4e5, 1e9 span | by Fenwick prefix minimum | 1134 | 1109 |
 | gridded 1e5 (many ties) | library | 129 | 129 |
 | gridded 1e5 (many ties) | by Fenwick prefix minimum | 131 | 128 |
+| gridded 1e5 (many ties) | euclidean_mst | 67.2 | 67.3 |
 | staircase 1e5 (distinct x) | library | 128 | 125 |
 | staircase 1e5 (distinct x) | by Fenwick prefix minimum | 117 | 114 |
 
@@ -79,6 +82,10 @@ native) and 16% longer at 4e5 (15% native), ties the grid within 2%, and wins
 only the staircase, where the library takes 9% longer (10% native): its two
 extra sorts per sweep (the x ranks, then the arrival order) cost what the flat
 tree saves.
+
+The Euclidean edge-sort comparison (2026-10-14, same CPU/compiler/build,
+assertions off, `-O2`) measured 25.9 ms with precomputed squared-length keys
+versus 73.4 ms recomputing both lengths in the comparator, uniform 1e5.
 
 ## Pitfalls and notes
 

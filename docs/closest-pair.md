@@ -5,7 +5,11 @@ distance, `closest_pair` the points themselves, in O(n log n) by an x-sweep
 over a window ordered by y. Reach for it for nearest-pair questions on one set
 (collision checks, minimum spacing); the selection is EXACT for integral
 coordinates, since every decision compares exact squared distances in the
-widened types. The closest pair between two different sets is not provided.
+widened types. For two sets, use `closest_pair_between_indices(a, b)` or
+`closest_pair_between(a, b)` from [Delaunay](delaunay.md): the bichromatic
+closest pair is an edge of the colored union's Delaunay triangulation.
+Both inputs must be nonempty; integral selection is exact within that
+family's bounds, shared positions give zero and ties are unspecified.
 The coordinate types are explained in the [geometry overview](geometry.md).
 
 ```cpp

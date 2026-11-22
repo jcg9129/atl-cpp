@@ -1,23 +1,31 @@
+#include <atl/experimental/geometry/arrangement_all_pairs.hpp>
 #include <atl/experimental/geometry/box_variants.hpp>
 #include <atl/experimental/geometry/closest_pair_variants.hpp>
 #include <atl/experimental/geometry/convex_hull_variants.hpp>
 #include <atl/experimental/geometry/halfplane_intersection_variants.hpp>
 #include <atl/experimental/geometry/manhattan_mst_variants.hpp>
+#include <atl/experimental/geometry/trapezoid_point_location.hpp>
 #include <atl/geometry/angular_sort.hpp>
 #include <atl/geometry/box.hpp>
 #include <atl/geometry/calipers.hpp>
+#include <atl/geometry/circle.hpp>
 #include <atl/geometry/closest_pair.hpp>
 #include <atl/geometry/convex_layers.hpp>
 #include <atl/geometry/convex_polygon_operations.hpp>
+#include <atl/geometry/delaunay.hpp>
 #include <atl/geometry/halfplane.hpp>
 #include <atl/geometry/halfplane_intersection.hpp>
 #include <atl/geometry/line.hpp>
 #include <atl/geometry/manhattan_mst.hpp>
 #include <atl/geometry/point.hpp>
+#include <atl/geometry/point_location.hpp>
 #include <atl/geometry/polygon.hpp>
+#include <atl/geometry/polygon_overlay.hpp>
 #include <atl/geometry/predicates.hpp>
 #include <atl/geometry/radial_sweep.hpp>
+#include <atl/geometry/ray.hpp>
 #include <atl/geometry/segment.hpp>
+#include <atl/geometry/triangulation.hpp>
 #include <atl/types/alias.hpp>
 #include <algorithm>
 #include <array>
@@ -476,4 +484,128 @@ TEST_CASE("half-plane ranges materialize prvalue proxy references", "[geometry][
 	auto const proxies = std::ranges::subrange(it{h.data()}, it{h.data() + h.size()});
 	STATIC_REQUIRE(atl::geometry::halfplane_range<decltype(proxies)>);
 	CHECK(atl::geometry::halfplane_intersection(proxies).kind == atl::geometry::region_kind::polygon);
+}
+
+namespace circle_ray_delaunay_accepted {
+	using namespace atl::geometry;
+
+	struct widened_policy : exact {
+		template<typename V>
+			requires std::same_as<V, atl::int64> || std::same_as<V, atl::int128>
+		constexpr int sign(V const value) const { return exact{}.sign(value); }
+	};
+
+	static_assert(sign_policy<widened_policy, atl::int32>);
+
+	template<coordinate T>
+	void check() {
+		point<T> const q{T(0), T(0)}, a{T(4), T(0)}, b{T(0), T(4)};
+		circle<T> const c{q, T(2)}, other{a, T(2)};
+		line<T> const l{q, a};
+		segment<T> const s{q, a};
+		ray<T> const r{q, a}, second{b, q};
+		geometry_accepted_values::counting_policy const policy{};
+		(void)contains(c, q, policy);
+		(void)relation(c, other, policy);
+		(void)relation(c, l, policy);
+		(void)relation(l, c, policy);
+		(void)diametral_circle(q, a);
+		(void)circumcircle(q, a, b);
+		(void)intersection(c, l);
+		(void)intersection(l, c);
+		(void)intersection(c, s);
+		(void)intersection(s, c);
+		(void)intersection(c, other);
+		(void)tangent_points(c, a, policy);
+		(void)common_tangents(c, other);
+		(void)direction(r);
+		(void)side_of(r, b, policy);
+		(void)contains(r, a, policy);
+		(void)intersects(r, l, policy);
+		(void)intersects(l, r, policy);
+		(void)intersects(r, s, policy);
+		(void)intersects(s, r, policy);
+		(void)intersects(r, second, policy);
+		(void)intersection(r, l, policy);
+		(void)intersection(l, r, policy);
+		(void)intersection(r, s, policy);
+		(void)intersection(s, r, policy);
+		(void)intersection(r, second, policy);
+		(void)intersection(c, r);
+		(void)intersection(r, c);
+		(void)distance(r, b);
+		(void)distance(r, l);
+		(void)distance(l, r);
+		(void)distance(r, s);
+		(void)distance(s, r);
+		(void)distance(r, second);
+		std::array const points{q, a, b};
+		std::span<point<T> const> const view(points);
+		(void)intersection_area(c, view);
+		(void)intersection_area(view, c);
+		(void)minimum_enclosing_circle(view);
+		auto const d = delaunay(view);
+		(void)delaunay_edges(view);
+		(void)voronoi_from_delaunay(view, d);
+		(void)euclidean_mst(view);
+		(void)closest_pair_between_indices(view, points);
+		(void)closest_pair_between(points, view);
+		(void)largest_empty_circle(view);
+	}
+}
+
+TEST_CASE("circle ray and Delaunay accepted coordinate and range calls", "[geometry]") {
+	REQUIRE(atl::geometry::relation(atl::geometry::circle<atl::int32>{{0, 0}, 2}, atl::geometry::circle<atl::int32>{{0, 0}, 2}, circle_ray_delaunay_accepted::widened_policy{}) == atl::geometry::circle_relation::coincident);
+	circle_ray_delaunay_accepted::check<atl::int16>();
+	circle_ray_delaunay_accepted::check<atl::int32>();
+	circle_ray_delaunay_accepted::check<atl::int64>();
+	circle_ray_delaunay_accepted::check<float>();
+	circle_ray_delaunay_accepted::check<double>();
+	auto values = std::views::iota(0, 3) | std::views::transform([](int i) { return atl::geometry::point{i, i}; });
+	REQUIRE(atl::geometry::delaunay_edges(values).size() == 2);
+}
+
+TEST_CASE("Delaunay accepts non-const and non-common point views", "[geometry]") {
+	auto values = std::views::iota(0, 4) | std::views::transform([offset = 0](int i) mutable { return atl::geometry::point<atl::int64>{i + offset, 0}; });
+	REQUIRE(atl::geometry::delaunay_edges(values).size() == 3);
+	std::array const storage{atl::geometry::point{0, 0}, atl::geometry::point{4, 0}, atl::geometry::point{2, 0}};
+	auto non_common = std::ranges::subrange(std::counted_iterator(storage.begin(), 3), std::default_sentinel);
+	REQUIRE(std::abs(atl::geometry::largest_empty_circle(non_common).radius - 1.0) < 1e-12);
+}
+
+namespace geometry_subdivision_accepted {
+	template<atl::geometry::coordinate T>
+	void check() {
+		using namespace atl::geometry;
+		std::array const polygon{point<T>{0, 0}, point<T>{4, 0}, point<T>{0, 4}};
+		std::array const segments{segment<T>{{0, 0}, {4, 0}}, segment<T>{{4, 0}, {0, 4}}, segment<T>{{0, 4}, {0, 0}}};
+		std::span<segment<T> const> const view(segments);
+		segment_intersections_view lazy(view);
+		for (auto const event : lazy) (void)event;
+		(void)segment_intersections(view);
+		REQUIRE(simplicity_of(polygon | std::views::reverse).is_simple);
+		auto const arr = arrangement_of(view);
+		point_location const index(arr, view);
+		(void)index.location_of({1, 1});
+		(void)locations_of(arr, view, polygon);
+		auto const overlay = overlay_of(polygon, polygon | std::views::reverse);
+		(void)intersection_area(overlay);
+		(void)union_area(overlay);
+		(void)difference_area(overlay);
+		(void)symmetric_difference_area(overlay);
+		(void)intersection_area(polygon, polygon);
+		(void)union_area(polygon, polygon);
+		(void)difference_area(polygon, polygon);
+		(void)symmetric_difference_area(polygon, polygon);
+		(void)triangulation_of(polygon, geometry_accepted_values::counting_policy{});
+		if constexpr (std::signed_integral<T>) {
+			(void)atl::experimental::arrangement_of_by_all_pairs(view);
+			atl::experimental::point_location_by_trapezoid_map const map(arr, view);
+			(void)map.location_of({1, 1});
+		}
+	}
+}
+
+TEST_CASE("subdivision APIs accept coordinate tiers and borrowed ranges", "[geometry]") {
+	geometry_subdivision_accepted::check<atl::int16>();
 }

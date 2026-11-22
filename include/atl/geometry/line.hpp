@@ -234,7 +234,7 @@ namespace atl::geometry {
 	/**
 	 * @brief Shape of an intersection. The operations of this header produce
 	 * the first three; `along_ray` is reserved for half-infinite overlaps,
-	 * which no operation here can produce.
+	 * represented by @ref atl::geometry::ray_intersection in `ray.hpp`.
 	 */
 	enum class intersection_kind { empty,		  ///< No common point.
 								   at_point,	  ///< Exactly one common point.

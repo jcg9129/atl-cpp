@@ -110,4 +110,14 @@ namespace atl::detail {
 								   int128 const d) {
 		return (int256::product(a, b) - int256::product(c, d)).sign();
 	}
+
+	/**
+	 * @brief Sign of three signed 128x128 products summed exactly.
+	 * @pre Both the first two products' sum and the total fit signed int256.
+	 */
+	[[nodiscard]] constexpr int sum_three_products_sign(int128 const a, int128 const b, int128 const c,
+														int128 const d, int128 const e, int128 const f) {
+		return (int256::product(a, b) + int256::product(c, d) + int256::product(e, f)).sign();
+	}
+
 }

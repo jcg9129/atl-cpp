@@ -112,6 +112,8 @@ where to put guide prose, executable examples and API comments.
 
 - [Geometry overview](geometry.md): coordinate types and widened products, the exact, fast and approximate sign policies and the three precision tiers shared by the folder.
 - [Geometry primitives](geometry-primitives.md): points and vectors, exact orientation, closed segments, directed lines, the area of a union of boxes and the polar-angle sort.
+- [Circles and rays](circle.md): disk relations, crossings, tangents and enclosing circles; exact ray predicates and overlap shapes.
+- [Delaunay and Voronoi](delaunay.md): triangulations, dual edges, Euclidean MSTs, bichromatic closest pairs and empty circles.
 - [Polygons](polygon.md): signed area, exact point-in-polygon with a boundary class, winding, convexity, removal of duplicate and straight vertices, the area centroid and Pick's lattice-point counts.
 - [Radial sweep](radial-sweep.md): the direction covered by the most closed arcs, and the most points one disk of a fixed radius can cover.
 - [Closest pair](closest-pair.md): the closest pair of a point set by an x-sweep, exact for integer coordinates, raced against divide and conquer and a randomized grid.
@@ -121,3 +123,8 @@ where to put guide prose, executable examples and API comments.
 - [Rotating calipers](calipers.md): support event streams, diameters, narrowest strips, hull-region distance and enclosing rectangles.
 - [Convex polygon operations](convex-polygon-operations.md): hull-region intersection, union and closest points.
 - [Half-plane intersection](halfplane-intersection.md): closed constraints, exact region kinds and boundary indices.
+- [Segment intersections](segment-intersections.md): lazy exact integral events and polygon simplicity.
+- [Arrangements](arrangement.md): half-edge subdivisions, holes, overlaps and isolated vertices.
+- [Point location](point-location.md): persistent slabs and batch classification.
+- [Polygon overlay](polygon-overlay.md): Boolean membership and areas of simple polygons.
+- [Triangulation](triangulation.md): simple-polygon triangles and their dual tree.
