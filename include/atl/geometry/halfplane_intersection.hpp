@@ -789,7 +789,7 @@ namespace atl::geometry {
 
 			if (gap == m) {
 				if (Pass::template run<-1, Determinant>(h, active)) {
-					atl_assert((!is_exact_determinant_v<Determinant, Coefficient> || certifies_bounded<-1, Determinant>(h, active)));
+					if constexpr (is_exact_determinant_v<Determinant, Coefficient>) atl_assert((certifies_bounded<-1, Determinant>(h, active)));
 					// drop the edges of zero length in the unperturbed input:
 					// their two corners coincide
 					std::size_t const k = active.size();
@@ -811,7 +811,7 @@ namespace atl::geometry {
 					return out;
 				}
 				if (!Pass::template run<1, Determinant>(h, active)) return out; // empty
-				atl_assert((!is_exact_determinant_v<Determinant, Coefficient> || certifies_bounded<1, Determinant>(h, active)));
+				if constexpr (is_exact_determinant_v<Determinant, Coefficient>) atl_assert((certifies_bounded<1, Determinant>(h, active)));
 				// a thin polygon around a point or a segment: its edges of
 				// positive length in the limit are the segment's two sides
 				std::size_t const k = active.size();
@@ -821,12 +821,12 @@ namespace atl::geometry {
 					auto const &before = active[t == 0 ? k - 1 : t - 1], &after = active[t + 1 == k ? 0 : t + 1];
 					if (halfplane_crossing_side<0, Determinant>(before, active[t], after) != 0) {
 						// rounded signs may misclassify the count: keep the first two
-						atl_assert((!is_exact_determinant_v<Determinant, Coefficient> || found < 2));
+						if constexpr (is_exact_determinant_v<Determinant, Coefficient>) atl_assert((found < 2));
 						if (found < 2) sides[found] = t;
 						++found;
 					}
 				}
-				atl_assert((!is_exact_determinant_v<Determinant, Coefficient> || found == 0 || found == 2));
+				if constexpr (is_exact_determinant_v<Determinant, Coefficient>) atl_assert((found == 0 || found == 2));
 				if (found < 2) {
 					out.kind = region_kind::point;
 					out.boundary = {active[0].index, active[1].index};
