@@ -1,5 +1,5 @@
-// Prefix-sum queries keep the compute identical across I/O backends without
-// depending on an unpublished data structure. Input uses half-open ranges.
+// Prefix-sum queries keep the compute identical across I/O backends.
+// Input uses half-open ranges.
 #include <cstddef>
 #include <vector>
 #include "backend.hpp"

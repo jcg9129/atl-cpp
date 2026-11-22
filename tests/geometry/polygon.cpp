@@ -1,6 +1,7 @@
 #include <atl/geometry/convex_hull.hpp>
 #include <atl/geometry/point.hpp>
 #include <atl/geometry/polygon.hpp>
+#include <atl/geometry/triangulation.hpp>
 #include <atl/types/alias.hpp>
 #include <algorithm>
 #include <array>
@@ -387,6 +388,30 @@ TEST_CASE("polygon_centroid: handcrafted and against a fan from the star's cente
 	REQUIRE(shifted == point{double(distant) + 2.0, double(distant) + 2.0});
 }
 
+TEST_CASE("polygon_centroid: against the triangulation oracle", "[geometry]") {
+	using lp = point<std::int64_t>;
+	auto seed = GENERATE(take(10, random(std::uint64_t(0), (std::numeric_limits<std::uint64_t>::max)())));
+	std::mt19937_64 rng(seed);
+	for (int it = 0; it < 30; ++it) {
+		pt center{};
+		auto const raw = star_polygon(rng, center);
+		std::vector<lp> poly;
+		for (auto const &v : raw) poly.push_back({v.x, v.y});
+		if (poly.size() < 3 || polygon_area2(poly) == 0) continue;
+		auto const got = polygon_centroid(poly);
+		auto const tri = atl::geometry::triangulation_of(poly);
+		double cx = 0, cy = 0, total = 0;
+		for (auto const &t : tri.triangles) {
+			double const a = double(atl::geometry::cross(poly[t[0]], poly[t[1]], poly[t[2]]));
+			cx += a * (double(poly[t[0]].x) + double(poly[t[1]].x) + double(poly[t[2]].x));
+			cy += a * (double(poly[t[0]].y) + double(poly[t[1]].y) + double(poly[t[2]].y));
+			total += a;
+		}
+		REQUIRE(std::abs(got.x - cx / (3 * total)) <= 1e-9 * (1 + std::abs(got.x)));
+		REQUIRE(std::abs(got.y - cy / (3 * total)) <= 1e-9 * (1 + std::abs(got.y)));
+	}
+}
+
 TEST_CASE("lattice_count_of: handcrafted and against the containment brute",
 		  "[geometry]") {
 	using lp = point<std::int64_t>;
@@ -500,9 +525,16 @@ namespace {
 			edges.push_back(e);
 			edges.push_back({-e.x, -e.y});
 		}
-		std::ranges::sort(edges, [](pt const a, pt const b) {
-			return std::atan2(double(a.y), double(a.x)) < std::atan2(double(b.y), double(b.x));
-		});
+
+		struct keyed_direction {
+			pt value;
+			double angle;
+		};
+
+		std::vector<keyed_direction> keyed;
+		for (auto const value : edges) keyed.push_back({value, std::atan2(double(value.y), double(value.x))});
+		std::ranges::sort(keyed, {}, &keyed_direction::angle);
+		for (std::size_t i = 0; i < edges.size(); ++i) edges[i] = keyed[i].value;
 		// merge parallel same-direction edges so no vertex is straight
 		std::vector<pt> merged;
 		for (auto const e : edges)

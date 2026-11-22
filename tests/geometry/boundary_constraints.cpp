@@ -1,23 +1,31 @@
+#include <atl/experimental/geometry/arrangement_all_pairs.hpp>
 #include <atl/experimental/geometry/box_variants.hpp>
 #include <atl/experimental/geometry/closest_pair_variants.hpp>
 #include <atl/experimental/geometry/convex_hull_variants.hpp>
 #include <atl/experimental/geometry/halfplane_intersection_variants.hpp>
 #include <atl/experimental/geometry/manhattan_mst_variants.hpp>
+#include <atl/experimental/geometry/trapezoid_point_location.hpp>
 #include <atl/geometry/angular_sort.hpp>
 #include <atl/geometry/box.hpp>
 #include <atl/geometry/calipers.hpp>
+#include <atl/geometry/circle.hpp>
 #include <atl/geometry/closest_pair.hpp>
 #include <atl/geometry/convex_layers.hpp>
 #include <atl/geometry/convex_polygon_operations.hpp>
+#include <atl/geometry/delaunay.hpp>
 #include <atl/geometry/halfplane.hpp>
 #include <atl/geometry/halfplane_intersection.hpp>
 #include <atl/geometry/line.hpp>
 #include <atl/geometry/manhattan_mst.hpp>
 #include <atl/geometry/point.hpp>
+#include <atl/geometry/point_location.hpp>
 #include <atl/geometry/polygon.hpp>
+#include <atl/geometry/polygon_overlay.hpp>
 #include <atl/geometry/predicates.hpp>
 #include <atl/geometry/radial_sweep.hpp>
+#include <atl/geometry/ray.hpp>
 #include <atl/geometry/segment.hpp>
+#include <atl/geometry/triangulation.hpp>
 #include <atl/types/alias.hpp>
 #include <array>
 #include <catch2/catch.hpp>
@@ -474,4 +482,89 @@ namespace geometry_operations_boundary {
 
 	static_assert(std::ranges::random_access_range<mutable_halfplanes>);
 	static_assert(!intersectable<mutable_halfplanes>);
+}
+
+namespace circle_ray_delaunay_boundaries {
+	using namespace atl::geometry;
+	template<typename T>
+	constexpr bool rejects_coordinate = !requires { typename circle<T>; } && !requires { typename ray<T>; } && !requires { typename ray_intersection<T>; };
+	static_assert(rejects_coordinate<char> && rejects_coordinate<unsigned> && rejects_coordinate<long double>);
+
+	template<typename R>
+	constexpr bool rejects_range =
+		!requires(R &&r) { delaunay(r); } && !requires(R &&r) { delaunay_edges(r); } && !requires(R &&r) { euclidean_mst(r); } && !requires(R &&r) { largest_empty_circle(r); } && !requires(R &&r) { voronoi_from_delaunay(r, delaunay_result{}); } && !requires(R &&r) { minimum_enclosing_circle(r); };
+	static_assert(rejects_range<std::vector<int>>);
+	static_assert(rejects_range<std::list<point<int>>>);
+
+	template<typename A, typename B>
+	constexpr bool rejects_pair = !requires(A &&a, B &&b) { closest_pair_between_indices(a, b); } && !requires(A &&a, B &&b) { closest_pair_between(a, b); };
+	static_assert(rejects_pair<std::vector<point<int>>, std::vector<point<double>>>);
+
+	template<typename P>
+	constexpr bool rejects_policy =
+		!requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { contains(c, q, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { relation(c, c, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { relation(c, l, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { relation(l, c, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { tangent_points(c, q, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { side_of(r, q, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { contains(r, q, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersects(r, l, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersects(l, r, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersects(r, s, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersects(s, r, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersects(r, r, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersection(r, l, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersection(l, r, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersection(r, s, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersection(s, r, p); } && !requires(P p, circle<int> c, ray<int> r, point<int> q, line<int> l, segment<int> s) { intersection(r, r, p); };
+	static_assert(rejects_policy<geometry_boundary_values::mutable_policy>);
+	static_assert(rejects_policy<int>);
+
+	template<typename R>
+	constexpr bool rejects_disk_polygon = !requires(R &&r, circle<int> c) { intersection_area(c, r); } && !requires(R &&r, circle<int> c) { intersection_area(r, c); };
+	static_assert(rejects_disk_polygon<std::vector<point<double>>>);
+	static_assert(rejects_disk_polygon<std::list<point<int>>>);
+}
+
+namespace geometry_subdivision_boundaries {
+	using namespace atl::geometry;
+	template<typename R>
+	constexpr bool rejects_segments =
+		!requires(R &&r) { segment_intersections(r); } && !requires(R &&r) { arrangement_of(r); }
+		&& !requires(R &&r) { segment_intersections_view(r); };
+	static_assert(rejects_segments<std::vector<int>> && rejects_segments<std::list<segment<int>>>);
+	template<typename R>
+	constexpr bool rejects_polygon =
+		!requires(R &&r) { simplicity_of(r); } && !requires(R &&r) { triangulation_of(r); } && !requires(R &&r) { triangulation_of_by_ear_clipping(r); };
+	static_assert(rejects_polygon<std::vector<int>> && rejects_polygon<std::list<point<int>>>);
+	template<typename P>
+	concept triangulation_policy = requires(std::vector<point<int>> v, P p) { triangulation_of(v, p); };
+	template<typename P>
+	concept ear_policy = requires(std::vector<point<int>> v, P p) { triangulation_of_by_ear_clipping(v, p); };
+	static_assert(!ear_policy<int> && !ear_policy<geometry_boundary_values::mutable_policy>);
+	template<typename O>
+	constexpr bool rejects_overlay_areas = !requires(O const &o) { intersection_area(o); }
+										&& !requires(O const &o) { union_area(o); } && !requires(O const &o) { difference_area(o); }
+										&& !requires(O const &o) { symmetric_difference_area(o); };
+	static_assert(rejects_overlay_areas<int> && rejects_overlay_areas<std::vector<point<int>>>);
+	static_assert(!triangulation_policy<int> && !triangulation_policy<geometry_boundary_values::mutable_policy>);
+	template<typename A, typename B>
+	constexpr bool rejects_overlay =
+		!requires(A a, B b) { overlay_of(a, b); } && !requires(A a, B b) { intersection_area(a, b); }
+		&& !requires(A a, B b) { union_area(a, b); } && !requires(A a, B b) { difference_area(a, b); }
+		&& !requires(A a, B b) { symmetric_difference_area(a, b); };
+	static_assert(rejects_overlay<std::vector<point<int>>, std::vector<point<double>>>);
+	using segments = std::vector<segment<int>>;
+	static_assert(!std::constructible_from<point_location<int>, arrangement, segments const &>);
+	static_assert(!std::constructible_from<point_location<int>, arrangement const &, std::vector<segment<double>> const &>);
+	static_assert(!std::constructible_from<atl::experimental::point_location_by_trapezoid_map<int>, arrangement, segments const &>);
+	template<typename R, typename Q>
+	concept batch = requires(arrangement const &a, R const &r, Q const &q) { locations_of(a, r, q); };
+	static_assert(!batch<segments, std::vector<point<double>>> && !batch<segments, std::list<point<int>>>);
+
+	struct mutable_segments {
+		segment<int> *begin();
+		segment<int> *end();
+		std::size_t size() const;
+	};
+
+	static_assert(segment_range<mutable_segments> && !segment_range<mutable_segments const>);
+	static_assert(!std::constructible_from<point_location<int>, arrangement const &, mutable_segments const &>);
+	static_assert(!std::constructible_from<atl::experimental::point_location_by_trapezoid_map<int>, arrangement const &, mutable_segments const &>);
+	static_assert(!batch<mutable_segments, std::vector<point<int>>>);
+	static_assert(!std::is_copy_constructible_v<segment_intersections_view<segments &>>);
+	static_assert(!std::is_move_constructible_v<segment_intersections_view<segments &>>);
+
+	template<typename R>
+	concept all_pairs = requires(R &&r) { atl::experimental::arrangement_of_by_all_pairs(r); };
+	static_assert(!all_pairs<std::vector<segment<double>>> && !all_pairs<std::list<segment<int>>>);
+	template<typename T>
+	concept trapezoid_coordinate = requires { typename atl::experimental::point_location_by_trapezoid_map<T>; };
+	static_assert(!trapezoid_coordinate<double> && !trapezoid_coordinate<char> && !trapezoid_coordinate<unsigned>);
 }

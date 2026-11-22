@@ -1,0 +1,119 @@
+# `atl::geometry::point_location`
+
+Classify queries as arrangement vertices, edge interiors or open faces. Build
+persistent slabs for repeated queries, or use `locations_of` for a single
+batch with less allocated memory.
+
+```cpp
+#include <atl/geometry/point_location.hpp>
+```
+
+\include point-location/quick.cpp
+
+Expected stdout:
+
+\verbinclude point-location/quick.out
+
+## API
+
+All names are in `atl::geometry`. `location_kind::{vertex, edge, face}` selects
+the interpretation of `location{location_kind kind, uint32 index}`. Equality
+is memberwise and constexpr. Indices refer to the supplied arrangement.
+
+| Declaration | Meaning |
+|---|---|
+| `template<coordinate T> class point_location` | Persistent slab index |
+| `template<segment_range R> requires segment_range<R const> && std::same_as<segment_coordinate_t<R>, T> point_location(arrangement const &arr, R const &segments)` | Build from arr and its exact input segments; deduction infers T |
+| `location location_of(point<T> q) const` | Classify one query, vertices taking precedence over edges |
+| `template<segment_range R, vertex_range Q> requires segment_range<R const> && vertex_range<Q const> && std::same_as<segment_coordinate_t<R>, vertex_coordinate_t<Q>> std::vector<location> locations_of(arrangement const &arr, R const &segments, Q const &queries)` | Results in query input order |
+
+The constructor taking `arrangement const &&` is deleted to reject temporary
+arrangements. Segment/query ranges are sized random-access ranges of the
+[admitted coordinate types](geometry.md), readable through their const form.
+Segments need not outlive the constructed index: it stores supporting lines.
+The arrangement must outlive it and stay unchanged. An unbounded face result
+uses `arrangement::unbounded_face`.
+
+## Complexity
+
+For n original segments, V vertices, E edges and Q queries: slab build takes
+expected O(n + V + E log(E + 2)) time and storage. The n term remains when
+many duplicate/point segments collapse to a tiny subdivision. One query takes
+O(log(V + 1)) plus expected O(log(E + 1)) treap work. These are randomized
+height bounds, not deterministic worst-case bounds. Treap updates use allocated
+paths, so even an unlucky tree cannot cause recursion per element.
+Batch mode takes O(n + (V + E + Q) log(V + E + Q + 2)) time and
+O(n + V + E + Q) storage with an iterative status sweep. All query/build APIs are runtime-only.
+
+## Preconditions
+
+Asserted: fewer than `2^32` segments, vertices, queries and arena nodes;
+int64 **segments and queries** satisfy `|x|, |y| < 2^32`. **int32 accepts
+its full range**. The arrangement must have been built from exactly these
+segments in this order, with valid half-edge invariants (documented only).
+
+Integer boundary decisions are exact: vertex rationals are reconstructed
+from incident supporting lines, rather than comparing rounded positions.
+The degree-three factors and degree-five int256 comparisons obey the
+[sweep bounds](segment-intersections.md); a query's line-side expression
+has degree two. Float/double use rounded rational comparisons and best-effort
+topology, with finite input and finite intermediates required. No tolerance
+parameter repairs an inaccurately constructed subdivision. This family has
+no exact floating-input tier; use the primitive polygon predicate when that
+is the required guarantee.
+
+## Measured performance
+
+`benchmarks/geometry/point_location.cpp` races persistent slabs against
+`atl::experimental::point_location_by_trapezoid_map` in
+`atl/experimental/geometry/trapezoid_point_location.hpp`. The contender
+randomly inserts edges into a trapezoidal decomposition and queries a search
+DAG; symbolic shear handles verticals. It accepts integral coordinates only,
+with the same bounds, lifetime and classification semantics. Expected build
+O(n + V + E log(E + 2)), query O(log(E + 2) + log(V + 2)), storage O(n + V + E).
+Its walks are iterative and its APIs runtime-only.
+
+Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions
+off, 2026-10-15; `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
+Minimum per-run means, three runs of 25 samples; milliseconds.
+
+| Operation / shape | library -O2 | by trapezoid map -O2 | library native | by trapezoid map native |
+|---|---:|---:|---:|---:|
+| build sparse, V=10k | 2.0 | 6.9 | 2.0 | 7.3 |
+| build dense, V=60k E=118k | 375 | 671 | 381 | 707 |
+| 1e5 queries, sparse | 63.5 | 102 | 65.7 | 111 |
+| 1e5 queries, dense | 182 | 305 | 203 | 320 |
+
+| Batch mode | -O2 | native |
+|---|---:|---:|
+| 1e5 queries, sparse | 64.3 | 68.3 |
+| 1e5 queries, dense | 221 | 233 |
+| no queries, dense sweep | 111 | 116 |
+
+Slabs win every recorded build/query shape. For a dense single batch, compare
+221 ms against 375 + 182 ms for building and querying slabs. Batch timings
+include frame construction; the no-query row measures that plus status updates.
+
+## Pitfalls and notes
+
+A rounded crossing returned by an arrangement is not an exact query coordinate.
+Queries have the same T as the original segments; integer queries cannot name
+nonintegral vertices. Copying the index retains a reference to the same arr.
+No ordering or id relationship between different arrangements is guaranteed.
+
+## How it works
+
+Sarnak and Tarjan (1986, Planar point location using persistent search trees)
+organize vertical slabs between consecutive vertex x values. This implementation
+keeps one root per slab in a path-copying randomized treap. Supporting-line
+comparisons reconstruct exact rational boundaries; vertical edges and vertices
+have separate y-sorted boundary catalogs. Coexisting arrangement edges cannot
+cross, so their order at the later left boundary is a stateless pair order.
+A descent finds the topmost edge below a query, whose forward half-edge names
+the containing face. Batch mode buckets queries by slab and erases leaving
+edges through saved insertion iterators, avoiding a redundant tree search.
+
+## See also
+
+[Arrangements](arrangement.md), [Polygon overlay](polygon-overlay.md),
+[Polygons](polygon.md), [Geometry overview](geometry.md).

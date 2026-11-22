@@ -3,8 +3,7 @@
  * Cost table for 128-bit arithmetic, not a race between implementations: it
  * shows what the portable software `uint128` costs next to the native
  * `__uint128_t` (when the compiler has it) and next to the 64-bit word
- * primitives the software type is built from. Nothing here is shipped or
- * rejected on these numbers.
+ * primitives the software type is built from.
  *
  * Rows, all run over the same 4096 random operand sets:
  * - `software uint128` and `native __uint128_t` rows do the same work on each

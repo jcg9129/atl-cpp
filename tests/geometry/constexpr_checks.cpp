@@ -3,17 +3,24 @@
 #include <atl/experimental/geometry/convex_hull_variants.hpp>
 #include <atl/experimental/geometry/halfplane_intersection_variants.hpp>
 #include <atl/geometry/angular_sort.hpp>
+#include <atl/geometry/arrangement.hpp>
 #include <atl/geometry/box.hpp>
 #include <atl/geometry/calipers.hpp>
+#include <atl/geometry/circle.hpp>
 #include <atl/geometry/convex_layers.hpp>
 #include <atl/geometry/convex_polygon_operations.hpp>
+#include <atl/geometry/delaunay.hpp>
 #include <atl/geometry/halfplane.hpp>
 #include <atl/geometry/halfplane_intersection.hpp>
 #include <atl/geometry/line.hpp>
 #include <atl/geometry/point.hpp>
+#include <atl/geometry/point_location.hpp>
 #include <atl/geometry/polygon.hpp>
+#include <atl/geometry/polygon_overlay.hpp>
 #include <atl/geometry/predicates.hpp>
+#include <atl/geometry/ray.hpp>
 #include <atl/geometry/segment.hpp>
+#include <atl/geometry/triangulation.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/utils/radix_sort.hpp>
 #include <algorithm>
@@ -443,4 +450,128 @@ namespace geometry_publication_checks {
 TEST_CASE("publication changes evaluate at compile time and runtime", "[geometry][constexpr]") {
 	CHECK(geometry_publication_checks::caliper_initializer_lists());
 	CHECK(geometry_publication_checks::wide_predicates());
+}
+
+namespace circle_ray_delaunay_checks {
+	using namespace atl::geometry;
+	constexpr ray<int> proof_beam{{0, 0}, {2, 1}};
+	static_assert(direction(proof_beam) == point{2, 1});
+	static_assert(contains(proof_beam, point{4, 2}));
+	static_assert(!contains(proof_beam, point{-2, -1}));
+	static_assert(side_of(proof_beam, point{0, 5}) == side::left);
+	static_assert(intersects(proof_beam, segment<int>{{3, 0}, {3, 5}}));
+	static_assert(!intersects(proof_beam, segment<int>{{-1, 0}, {-1, 5}}));
+	static_assert(intersects(proof_beam, ray<int>{{4, 0}, {4, 5}}));
+	static_assert(intersects(proof_beam, line<int>{{4, -5}, {4, 5}}));
+	static_assert(!intersects(line<int>{{-4, -5}, {-4, 5}}, proof_beam));
+	static_assert(intersects(segment<int>{{3, 0}, {3, 5}}, proof_beam));
+	static_assert(intersection(proof_beam, line<int>{{0, 0}, {4, 2}}).kind == intersection_kind::along_ray);
+	static_assert(intersection(proof_beam, ray<int>{{6, 3}, {8, 4}}).beam == ray<int>{{6, 3}, {8, 4}});
+	static_assert(intersection(proof_beam, ray<int>{{6, 3}, {0, 0}}).kind == intersection_kind::along_segment);
+	static_assert(intersection(proof_beam, segment<int>{{-2, -1}, {4, 2}}).along == segment<int>{{0, 0}, {4, 2}});
+	static_assert(approx{1e-12}.equal(intersection(line<int>{{4, -5}, {4, 5}}, proof_beam).at, point{4.0, 2.0}));
+	static_assert(approx{1e-12}.equal(intersection(segment<int>{{4, -5}, {4, 5}}, proof_beam).at, point{4.0, 2.0}));
+	static_assert(ray_intersection<int>{} == ray_intersection<int>{});
+	static_assert(circle{point{1, 2}, 3} == circle{point{1, 2}, 3});
+	static_assert(circle{point{1, 2}, 3} != circle{point{1, 2}, 4});
+	static_assert(relation(line{point{5, -3}, point{5, 8}}, circle{point{0, 0}, 5}) == tangency::tangent);
+	static_assert(contains(circle{point{0.0, 0.0}, 5.0}, point{3.0, 4.0}) == containment::boundary);
+	static_assert(contains(circle{point{0, 0}, 5}, point{3, 4}, fast{}) == containment::boundary);
+	static_assert(contains(circle{point{0.0, 0.0}, 5.0}, point{3.0, 4.1}, approx{1.0}) == containment::boundary);
+	static_assert(relation(circle{point{0.0, 0.0}, 5.0}, circle{point{10.0, 0.0}, 5.0}) == circle_relation::externally_tangent);
+	static_assert(relation(circle{point{0, 0}, 5}, circle{point{3, 0}, 1}, approx{0.5}) == circle_relation::nested);
+	static_assert(relation(circle{point{0.0, 0.0}, 5.0}, line{point{5.0, -3.0}, point{5.0, 8.0}}) == tangency::tangent);
+	static_assert(relation(circle{point{0, 0}, 5}, line{point{6, -3}, point{6, 8}}, fast{}) == tangency::disjoint);
+	static_assert(detail::incircle_sign(point{0, 0}, point{2, 0}, point{2, 2}, point{0, 2}) == 0);
+	static_assert(detail::incircle_sign(point{0, 0}, point{2, 0}, point{2, 2}, point{1, 1}) == 1);
+	static_assert(detail::incircle_sign(point{0, 0}, point{2, 0}, point{2, 2}, point{5, 5}) == -1);
+	static_assert([] { atl::float64 const expansion[3]{0.0, 1e-30, -2.0}; return detail::expansion_sign(3, expansion); }() == -1);
+	static_assert(relation(circle<atl::int16>{{0, 0}, 16383}, line<atl::int16>{{-16383, 16383}, {16383, 16383}}) == tangency::tangent);
+}
+
+TEST_CASE("circle ray and incircle constexpr proofs", "[geometry][constexpr]") {
+	REQUIRE(atl::geometry::contains(circle_ray_delaunay_checks::proof_beam, atl::geometry::point{4, 2}));
+}
+
+namespace geometry_subdivision_checks {
+	using namespace atl::geometry;
+	static_assert(arrangement::twin(4) == 5 && arrangement::twin(5) == 4);
+	static_assert(arrangement::edge_of(5) == 2);
+
+	constexpr bool accessors() {
+		arrangement a;
+		a.origin = {0, 1};
+		a.supporting = {{0}};
+		return a.to(0) == 1 && a.to(1) == 0 && a.edge_count() == 1;
+	}
+
+	static_assert(accessors());
+	static_assert(location{location_kind::edge, 3} == location{location_kind::edge, 3});
+	static_assert(location{location_kind::edge, 3} != location{location_kind::face, 3});
+
+	constexpr bool ears() {
+		std::array const poly{point<atl::int16>{0, 0}, point<atl::int16>{4, 0}, point<atl::int16>{4, 4}, point<atl::int16>{0, 4}};
+		auto const tri = triangulation_of_by_ear_clipping(poly);
+		return tri.triangles.size() == 2 && tri.dual_edges.size() == 1
+			&& detail::in_closed_triangle(point{0, 0}, point{4, 0}, point{0, 4}, point{1, 1}, exact{});
+	}
+
+	static_assert(ears());
+}
+
+TEST_CASE("arrangement accessors and ear clipping constexpr proofs", "[geometry][constexpr]") {
+	CHECK(geometry_subdivision_checks::accessors());
+	CHECK(geometry_subdivision_checks::ears());
+}
+
+namespace geometry_gp_checks {
+	using namespace atl::geometry;
+
+	constexpr bool overlay_sums() {
+		// A face-area/membership fixture is constexpr; the arrangement sweep is runtime-only.
+		polygon_overlay<int> overlay{};
+		overlay.arr.faces = {{arrangement::none, {}, {}, -12.0}, {0, {}, {}, 3.0}, {0, {}, {}, 4.0}, {0, {}, {}, 5.0}};
+		overlay.in_first = {0, 1, 1, 0};
+		overlay.in_second = {0, 0, 1, 1};
+		return intersection_area(overlay) == 4.0 && union_area(overlay) == 12.0
+			&& difference_area(overlay) == 3.0 && symmetric_difference_area(overlay) == 8.0;
+	}
+
+	constexpr bool concave_ears() {
+		std::array const poly{point{0, 0}, point{4, 0}, point{4, 1}, point{1, 1}, point{1, 4}, point{0, 4}};
+		for (bool const is_reversed : {false, true}) {
+			auto vertices = poly;
+			if (is_reversed) std::ranges::reverse(vertices);
+			auto const result = triangulation_of_by_ear_clipping(vertices);
+			if (result.triangles.size() != 4 || result.dual_edges.size() != 3) return false;
+			int total = 0;
+			for (auto const t : result.triangles) {
+				auto const area = cross(vertices[t[0]], vertices[t[1]], vertices[t[2]]);
+				if (area <= 0) return false;
+				total += int(area);
+			}
+			if (total != 14) return false;
+		}
+		return triangulation_of_by_ear_clipping(std::array<point<int>, 0>{}).triangles.empty();
+	}
+
+	constexpr bool wide_incircle() {
+		using P = point<atl::int64>;
+		atl::int64 const k = (atl::int64(1) << 61) - 1;
+		return detail::incircle_sign(P{-k, -k}, P{k, -k}, P{k, k}, P{-k, k}) == 0
+			&& detail::incircle_sign(P{-k, -k}, P{k, -k}, P{k, k}, P{0, 0}) == 1
+			&& detail::sum_three_wide_products_sign(atl::int128(1) << 124, atl::int128(1) << 124,
+													-(atl::int128(1) << 124), atl::int128(1) << 124, 3, -2)
+				   == -1;
+	}
+
+	static_assert(overlay_sums());
+	static_assert(concave_ears());
+	static_assert(wide_incircle());
+}
+
+TEST_CASE("GP constexpr APIs also evaluate at runtime", "[geometry][constexpr]") {
+	CHECK(geometry_gp_checks::overlay_sums());
+	CHECK(geometry_gp_checks::concave_ears());
+	CHECK(geometry_gp_checks::wide_incircle());
 }

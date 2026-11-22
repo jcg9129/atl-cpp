@@ -175,7 +175,7 @@ pairs are 1.9-2.2x slower than 10^19 chunks, which tie the library.
 
 No measurements are recorded for software int128 or the interactive backend.
 The experimental harness in `experimental/io_bench/` compares complete backends
-and pure input/output workloads; its range-sum workload has no historical timings.
+and pure input/output workloads; its range-sum workload has no recorded timings.
 
 ## Pitfalls and notes
 

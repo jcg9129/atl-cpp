@@ -24,4 +24,14 @@ namespace atl::geometry::detail {
 				return (left.limb[i - 1] < right.limb[i - 1] ? -1 : 1) * left_sign;
 		return 0;
 	}
+
+	/**
+	 * @brief Exact sign of `a*b + c*d + e*f`, including software int128.
+	 * @pre Intermediate and final sums fit signed int256.
+	 */
+	[[nodiscard]] constexpr int sum_three_wide_products_sign(int128 const a, int128 const b,
+															 int128 const c, int128 const d, int128 const e, int128 const f) {
+		return atl::detail::sum_three_products_sign(a, b, c, d, e, f);
+	}
+
 }

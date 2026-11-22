@@ -42,6 +42,8 @@ namespace atl::geometry {
 	};
 
 	/**
+	 * @note For general simple-polygon validation use atl::geometry::simplicity_of
+	 * from `atl/geometry/segment_intersections.hpp`.
 	 * @brief Classifies the vertex sequence @p poly: is it a convex simple
 	 *        polygon, does it have collinear (straight) vertices, and which
 	 *        way does it wind. Every decision is a sign of the policy or an
@@ -202,6 +204,8 @@ namespace atl::geometry {
 	 * doubled areas (rounded once to `double`) and their centroids from
 	 * coordinate differences to that vertex, so a polygon far from the
 	 * origin keeps its precision.
+	 * @see atl::geometry::triangulation_of in `atl/geometry/triangulation.hpp` for
+	 * an independent triangle decomposition and area-weighted centroid.
 	 * @pre At least 3 vertices (asserted) and nonzero area (asserted on the
 	 *      rounded doubled area, which the division needs).
 	 * @pre For `int64` coordinates `|x|, |y| < 2^62` (asserted).

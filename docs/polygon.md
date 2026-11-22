@@ -105,7 +105,8 @@ once 3 distinct vertices remain.
 Documented only: every function except `polygon_area2` and `convexity_of`
 assumes a SIMPLE polygon (no self-intersection, no repeated traversal).
 `convexity_of` decides simplicity for convex candidates itself; for a general
-simplicity test no published header exists yet. Floating coordinates follow
+simplicity test use `simplicity_of` from `atl/geometry/segment_intersections.hpp`
+([segment intersections](segment-intersections.md)). Floating coordinates follow
 the floating predicate precondition (finite values, no overflow or underflow in
 products). The centroid additionally requires its area-weighted moment
 products to be finite and normal unless a factor is zero (asserted), and its
@@ -227,8 +228,13 @@ taken exactly before rounding), divided by three times the total doubled area.
 edge with one endpoint counted) and solves Pick's theorem `A = I + B/2 - 1`
 (Pick, 1899) as `I = (2A - B + 2) / 2` on the exact doubled area.
 
+`triangulation_of` in `atl/geometry/triangulation.hpp` decomposes a simple
+polygon into positive CCW triangles; the centroid tests also certify against
+area-weighted triangle centroids from that independent decomposition.
+
 ## See also
 
+[Triangulation](triangulation.md), [Segment intersections](segment-intersections.md);
 [Geometry overview](geometry.md) for the coordinate types, the policies and
 the precision tiers; [Geometry primitives](geometry-primitives.md) for the
 segment predicate `contains` builds on and the polar-angle sorts timed above.

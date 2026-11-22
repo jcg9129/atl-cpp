@@ -407,3 +407,7 @@ input on every comparison.
 [Geometry overview](geometry.md) for the coordinate types, the policies and
 the precision tiers; [Lexicographic order](lexicographic-order.md) for the
 stable argsort convention that `polar_angle_order` follows.
+
+The `intersection_kind::along_ray` result is used by `ray_intersection<T>`
+in `atl/geometry/ray.hpp`; see [Circles and rays](circle.md) for exact ray
+predicates, intersection shapes and distances.

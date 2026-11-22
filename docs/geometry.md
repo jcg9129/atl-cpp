@@ -9,6 +9,8 @@ its own page:
 - [Geometry primitives](geometry-primitives.md): points and vectors, the
   orientation predicate and sign policies, closed segments, directed lines,
   the area of a union of boxes and the polar-angle sort.
+- [Circles and rays](circle.md): disk relations, crossings, tangents and enclosing circles; exact ray predicates and overlap shapes.
+- [Delaunay and Voronoi](delaunay.md): triangulations, dual edges, Euclidean MSTs, bichromatic closest pairs and empty circles.
 - [Polygons](polygon.md): signed area, exact point-in-polygon, winding,
   convexity, normalization, the area centroid and lattice-point counts.
 - [Radial sweep](radial-sweep.md): the most overlapping arcs of directions and
@@ -22,12 +24,18 @@ its own page:
 - [Rotating calipers](calipers.md): support events, diameters, strips and rectangles.
 - [Convex polygon operations](convex-polygon-operations.md): intersection, union and closest hull-region points.
 - [Half-plane intersection](halfplane-intersection.md): coefficient constraints, exact region kinds and boundary indices.
+- [Segment intersections](segment-intersections.md): lazy exact integral events and polygon simplicity.
+- [Arrangements](arrangement.md): half-edge subdivisions, holes, overlaps and isolated vertices.
+- [Point location](point-location.md): persistent slabs and batch classification.
+- [Polygon overlay](polygon-overlay.md): Boolean membership and areas of simple polygons.
+- [Triangulation](triangulation.md): simple-polygon triangles and their dual tree.
 
 The library separates two kinds of computation:
 
 - **Predicates** (orientations, comparisons, equality) drive control flow: one
-  wrong sign can corrupt a hull or a sweep for good. They are exact by
-  default, for every coordinate type.
+  wrong sign can corrupt a hull or a sweep for good. The orientation-based predicates are exact by
+  default; higher-degree predicates and circle expressions have their own
+  bounds and floating guarantees on the family pages.
 - **Constructions** (lengths, distances, intersection points) are output
   values: a rounded `double` is the honest answer, and no exactness is
   claimed. Each function documents which kind it is.
@@ -100,10 +108,14 @@ independent points), `sign(v) -> int` for both `product_t<T>` and
 1. **Integer coordinates.** When the input permits (integers, or decimals with
    a fixed number of digits scaled by a power of ten), use an integral
    coordinate type: every predicate is exact on the widened products and
-   floating point never enters. The only bound is `|x|, |y| < 2^62` for
-   `int64`.
-2. **Floating input data.** Predicates stay exact under the default policy, so
-   sweeps and sorts on `double` input are safe, exact ties included. `float`
+   floating point never enters. The general bound is `|x|, |y| < 2^62` for
+   `int64`; higher-degree circle and Delaunay predicates have tighter bounds
+   on their family pages.
+2. **Floating input data.** Orientation-based predicates stay exact under the default policy, so
+   orientation-based sorts on `double` input are safe, exact ties included.
+   Segment sweeps, arrangements, point location and overlay also compare
+   constructed rational values: their floating topology is best effort, as
+   their family pages document. `float`
    coordinates convert to `double` exactly and get the same guarantee. The
    precondition is finite coordinates and finite, normal squares and pairwise
    products of the coordinates and differences formed by the function, with
