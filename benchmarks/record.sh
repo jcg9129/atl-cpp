@@ -83,6 +83,8 @@ for entry in json.load(open(sys.argv[1])):
             skip = True
         elif arg == str(target) or arg == entry["file"] or arg in ("-MD", "-MMD", "-pedantic"):
             pass
+        elif arg == "-DNDEBUG":
+            kept.append(arg)  # whether assert() is compiled out belongs in the record
         elif not arg.startswith(("-W", "-I", "-D", "-isystem")):
             kept.append(arg)
     print(" ".join(kept))
@@ -134,10 +136,16 @@ done
 		END {
 			for (i = 1; i <= count; ++i) {
 				row = order[i]; ms = low[row] / 1e6; spread = high[row] / low[row]
+				# a "|" inside a row name (Catch2 sections like "star | unit hops") would split the table cell
+				label = ""
+				for (k = 1; k <= length(row); ++k) {
+					c = substr(row, k, 1)
+					label = label (c == "|" ? "\\|" : c)
+				}
 				format = ms >= 100 ? "%.0f" : ms >= 1 ? "%.1f" : "%.3f"
 				# a bare ">" in a printf argument list is an output redirection
 				flag = (spread > 1.5) ? " (unstable)" : ""
-				printf("| %s | " format " | %.2fx%s |\n", row, ms, spread, flag)
+				printf("| %s | " format " | %.2fx%s |\n", label, ms, spread, flag)
 			}
 		}' "$work/rows.tsv"
 	echo
