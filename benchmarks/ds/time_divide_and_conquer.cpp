@@ -408,7 +408,8 @@ TEST_CASE("time_divide_and_conquer bipartite sparse comparison", "[time_divide_a
 	REQUIRE(sum_bipartite_times(engine::time_divide_and_conquer_by_frame_skipping, w) == expected);
 	REQUIRE(sum_bipartite_times(engine::time_divide_and_conquer_by_dense_csr, w) == expected);
 	REQUIRE(sum_bipartite_times(engine::time_divide_and_conquer_by_ranked_frame_skipping, w) == expected);
-	std::string const shape = "bipartite toggles n=q=1e5, every time";
+	// "set 2": a different seed from the engine race above, whose rows already use the plain name
+	std::string const shape = "bipartite toggles n=q=1e5 set 2, every time";
 	BENCHMARK(shape + " -- library") { return sum_bipartite_times(engine::library, w); };
 	BENCHMARK(shape + " -- by frame skipping") { return sum_bipartite_times(engine::time_divide_and_conquer_by_frame_skipping, w); };
 	BENCHMARK(shape + " -- by dense CSR") { return sum_bipartite_times(engine::time_divide_and_conquer_by_dense_csr, w); };
