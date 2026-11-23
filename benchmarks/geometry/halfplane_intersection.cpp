@@ -224,10 +224,12 @@ TEST_CASE("halfplane intersection benchmarks: corner cache and rotated runs", "[
 		for (auto const &[name, make] :
 			 {std::pair{"tangents", &tangents}, std::pair{"around origin", &around_origin}, std::pair{"empty", &outside},
 			  std::pair{"presorted", &presorted}, std::pair{"rotated run", &rotated_run}})
-			shapes.emplace_back(name + size, make(n, rng));
+			// " set 2": the first test case already records "library, <shape> int64" rows, and with the shared
+			// seed the 1e6 inputs here differ from its 1e6 inputs, so these rows need names of their own
+			shapes.emplace_back(name + size + " set 2", make(n, rng));
 	}
 	auto const hull_a = circle_hull(0, rng), hull_b = circle_hull(300'000'000, rng);
-	shapes.emplace_back("pre-hulled 2 x 1e6 circle edges", edges_of(hull_a, hull_b));
+	shapes.emplace_back("pre-hulled 2 x 1e6 circle edges set 2", edges_of(hull_a, hull_b));
 	for (auto const &[name, h] : shapes) {
 		auto const expected = atl::geometry::halfplane_intersection(h);
 		auto const both = ex::halfplane_intersection_by_composition<filtered, ex::detail::corner_cached_pass,

@@ -247,15 +247,17 @@ TEST_CASE("convex_piecewise_linear tuning contenders", "[convex_piecewise_linear
 	REQUIRE(unit_segments_at_rightmost<unit_by_scan>(a_few, 2000) == unit_segments_at_rightmost<unit_mode>(a_few, 2000));
 	REQUIRE(segments_at_rightmost<weighted_by_scan>(a_few, w_few, 2000) == segments_at_rightmost<weighted_mode>(a_few, w_few, 2000));
 
-	BENCHMARK("nondecreasing n=1e6 / library, unit mode") { return nondecreasing<unit_mode>(a); };
+	// the same inputs as the contender race above: these baselines repeat its library rows next to the
+	// tuning contenders, under names of their own because a record needs unique row names
+	BENCHMARK("nondecreasing n=1e6 / library, unit mode, tuning baseline") { return nondecreasing<unit_mode>(a); };
 	BENCHMARK("nondecreasing n=1e6 / unit mode by Floyd replace_top") { return nondecreasing<unit_by_floyd>(a); };
-	BENCHMARK("window n=1e6 / library, unit mode") { return bounded_steps<unit_mode>(a, 1000); };
+	BENCHMARK("window n=1e6 / library, unit mode, tuning baseline") { return bounded_steps<unit_mode>(a, 1000); };
 	BENCHMARK("window n=1e6 / unit mode by Floyd replace_top") { return bounded_steps<unit_by_floyd>(a, 1000); };
-	BENCHMARK("hinges n=1e6 / library, unit mode") { return hinges<unit_mode>(a); };
+	BENCHMARK("hinges n=1e6 / library, unit mode, tuning baseline") { return hinges<unit_mode>(a); };
 	BENCHMARK("hinges n=1e6 / unit mode by Floyd replace_top") { return hinges<unit_by_floyd>(a); };
-	BENCHMARK("weighted nondecreasing n=1e6 / library, weighted mode") { return weighted_nondecreasing<weighted_mode>(a, w); };
+	BENCHMARK("weighted nondecreasing n=1e6 / library, weighted mode, tuning baseline") { return weighted_nondecreasing<weighted_mode>(a, w); };
 	BENCHMARK("weighted nondecreasing n=1e6 / weighted mode by Floyd replace_top") { return weighted_nondecreasing<weighted_by_floyd>(a, w); };
-	BENCHMARK("weighted hinges n=1e6 / library, weighted mode") { return weighted_hinges<weighted_mode>(a, w); };
+	BENCHMARK("weighted hinges n=1e6 / library, weighted mode, tuning baseline") { return weighted_hinges<weighted_mode>(a, w); };
 	BENCHMARK("weighted hinges n=1e6 / weighted mode by Floyd replace_top") { return weighted_hinges<weighted_by_floyd>(a, w); };
 	BENCHMARK("segments at rightmost slope m=1e4 x2000 / library, unit mode") { return unit_segments_at_rightmost<unit_mode>(a_few, 2000); };
 	BENCHMARK("segments at rightmost slope m=1e4 x2000 / unit mode by whole-heap scan") { return unit_segments_at_rightmost<unit_by_scan>(a_few, 2000); };
