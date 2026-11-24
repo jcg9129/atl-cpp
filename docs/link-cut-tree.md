@@ -20,6 +20,11 @@ Output:
 
 \include link-cut-tree/basic.out
 
+For vertex values only, `<atl/ds/link_cut_tree_vertex.hpp>` provides the same
+`link_cut_tree` template without the edge registry or hash table. Include
+`<atl/ds/link_cut_tree.hpp>` for edge values; it installs the registry and
+retains every tier of the API. The two headers can be included together.
+
 ## API
 
 ```cpp

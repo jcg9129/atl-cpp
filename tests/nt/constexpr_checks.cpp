@@ -33,6 +33,17 @@
 #include <optional>
 #include <vector>
 
+namespace header_policy_checks {
+	template<typename C>
+	constexpr bool product() {
+		std::vector<C> const a{1, 2}, b{3, 4};
+		return atl::detail::series_product<atl::scalar_ntt, C>(a, b, 4) == std::vector<C>{3, 10, 8, 0};
+	}
+
+	static_assert(product<atl::mod_int32<998244353>>());
+	static_assert(product<atl::mod_int64<18446744073709551557ULL>>());
+}
+
 namespace {
 	using atl::uint128;
 	using Dynamic32 = atl::dynamic_mod_int<>;

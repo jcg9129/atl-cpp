@@ -24,6 +24,14 @@ that are not prime; the concepts reject them.
 Expected stdout:
 \include power-series/quick.out
 
+`<atl/nt/power_series_native.hpp>` provides the series API for prime moduli
+that fit in 32 bits, with coefficient storage supporting native double-width
+multiplication. `<atl/nt/power_series_wide.hpp>` installs the wide-residue
+product policy: 16-bit limbs at runtime, schoolbook products in constant
+evaluation. Include it before using wider coefficient types.
+`<atl/nt/power_series.hpp>` includes both and retains the full generic API
+and its complexity contracts.
+
 ## Conventions and concepts
 
 ```cpp

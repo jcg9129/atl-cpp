@@ -16,6 +16,10 @@ ordinary products without wraparound.
 Expected stdout:
 \include convolution/quick.out
 
+`<atl/nt/convolution_mod.hpp>` provides modular convolution, including all
+its existing FFT and CRT fallback paths. `<atl/nt/convolution_uint64.hpp>` adds
+the exact nonnegative integer product. `<atl/nt/convolution.hpp>` includes both.
+
 ## API
 
 ```cpp

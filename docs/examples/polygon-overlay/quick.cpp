@@ -1,4 +1,4 @@
-#include <atl/geometry/polygon_overlay.hpp>
+#include <atl/geometry/polygon_overlay_integral.hpp>
 #include <array>
 #include <iostream>
 

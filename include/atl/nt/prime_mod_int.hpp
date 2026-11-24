@@ -1,6 +1,6 @@
 #pragma once
 
-#include <atl/nt/basic.hpp>
+#include <atl/nt/primality.hpp>
 #include <atl/types/concepts.hpp>
 #include <cstdint>
 #include <limits>

@@ -16,6 +16,11 @@ Expected stdout:
 
 \verbinclude flat-hash/basic.out
 
+`<atl/utils/hash_core.hpp>` contains the shared seed, integer and enum hashes,
+and `identity_hash`. `<atl/utils/hash_extensions.hpp>` adds floating-point,
+string, pointer and composite keys. `<atl/utils/hash.hpp>` includes both;
+the general flat hash containers continue to support all these keys.
+
 ## API
 
 ```cpp
@@ -223,3 +228,8 @@ geometric growth explain the expected amortized bound.
 ## See also
 
 - [Types and utilities](types-and-utilities.md)
+
+`<atl/ds/flat_hash_map_core.hpp>` exposes the container with scalar default
+hashing, or a caller-supplied hash. Add `<atl/utils/hash_extensions.hpp>` before
+instantiating a map with an extension key and its default hash.
+`<atl/ds/flat_hash_map.hpp>` includes the full key support as before.

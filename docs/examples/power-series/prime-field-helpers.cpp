@@ -1,6 +1,6 @@
 #include <atl/nt/batch_inverse.hpp>
 #include <atl/nt/factorial_table.hpp>
-#include <atl/nt/mod_int.hpp>
+#include <atl/nt/mod_int_core.hpp>
 #include <atl/nt/series_calculus.hpp>
 #include <atl/nt/square_root_mod.hpp>
 #include <iostream>

@@ -1,4 +1,4 @@
-#include <atl/geometry/point_location.hpp>
+#include <atl/geometry/point_location_integral.hpp>
 #include <array>
 #include <iostream>
 
