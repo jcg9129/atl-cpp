@@ -1,5 +1,5 @@
-#include <atl/nt/mod_int.hpp>
-#include <atl/nt/polynomial_points.hpp>
+#include <atl/nt/mod_int_core.hpp>
+#include <atl/nt/polynomial_points_native.hpp>
 #include <iostream>
 #include <vector>
 

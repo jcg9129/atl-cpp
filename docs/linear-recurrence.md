@@ -14,6 +14,9 @@ sequences and integral types with truncating division are excluded.
 Expected stdout:
 \include linear-recurrence/quick.out
 
+The field contract is also available independently in `<atl/nt/exact_field.hpp>`;
+it does not include matrix storage or Gaussian elimination.
+
 ## API
 
 `field_range<R>` requires a sized random-access range of `exact_field` values,

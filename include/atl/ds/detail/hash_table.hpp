@@ -1,7 +1,7 @@
 #pragma once
 #include <atl/types/alias.hpp>
 #include <atl/utils/assert.hpp>
-#include <atl/utils/hash.hpp>
+#include <atl/utils/hash_core.hpp>
 #include <algorithm>
 #include <bit>
 #include <concepts>

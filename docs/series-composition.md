@@ -19,6 +19,13 @@ instead.
 Expected stdout:
 \include series-composition/quick.out
 
+`<atl/nt/series_composition_native.hpp>` provides the default Horner and
+Kinoshita–Li strategies for the native series coefficient domain described in
+the power-series guide. `<atl/nt/series_composition_brent_kung.hpp>` installs
+the separate Brent–Kung strategy used by the experimental comparison API.
+`<atl/nt/series_composition.hpp>` includes both strategies and the wide-residue
+product policy, preserving the full API and algorithm choices.
+
 ## Conventions and concepts
 
 - Inputs are any `prime_mod_int_range` (vectors, arrays, spans, lists, views, even

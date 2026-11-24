@@ -4,8 +4,8 @@
 #include <atl/nt/detail/series_composition.hpp>
 #include <atl/nt/factorial_table.hpp>
 #include <atl/nt/ntt_engine.hpp>
-#include <atl/nt/polynomial_points.hpp>
-#include <atl/nt/power_series.hpp>
+#include <atl/nt/polynomial_points_native.hpp>
+#include <atl/nt/power_series_native.hpp>
 #include <atl/nt/prime_mod_int.hpp>
 #include <atl/nt/series_calculus.hpp>
 #include <atl/utils/assert.hpp>
@@ -27,6 +27,35 @@ namespace atl::detail {
 		horner,
 		/** @brief Horner with schoolbook products. */
 		schoolbook
+	};
+
+	template<composition_algorithm Algorithm>
+	struct composition_strategy;
+
+	template<>
+	struct composition_strategy<composition_algorithm::kinoshita_li> {
+		template<ntt_engine Engine, static_prime_mod_int Coefficient>
+		static constexpr std::vector<Coefficient> compose(std::span<Coefficient const> outer, std::span<Coefficient const> inner, std::size_t length, std::size_t horner_cutoff, std::size_t schoolbook_cutoff) {
+			if (length <= schoolbook_cutoff) return composition_horner<Engine, true, Coefficient>(outer, inner, length);
+			if (outer.size() <= horner_cutoff) return composition_horner<Engine, false, Coefficient>(outer, inner, length);
+			return composition_kinoshita_li<Engine, Coefficient>(outer, inner);
+		}
+	};
+
+	template<>
+	struct composition_strategy<composition_algorithm::horner> {
+		template<ntt_engine Engine, static_prime_mod_int Coefficient>
+		static constexpr std::vector<Coefficient> compose(std::span<Coefficient const> outer, std::span<Coefficient const> inner, std::size_t length, std::size_t, std::size_t) {
+			return composition_horner<Engine, false, Coefficient>(outer, inner, length);
+		}
+	};
+
+	template<>
+	struct composition_strategy<composition_algorithm::schoolbook> {
+		template<ntt_engine Engine, static_prime_mod_int Coefficient>
+		static constexpr std::vector<Coefficient> compose(std::span<Coefficient const> outer, std::span<Coefficient const> inner, std::size_t length, std::size_t, std::size_t) {
+			return composition_horner<Engine, true, Coefficient>(outer, inner, length);
+		}
 	};
 
 	/** @brief Shared finite-polynomial normalization and structural dispatch for all composition contenders.
@@ -62,17 +91,7 @@ namespace atl::detail {
 			}
 			return result;
 		}
-		if constexpr (Algorithm == composition_algorithm::schoolbook) {
-			return composition_horner<Engine, true, Coefficient>(outer, inner, length);
-		} else if constexpr (Algorithm == composition_algorithm::horner) {
-			return composition_horner<Engine, false, Coefficient>(outer, inner, length);
-		} else if constexpr (Algorithm == composition_algorithm::brent_kung) {
-			return composition_brent_kung<Engine, Coefficient>(outer, inner);
-		} else {
-			if (length <= schoolbook_cutoff) return composition_horner<Engine, true, Coefficient>(outer, inner, length);
-			if (outer.size() <= horner_cutoff) return composition_horner<Engine, false, Coefficient>(outer, inner, length);
-			return composition_kinoshita_li<Engine, Coefficient>(outer, inner);
-		}
+		return composition_strategy<Algorithm>::template compose<Engine, Coefficient>(outer, inner, length, horner_cutoff, schoolbook_cutoff);
 	}
 
 	/** @brief Assert the reversion contract once, with no linear-coefficient check for precision one.
@@ -135,36 +154,6 @@ namespace atl::detail {
 		auto const scale = Coefficient(1) / series[1];
 		std::vector<Coefficient> result(length);
 		for (std::size_t i = 0; i < degree; ++i) result[i + 1] = scale * unit[i];
-		return result;
-	}
-
-	/** @brief Johansson fast Lagrange inversion (2015), baby-step/giant-step coefficient products; race pending.
-	 * Only the diagonal coefficient [x^(k-1)]h^k is formed for each k, using h=x/f.
-	 * @pre A capped precision-sized reversion prefix with length <= p.
-	 * @complexity O(sqrt(n) M(n) + n^2) time and O(n sqrt(n)) storage.
-	 */
-	template<ntt_engine Engine, static_prime_mod_int Coefficient>
-	[[nodiscard]] constexpr std::vector<Coefficient> composition_inverse_johansson(std::span<Coefficient const> series) {
-		composition_check_inverse<Coefficient>(series);
-		auto const length = series.size();
-		atl_assert(length <= Coefficient::mod());
-		if (length < 2) return std::vector<Coefficient>(length);
-		auto const precision = length - 1, block = composition_block_size(precision);
-		auto const reciprocal = series_inverse<Engine>(series.subspan(1), precision);
-		std::vector<std::vector<Coefficient>> baby(block + 1, std::vector<Coefficient>(precision));
-		baby[0][0] = Coefficient(1);
-		for (std::size_t i = 1; i <= block; ++i) baby[i] = series_product<Engine, Coefficient>(baby[i - 1], reciprocal, precision);
-		std::vector<Coefficient> giant = baby[0], result(length);
-		factorial_table<Coefficient> const table(precision);
-		for (std::size_t base = 0; base < length; base += block) {
-			for (std::size_t offset = 0; offset < block && base + offset < length; ++offset) {
-				auto const degree = base + offset;
-				if (degree == 0) continue;
-				for (std::size_t i = 0; i < degree; ++i) result[degree] += giant[i] * baby[offset][degree - 1 - i];
-				result[degree] *= table.inverse_integer(degree);
-			}
-			if (block < length - base) giant = series_product<Engine, Coefficient>(giant, baby[block], precision);
-		}
 		return result;
 	}
 

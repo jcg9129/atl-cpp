@@ -1,6 +1,6 @@
 #pragma once
 
-#include <atl/nt/convolution.hpp>
+#include <atl/nt/convolution_mod.hpp>
 #include <atl/nt/detail/polynomial_points.hpp>
 #include <atl/nt/detail/power_series.hpp>
 #include <atl/nt/detail/power_series_extensions.hpp>

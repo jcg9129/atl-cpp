@@ -7,6 +7,7 @@ set(atl_coverage_command "${Python3_EXECUTABLE}"
     --root "${PROJECT_SOURCE_DIR}" --output "${atl_coverage_page}")
 
 if(BUILD_TESTS)
+    add_test(NAME headers/splits COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/check-header-splits.py")
     add_test(NAME docs/checker COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/test-check-docs.py")
     add_test(NAME docs/coverage COMMAND ${atl_coverage_command})
     file(GLOB_RECURSE atl_doc_examples CONFIGURE_DEPENDS

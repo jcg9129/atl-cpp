@@ -14,6 +14,13 @@ Expected stdout:
 
 \verbinclude point-location/quick.out
 
+For integral coordinates, `<atl/geometry/point_location_integral.hpp>` provides
+the same queries without adaptive floating-point kernels. The general
+`<atl/geometry/point_location.hpp>` also includes
+`<atl/geometry/predicates_floating.hpp>`, which installs the exact floating
+predicate specialization. Including that extension later enables floating
+coordinates as well; include it before instantiating floating predicates.
+
 ## API
 
 All names are in `atl::geometry`. `location_kind::{vertex, edge, face}` selects
@@ -117,3 +124,9 @@ edges through saved insertion iterators, avoiding a redundant tree search.
 
 [Arrangements](arrangement.md), [Polygon overlay](polygon-overlay.md),
 [Polygons](polygon.md), [Geometry overview](geometry.md).
+
+The integral include path also exposes `<atl/geometry/angular_sort_core.hpp>`,
+`<atl/geometry/segment_intersections_core.hpp>` and
+`<atl/geometry/arrangement_core.hpp>`. These policy-based layers share the
+same definitions as their general umbrellas; include the floating predicate
+extension before using exact floating predicates.

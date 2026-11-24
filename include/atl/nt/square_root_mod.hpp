@@ -1,7 +1,7 @@
 #pragma once
 
-#include <atl/nt/basic.hpp>
 #include <atl/nt/montgomery.hpp>
+#include <atl/nt/primality.hpp>
 #include <atl/nt/prime_mod_int.hpp>
 #include <atl/utils/assert.hpp>
 #include <algorithm>

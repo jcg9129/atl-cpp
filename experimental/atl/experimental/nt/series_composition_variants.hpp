@@ -1,4 +1,5 @@
 #pragma once
+#include <atl/nt/series_composition.hpp>
 
 #include <atl/nt/detail/polynomial_points.hpp>
 #include <atl/nt/detail/power_series.hpp>

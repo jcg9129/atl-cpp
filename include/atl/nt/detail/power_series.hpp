@@ -1,6 +1,6 @@
 #pragma once
 
-#include <atl/nt/convolution.hpp>
+#include <atl/nt/convolution_mod.hpp>
 #include <atl/nt/ntt_engine.hpp>
 #include <atl/nt/prime_mod_int.hpp>
 #include <atl/nt/series_calculus.hpp>
@@ -77,12 +77,26 @@ namespace atl {
 			}
 		}
 
+		template<typename Coefficient>
+		concept native_series_coefficient = static_prime_mod_int<Coefficient>
+										 && (Coefficient::mod() <= (std::numeric_limits<std::uint32_t>::max)())
+										 && traits::has_widen_mul_v<decltype(Coefficient::mod())>;
+
+		template<static_prime_mod_int Coefficient>
+		struct series_product_policy;
+
+		template<native_series_coefficient Coefficient>
+		struct series_product_policy<Coefficient> {
+			template<ntt_engine Engine>
+			static constexpr std::vector<Coefficient> multiply(std::span<Coefficient const> left, std::span<Coefficient const> right, std::size_t length) {
+				auto result = convolution<Engine>(left, right);
+				result.resize(length);
+				return result;
+			}
+		};
+
 		/**
-		 * @brief The first `length` coefficients of a product, padded with zeros, through the convolution driver.
-		 *
-		 * Moduli above 32 bits, and any modulus whose storage type has no native double-width multiply, are
-		 * multiplied by 16-bit limbs through `convolution_uint64`, because the driver's three-prime reconstruction
-		 * bound does not hold for full-width residues. Constant evaluation of that case is schoolbook.
+		 * @brief The first `length` coefficients of a product, padded with zeros, through the coefficient policy.
 		 * @pre Both input lengths and `length` are at most `maximum_series_length` (asserted).
 		 */
 		template<ntt_engine Engine, static_prime_mod_int Coefficient>
@@ -93,33 +107,7 @@ namespace atl {
 			left = left.first((std::min)(left.size(), length));
 			right = right.first((std::min)(right.size(), length));
 			if (left.empty() || right.empty()) return std::vector<Coefficient>(length);
-			if constexpr (Coefficient::mod() <= (std::numeric_limits<std::uint32_t>::max)()
-						  && traits::has_widen_mul_v<decltype(Coefficient::mod())>) {
-				auto result = convolution<Engine>(left, right);
-				result.resize(length);
-				return result;
-			} else {
-				std::vector<Coefficient> result(length);
-				if consteval {
-					for (std::size_t i = 0; i < left.size(); ++i)
-						for (std::size_t j = 0; j < right.size() && j < length - i; ++j) result[i + j] += left[i] * right[j];
-				} else {
-					std::vector<std::uint64_t> left_limb(left.size()), right_limb(right.size());
-					Coefficient left_place(1);
-					for (unsigned left_shift = 0; left_shift < 64; left_shift += 16) {
-						for (std::size_t i = 0; i < left.size(); ++i) left_limb[i] = (std::uint64_t(left[i].value()) >> left_shift) & 65535;
-						Coefficient place = left_place;
-						for (unsigned right_shift = 0; right_shift < 64; right_shift += 16) {
-							for (std::size_t i = 0; i < right.size(); ++i) right_limb[i] = (std::uint64_t(right[i].value()) >> right_shift) & 65535;
-							auto const product = convolution_uint64<Engine>(left_limb, right_limb);
-							for (std::size_t i = 0; i < (std::min)(length, product.size()); ++i) result[i] += Coefficient(product[i]) * place;
-							place *= Coefficient(65536);
-						}
-						left_place *= Coefficient(65536);
-					}
-				}
-				return result;
-			}
+			return series_product_policy<Coefficient>::template multiply<Engine>(left, right, length);
 		}
 
 		/**

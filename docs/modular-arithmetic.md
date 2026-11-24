@@ -16,6 +16,10 @@ supports 128-bit moduli; native and software `atl::uint128` share the same API.
 
 \include modular-arithmetic/residues.cpp
 
+For arithmetic without stream I/O, include `<atl/nt/mod_int_core.hpp>`.
+`<atl/nt/mod_int_io.hpp>` adds the same insertion and extraction operators;
+`<atl/nt/mod_int.hpp>` includes both and remains the general entry point.
+
 ## Modular values
 
 ### API

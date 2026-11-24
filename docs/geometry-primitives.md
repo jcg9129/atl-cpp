@@ -411,3 +411,8 @@ stable argsort convention that `polar_angle_order` follows.
 The `intersection_kind::along_ray` result is used by `ray_intersection<T>`
 in `atl/geometry/ray.hpp`; see [Circles and rays](circle.md) for exact ray
 predicates, intersection shapes and distances.
+
+The policy interface is available in `<atl/geometry/predicates_core.hpp>`;
+`<atl/geometry/segment_core.hpp>` builds on it without the adaptive floating
+specialization. The corresponding general headers install that specialization
+and keep support for all coordinate types.

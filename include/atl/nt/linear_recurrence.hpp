@@ -1,7 +1,7 @@
 #pragma once
 
-#include <atl/nt/convolution.hpp>
-#include <atl/nt/gaussian_elimination.hpp>
+#include <atl/nt/convolution_mod.hpp>
+#include <atl/nt/exact_field.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
 #include <atl/utils/assert.hpp>
