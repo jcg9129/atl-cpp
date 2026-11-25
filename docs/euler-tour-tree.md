@@ -16,6 +16,8 @@ are close (Measured performance).
 #include <atl/ds/euler_tour_tree.hpp>
 ```
 
+The header `<atl/ds/euler_tour_tree_core.hpp>` provides the tree implementation with narrow dependencies.
+
 \include euler-tour-tree/basic.cpp
 
 Output:

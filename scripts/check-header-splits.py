@@ -100,7 +100,7 @@ def main():
     )
     for folder, file in (("top-tree", "basic"), ("subtree-link-cut-tree", "basic"),
                          ("link-cut-tree", "basic"), ("point-location", "quick"),
-                         ("polygon-overlay", "quick")):
+                         ("polygon-overlay", "quick"), ("euler-tour-tree", "basic")):
         check(f"docs/examples/{folder}/{file}.cpp", hash_headers, hash_names)
     for folder in ("point-location", "polygon-overlay"):
         check(f"docs/examples/{folder}/quick.cpp",
