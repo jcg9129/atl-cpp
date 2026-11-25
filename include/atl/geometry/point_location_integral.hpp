@@ -12,7 +12,7 @@
 #include <atl/types/alias.hpp>
 #include <atl/types/detail/int256.hpp>
 #include <atl/utils/assert.hpp>
-#include <atl/utils/hash_core.hpp>
+#include <atl/utils/hash_seed.hpp>
 #include <algorithm>
 #include <array>
 #include <concepts>

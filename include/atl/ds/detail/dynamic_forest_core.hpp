@@ -2,7 +2,7 @@
 #include <atl/types/alias.hpp>
 #include <atl/types/vertex.hpp>
 #include <atl/utils/assert.hpp>
-#include <atl/utils/hash_core.hpp> // Preserve process seed initialization for vertex-only forest users.
+#include <atl/utils/hash_seed.hpp> // Preserve process seed initialization for vertex-only forest users.
 #include <concepts>
 #include <cstddef>
 #include <type_traits>

@@ -3,7 +3,7 @@
 /** @file
  * @brief Policy-based arrangements with scalar hashing and without adaptive floating kernels.
  */
-#include <atl/ds/flat_hash_map_core.hpp>
+#include <atl/ds/detail/edge_id_table.hpp>
 #include <atl/geometry/angular_sort_core.hpp>
 #include <atl/geometry/point.hpp>
 #include <atl/geometry/segment_core.hpp>
@@ -142,7 +142,7 @@ namespace atl::geometry {
 			out.vertices = std::move(vertices);
 
 			// Consecutive cuts bound a piece; identical vertex pairs merge overlaps.
-			flat_hash_map<uint64, uint32> edge_id;
+			atl::detail::edge_id_table edge_id;
 			std::vector<point<T>> edge_direction; // sweep-forward, per edge
 			std::vector<std::vector<uint32>> piece_edge(segment_count);
 			for (uint32 s = 0; s < segment_count; ++s)
@@ -150,12 +150,12 @@ namespace atl::geometry {
 					uint32 const a = along[s][j], b = along[s][j + 1];
 					uint64 const key = (uint64(a) << 32) | b;
 					uint32 e;
-					if (auto const it = edge_id.find(key); it != edge_id.end())
-						e = it->second;
+					if (uint32 const found = edge_id.lookup_id(key, arrangement::none); found != arrangement::none)
+						e = found;
 					else {
 						atl_assert(uint64(edge_direction.size()) + 1 < (uint64(1) << 31));
 						e = uint32(edge_direction.size());
-						edge_id[key] = e;
+						edge_id.insert_entry(key, e);
 						edge_direction.push_back(forward_direction(s));
 						out.origin.push_back(a);
 						out.origin.push_back(b);

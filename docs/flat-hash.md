@@ -22,6 +22,8 @@ integer and enum hashes and `identity_hash`, and declares complete interfaces
 for every supported extension key. `<atl/utils/hash_extensions.hpp>` supplies
 the floating-point, string, pointer and composite implementations.
 
+The header `<atl/utils/hash_seed.hpp>` provides the shared seed and mixing primitive independently.
+
 ## API
 
 ```cpp

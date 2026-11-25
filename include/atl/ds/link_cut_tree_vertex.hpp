@@ -697,7 +697,7 @@ namespace atl {
 			constexpr void release_edge(uint32 y) {
 				uint32 const e = y - n_ - 1;
 				auto const [a, b] = edges_.endpoints[e];
-				edges_.ids.erase(edge_key(a, b));
+				edges_.ids.erase_entry(edge_key(a, b));
 				edges_.endpoints[e] = {none, none};
 				edges_.free_ids.push_back(e);
 			}
@@ -737,7 +737,7 @@ namespace atl {
 				for (uint32 x = 1; x <= n_; ++x)
 					if (s_.parent(x) != 0 || s_.child(x, 0) != 0 || s_.child(x, 1) != 0) return false;
 				if constexpr (has_edge_values)
-					if (edges_.ids.size() != 0) return false;
+					if (edges_.ids.entry_count() != 0) return false;
 				return true;
 			}
 
@@ -749,8 +749,8 @@ namespace atl {
 				std::size_t const edge_slots = has_edge_values && n > 0 ? n - 1 : 0;
 				s_.assign(n + edge_slots, identity, tag_identity);
 				if constexpr (has_edge_values) {
-					edges_.ids.clear();
-					edges_.ids.reserve(edge_slots);
+					edges_.ids.reset_entries();
+					edges_.ids.reserve_entries(edge_slots);
 					edges_.endpoints.assign(edge_slots, {none, none});
 					reset_free_ids();
 				}
@@ -1050,7 +1050,7 @@ namespace atl {
 				s_.assign_value(y, Value(std::forward<EdgeValue>(w)));
 				s_.set_parent(y, xv);
 				s_.set_parent(xu, y);
-				edges_.ids.insert(edge_key(u, v), e);
+				edges_.ids.insert_entry(edge_key(u, v), e);
 				edges_.endpoints[e] = {u, v};
 				return e;
 			}
@@ -1065,7 +1065,7 @@ namespace atl {
 				check_vertex(u);
 				check_vertex(v);
 				if constexpr (has_edge_values) {
-					uint32 const e = edges_.ids.at_or(edge_key(u, v), none);
+					uint32 const e = edges_.ids.lookup_id(edge_key(u, v), none);
 					atl_assert(e != none); // u - v is an edge
 					cut_edge_node(edge_node(e));
 				} else {
@@ -1391,7 +1391,7 @@ namespace atl {
 						s_.assign_value(y, Value(*weight));
 						s_.set_parent(node_of(v), y);
 						s_.set_parent(y, node_of(uint32(p)));
-						edges_.ids.insert(edge_key(v, uint32(p)), e);
+						edges_.ids.insert_entry(edge_key(v, uint32(p)), e);
 						edges_.endpoints[e] = {v, uint32(p)};
 					}
 					++weight;
@@ -1409,14 +1409,14 @@ namespace atl {
 			{
 				check_vertex(u);
 				check_vertex(v);
-				return edges_.ids.at_or(edge_key(u, v), none);
+				return edges_.ids.lookup_id(edge_key(u, v), none);
 			}
 
 			/** @brief The number of edges (edge tier). @complexity O(1) */
 			[[nodiscard]] constexpr std::size_t edge_count() const noexcept
 				requires has_edge_values
 			{
-				return edges_.ids.size();
+				return edges_.ids.entry_count();
 			}
 		};
 	}

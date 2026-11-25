@@ -86,6 +86,22 @@ def main():
           required_names=("composition_kinoshita_li",))
     check("docs/examples/linear-recurrence/quick.cpp",
           ("atl/nt/matrix.hpp", "atl/nt/gaussian_elimination.hpp"))
+    hash_headers = (
+        "atl/ds/flat_hash_map_core.hpp", "atl/ds/detail/hash_table_core.hpp",
+        "atl/utils/hash_core.hpp", "atl/utils/hash_extensions.hpp",
+        "atl/ds/detail/heterogeneous_key.hpp",
+    )
+    hash_names = (
+        "flat_hash_map", "hash_table", "identity_hash", "hashable_integer",
+        "hash_float_value", "hash_bytes", "hash_combine", "byte_hashable",
+        "nothrow_hashable", "packable_hash_pair", "tuple_hash_argument_t", "tuple_hash_key_t",
+        "hashed_heterogeneous_key_for", "hash_word", "hash_packed_elements",
+        "forest_edge_hash",
+    )
+    for folder, file in (("top-tree", "basic"), ("subtree-link-cut-tree", "basic"),
+                         ("link-cut-tree", "basic"), ("point-location", "quick"),
+                         ("polygon-overlay", "quick")):
+        check(f"docs/examples/{folder}/{file}.cpp", hash_headers, hash_names)
     for folder in ("point-location", "polygon-overlay"):
         check(f"docs/examples/{folder}/quick.cpp",
               ("atl/utils/hash_extensions.hpp", "atl/geometry/predicates_floating.hpp"),
