@@ -16,10 +16,11 @@ Expected stdout:
 
 \verbinclude flat-hash/basic.out
 
-`<atl/utils/hash_core.hpp>` contains the shared seed, integer and enum hashes,
-and `identity_hash`. `<atl/utils/hash_extensions.hpp>` adds floating-point,
-string, pointer and composite keys. `<atl/utils/hash.hpp>` includes both;
-the general flat hash containers continue to support all these keys.
+`<atl/utils/hash.hpp>` is the normal entry point for the shared seed and all
+default hashes. The reduced alternative `<atl/utils/hash_core.hpp>` implements
+integer and enum hashes and `identity_hash`, and declares complete interfaces
+for every supported extension key. `<atl/utils/hash_extensions.hpp>` supplies
+the floating-point, string, pointer and composite implementations.
 
 ## API
 
@@ -229,7 +230,21 @@ geometric growth explain the expected amortized bound.
 
 - [Types and utilities](types-and-utilities.md)
 
-`<atl/ds/flat_hash_map_core.hpp>` exposes the container with scalar default
-hashing, or a caller-supplied hash. Add `<atl/utils/hash_extensions.hpp>` before
-instantiating a map with an extension key and its default hash.
-`<atl/ds/flat_hash_map.hpp>` includes the full key support as before.
+`<atl/ds/flat_hash_map.hpp>` remains the normal container entry point with full
+key support. Its reduced alternative `<atl/ds/flat_hash_map_core.hpp>` can use
+integer and enum default hashes, or a caller-supplied hash, without extension
+implementations. Include `<atl/utils/hash_extensions.hpp>` before the first use
+requiring an extension hash call body in each translation unit (including
+explicit instantiation of that body or taking its address). Merely instantiating
+the hasher/container class or querying its traits and constraints may precede
+the extension: those answers are identical with either include path. A call
+using the core alone fails at compile time with an include diagnostic.
+
+As with any customization, declare a user specialization of `atl::hash<K>`
+before any use that would instantiate it or query its availability in every
+translation unit. The include-order guarantee assumes those user declarations
+are consistent across translation units.
+
+A query that needs a user-defined body (for example, to deduce a custom
+hasher's return type) follows the body-use rule too if that body hashes an
+extension key. The library-provided hash signatures do not require their bodies.

@@ -14,12 +14,13 @@ Expected stdout:
 
 \verbinclude point-location/quick.out
 
-For integral coordinates, `<atl/geometry/point_location_integral.hpp>` provides
-the same queries without adaptive floating-point kernels. The general
-`<atl/geometry/point_location.hpp>` also includes
-`<atl/geometry/predicates_floating.hpp>`, which installs the exact floating
-predicate specialization. Including that extension later enables floating
-coordinates as well; include it before instantiating floating predicates.
+`<atl/geometry/point_location.hpp>` is the normal entry point for all coordinate
+types. The example uses the reduced alternative
+`<atl/geometry/point_location_integral.hpp>` without adaptive floating kernels.
+To also use floating coordinates in that translation unit, include
+`<atl/geometry/predicates_floating.hpp>` before the first instantiation or
+constraint query involving floating predicates. Integral instantiations may
+precede the extension.
 
 ## API
 

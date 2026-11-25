@@ -13,9 +13,9 @@ across the queries.
 Expected stdout:
 \include factorization/quick.out
 
-`<atl/nt/primality.hpp>` provides `is_prime` and its Miller–Rabin kernel
-without the sieve or factorization storage. `<atl/nt/basic.hpp>` continues to
-include primality and factorization together.
+`<atl/nt/basic.hpp>` is the normal entry point for primality and factorization.
+The reduced alternative `<atl/nt/primality.hpp>` provides `is_prime` and its
+Miller–Rabin kernel without sieve or factorization storage.
 
 ## API
 

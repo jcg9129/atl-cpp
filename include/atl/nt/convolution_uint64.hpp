@@ -5,7 +5,7 @@
  */
 #include <atl/nt/convolution_mod.hpp>
 #include <atl/nt/mod_int_core.hpp>
-#include <atl/nt/ntt_engine.hpp>
+#include <atl/nt/ntt_engine_core.hpp>
 #include <atl/nt/power.hpp>
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>

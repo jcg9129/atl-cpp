@@ -5,9 +5,9 @@
  */
 
 #include <atl/nt/convolution_uint64.hpp>
-#include <atl/nt/detail/power_series.hpp>
-#include <atl/nt/ntt_engine.hpp>
-#include <atl/nt/prime_mod_int.hpp>
+#include <atl/nt/detail/power_series_native.hpp>
+#include <atl/nt/ntt_engine_core.hpp>
+#include <atl/nt/prime_mod_int_core.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>

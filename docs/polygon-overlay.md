@@ -15,9 +15,10 @@ Expected stdout:
 
 \verbinclude polygon-overlay/quick.out
 
-For integral coordinates, `<atl/geometry/polygon_overlay_integral.hpp>` provides
-the same overlay operations without adaptive floating-point kernels.
-`<atl/geometry/polygon_overlay.hpp>` retains support for every coordinate type.
+`<atl/geometry/polygon_overlay.hpp>` is the normal entry point for all coordinate
+types. The example uses the reduced alternative
+`<atl/geometry/polygon_overlay_integral.hpp>` for integral overlays, omitting
+adaptive floating kernels.
 
 ## API
 

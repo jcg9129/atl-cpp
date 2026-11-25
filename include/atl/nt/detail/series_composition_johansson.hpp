@@ -1,12 +1,12 @@
 #pragma once
 
-#include <atl/nt/detail/power_series.hpp>
-#include <atl/nt/detail/series_composition_extensions.hpp>
-#include <atl/nt/factorial_table.hpp>
-#include <atl/nt/ntt_engine.hpp>
+#include <atl/nt/detail/power_series_native.hpp>
+#include <atl/nt/detail/series_composition_brent_kung.hpp>
+#include <atl/nt/detail/series_composition_extensions_native.hpp>
+#include <atl/nt/factorial_table_core.hpp>
+#include <atl/nt/ntt_engine_core.hpp>
 #include <atl/nt/power_series_native.hpp>
-#include <atl/nt/prime_mod_int.hpp>
-#include <atl/nt/series_composition_brent_kung.hpp>
+#include <atl/nt/prime_mod_int_core.hpp>
 #include <atl/utils/assert.hpp>
 #include <cstddef>
 #include <span>
