@@ -1,4 +1,11 @@
 #pragma once
 
+#include <atl/nt/detail/polynomial_gcd.hpp>
+#include <atl/nt/detail/power_series.hpp>
+#include <atl/nt/detail/power_series_extensions.hpp>
+#include <atl/nt/ntt_engine.hpp>
 #include <atl/nt/polynomial_gcd_native.hpp>
+#include <atl/nt/power_series.hpp>
 #include <atl/nt/power_series_wide.hpp>
+#include <atl/nt/prime_mod_int.hpp>
+#include <atl/utils/assert.hpp>

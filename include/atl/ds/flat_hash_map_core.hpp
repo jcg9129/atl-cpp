@@ -4,7 +4,7 @@
  * @brief Flat hash maps with scalar default hashing or a caller-supplied hash.
  */
 #include <atl/ds/detail/forward_element.hpp>
-#include <atl/ds/detail/hash_table.hpp>
+#include <atl/ds/detail/hash_table_core.hpp>
 #include <atl/ds/detail/heterogeneous_key.hpp>
 #include <atl/ds/detail/key_value_entry.hpp>
 #include <atl/utils/assert.hpp>

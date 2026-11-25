@@ -12,8 +12,27 @@
 #include <atl/types/traits/integral.hpp>
 #include <atl/utils/assert.hpp>
 #include <concepts>
+#include <istream>
+#include <ostream>
 
 namespace atl {
+	namespace detail {
+		// Class instantiation and ADL only see the stable friend signatures.
+		// The extension must precede instantiation of either friend body.
+		template<typename Mint, typename = void>
+		struct mod_int_stream {
+			static_assert(sizeof(Mint) == 0, "Include <atl/nt/mod_int_io.hpp> before streaming a mod_int");
+
+			static std::ostream &write(std::ostream &os, Mint const &) {
+				return os;
+			}
+
+			static std::istream &read(std::istream &is, Mint &) {
+				return is;
+			}
+		};
+	}
+
 	/**
 	 * @brief Modular integer. All arithmetic operations are performed modulo Mod.
 	 *
@@ -134,6 +153,31 @@ namespace atl {
 		 */
 		friend constexpr mod_int operator/(mod_int lhs, mod_int const &rhs) {
 			return lhs /= rhs;
+		}
+
+		/**
+		 * @brief Write the plain representative with integer formatting, including 128-bit residues.
+		 * @pre T is uint128 or its insertion returns an ostream reference.
+		 * @return os, with badbit if writing uint128 fails.
+		 * @note Honors base, showbase, uppercase, locale grouping, width, fill and adjustment; resets width.
+		 * @note Not constexpr (uses stream I/O).
+		 */
+		friend std::ostream &operator<<(std::ostream &os, mod_int const &mi)
+			requires(std::same_as<T, atl::uint128> || requires(std::ostream &s, T r) { { s << r } -> std::convertible_to<std::ostream &>; })
+		{
+			return detail::mod_int_stream<mod_int>::write(os, mi);
+		}
+
+		/**
+		 * @brief Read an optional sign and a decimal, octal or hexadecimal magnitude, then reduce it.
+		 * @pre The magnitude fits uint128 for 128-bit residues, otherwise uint64 for successful extraction.
+		 * @return is, with failbit on malformed or overflowing input; mi is unchanged on failure.
+		 * @note Honors skipws; a sign must immediately precede the magnitude. Input grouping is unsupported.
+		 *        Valid digits ending at EOF succeed with eofbit only. An unset basefield means decimal.
+		 * @note Not constexpr (uses stream I/O).
+		 */
+		friend std::istream &operator>>(std::istream &is, mod_int &mi) {
+			return detail::mod_int_stream<mod_int>::read(is, mi);
 		}
 
 		/** @brief Return this residue unchanged. */

@@ -30,10 +30,18 @@ add_custom_target(${ATL_TARGET_PREFIX}headers DEPENDS ${ATL_TARGET_PREFIX}header
 configure_file("${PROJECT_SOURCE_DIR}/tests/odr/all_headers.hpp.in"
                "${CMAKE_CURRENT_BINARY_DIR}/odr/all_headers.hpp" @ONLY)
 add_executable(${ATL_TARGET_PREFIX}headers-odr EXCLUDE_FROM_ALL
-    "${PROJECT_SOURCE_DIR}/tests/odr/tu1.cpp" "${PROJECT_SOURCE_DIR}/tests/odr/tu2.cpp")
+    "${PROJECT_SOURCE_DIR}/tests/odr/tu1.cpp" "${PROJECT_SOURCE_DIR}/tests/odr/tu2.cpp"
+    "${PROJECT_SOURCE_DIR}/tests/odr/split_narrow.cpp" "${PROJECT_SOURCE_DIR}/tests/odr/split_full.cpp")
 target_include_directories(${ATL_TARGET_PREFIX}headers-odr PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/odr")
 target_link_libraries(${ATL_TARGET_PREFIX}headers-odr PRIVATE atl atl_project_options)
 target_compile_definitions(${ATL_TARGET_PREFIX}headers-odr PRIVATE ATL_ASSERT)
 if(BUILD_TESTS)
     set_target_properties(${ATL_TARGET_PREFIX}headers-odr PROPERTIES EXCLUDE_FROM_ALL FALSE)
 endif()
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+# Git is only needed for this development regression check, never by consumers.
+add_custom_target(${ATL_TARGET_PREFIX}headers-compat
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/check-header-compat.py"
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" VERBATIM)
+add_dependencies(${ATL_TARGET_PREFIX}headers ${ATL_TARGET_PREFIX}headers-compat)

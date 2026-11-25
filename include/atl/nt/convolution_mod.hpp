@@ -7,7 +7,7 @@
 #include <atl/nt/mod_int_core.hpp>
 #include <atl/nt/modular.hpp>
 #include <atl/nt/montgomery.hpp>
-#include <atl/nt/ntt_engine.hpp>
+#include <atl/nt/ntt_engine_core.hpp>
 #include <atl/nt/power.hpp>
 #include <atl/nt/primality.hpp>
 #include <atl/types/alias.hpp>

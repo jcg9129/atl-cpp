@@ -16,9 +16,14 @@ supports 128-bit moduli; native and software `atl::uint128` share the same API.
 
 \include modular-arithmetic/residues.cpp
 
-For arithmetic without stream I/O, include `<atl/nt/mod_int_core.hpp>`.
-`<atl/nt/mod_int_io.hpp>` adds the same insertion and extraction operators;
-`<atl/nt/mod_int.hpp>` includes both and remains the general entry point.
+`<atl/nt/mod_int.hpp>` is the normal entry point for arithmetic and streaming.
+The reduced alternative `<atl/nt/mod_int_core.hpp>` implements arithmetic and
+declares the same non-template hidden stream friends, including implicit
+conversions. Their implementations come from `<atl/nt/mod_int_io.hpp>`. Include
+that extension before any use requiring a friend body in each translation unit
+(including taking its address). Class instantiation and unevaluated stream
+queries may precede the extension. With the core alone, streaming fails at
+compile time with an include diagnostic; it never leaves an unresolved symbol.
 
 ## Modular values
 

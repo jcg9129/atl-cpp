@@ -1,4 +1,4 @@
-#include <atl/nt/linear_recurrence.hpp>
+#include <atl/nt/linear_recurrence_native.hpp>
 #include <atl/nt/mod_int_core.hpp>
 #include <array>
 #include <iostream>

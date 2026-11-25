@@ -7,11 +7,17 @@
 #include <atl/types/alias.hpp>
 #include <atl/types/concepts.hpp>
 #include <atl/types/traits/integral.hpp>
+#include <array>
 #include <chrono>
 #include <concepts>
 #include <cstddef>
 #include <random>
+#include <string>
+#include <string_view>
+#include <tuple>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace atl {
 	namespace detail {
@@ -105,7 +111,7 @@ namespace atl {
 	/**
 	 * @brief Default strong, seeded hash functor.
 	 *
-	 * Specialized here for integers and enums; `hash_extensions.hpp` adds floating-point, strings, pointers,
+	 * All supported interfaces are declared here; `hash_extensions.hpp` supplies bodies for floating-point, strings, pointers,
 	 * `std::pair`, `std::tuple`, `std::vector` and `std::array`; every path mixes in
 	 * a per-process random seed (see @ref set_hash_seed), so it resists anti-hash
 	 * attacks. Equal keys hash equally within one process run; hashes differ between
@@ -190,4 +196,185 @@ namespace atl {
 		}
 	};
 
+	namespace detail {
+		// Only a call body instantiates this hook; interface/constraint queries do not.
+		// The extension's partial specializations must precede the first such call.
+		template<typename Key, typename = void>
+		struct hash_extension {
+			static_assert(sizeof(Key) == 0, "Include <atl/utils/hash_extensions.hpp> before hashing an extension key");
+
+			template<typename Argument>
+			static std::size_t call(Argument const &) noexcept {
+				return 0;
+			}
+		};
+	}
+
+	namespace detail {
+		template<typename T>
+		concept hash_buffer_element = hashable_integer<T> && !std::same_as<std::remove_cv_t<T>, bool> && !std::is_volatile_v<T>;
+
+		// Check the implicit result conversion without requiring a hash body.
+		constexpr void hash_word(uint64) noexcept {}
+
+		template<typename Key, typename Argument = Key const &>
+		concept hash_element = requires(Argument value) {
+			{ hash<Key>{}(value) } -> std::convertible_to<uint64>;
+			{ hash_word(hash<Key>{}(value)) } noexcept;
+		};
+
+		template<typename A, typename B>
+		concept hash_packed_elements = std::integral<A> && std::integral<B>
+									&& !std::same_as<std::remove_cv_t<A>, bool> && !std::same_as<std::remove_cv_t<B>, bool>
+									&& sizeof(A) + sizeof(B) <= sizeof(uint64);
+
+		template<typename T>
+		using hash_const_argument_t = std::add_lvalue_reference_t<std::add_const_t<std::remove_reference_t<T>>>;
+		template<typename T>
+		using hash_decayed_key_t = std::decay_t<hash_const_argument_t<T>>;
+	}
+
+	/**
+	 * @brief Floating point with signed zeros hashed alike and NaNs canonicalized.
+	 * Known x87 layouts hash only their ten value bytes; binary128 uses all
+	 * sixteen. Unknown wide layouts use value decomposition, never padding.
+	 */
+	template<std::floating_point T>
+	struct hash<T> {
+		/**
+		 * @brief Hash a floating-point value, normalizing signed zeros and NaNs.
+		 * @param x Floating-point key; padding bytes are excluded.
+		 * @return Seeded value hash reduced to `std::size_t`.
+		 * @complexity O(1) for known layouts; O(std::numeric_limits<T>::digits) for value decomposition.
+		 */
+		std::size_t operator()(T x) const noexcept {
+			return detail::hash_extension<T>::call(x);
+		}
+	};
+
+	/**
+	 * @brief String hash, transparent: called with a `std::string`, a
+	 *        `std::string_view` or a `char const *` (a NUL-terminated string) of
+	 *        equal contents it returns the same hash (every argument converts to
+	 *        one `string_view` path), so a table keyed on `std::string` can be
+	 *        probed with either of the others without building a temporary.
+	 *        `hash<char const *>` itself is the pointer hash: it hashes the
+	 *        address, not the contents.
+	 */
+	template<typename T>
+		requires std::same_as<T, std::string_view>
+	struct hash<T> {
+		/** @brief Enable heterogeneous lookup through implicit `std::string_view` conversion. */
+		using is_transparent = void;
+
+		/**
+		 * @brief Hash string contents, including embedded NUL bytes.
+		 * @param s Characters to hash; implicit C-string conversion requires NUL termination.
+		 * @return The same seeded hash for equal character sequences.
+		 * @complexity O(s.size()).
+		 */
+		std::size_t operator()(std::string_view s) const noexcept {
+			return detail::hash_extension<T>::call(s);
+		}
+	};
+
+	/** @brief As `hash<std::string_view>`: equal contents give equal hashes. */
+	template<typename T>
+		requires std::same_as<T, std::string>
+	struct hash<T> {
+		/** @brief Enable heterogeneous lookup through implicit `std::string_view` conversion. */
+		using is_transparent = void;
+
+		/**
+		 * @brief Hash a string or string view by its character sequence.
+		 * @param s Characters to hash; implicit C-string conversion requires NUL termination.
+		 * @return The same hash as `hash<std::string_view>` for these contents.
+		 * @complexity O(s.size()).
+		 */
+		std::size_t operator()(std::string_view s) const noexcept {
+			return detail::hash_extension<T>::call(s);
+		}
+	};
+
+	/** @brief Pointers, by address (never by the pointee). */
+	template<typename T>
+	struct hash<T *> {
+		/**
+		 * @brief Hash a pointer address without accessing the pointee.
+		 * @param p Pointer value, including null.
+		 * @return Seeded address hash reduced to `std::size_t`.
+		 * @complexity O(1).
+		 */
+		std::size_t operator()(T *p) const noexcept {
+			return detail::hash_extension<T *>::call(p);
+		}
+	};
+
+	/**
+	 * @brief Pairs, order-dependent: two non-bool integers that fit one 64-bit
+	 *        word together are packed and mixed in one round; anything else
+	 *        combines `hash<A>` and `hash<B>`, which must exist.
+	 */
+	template<typename A, typename B>
+		requires(detail::hash_packed_elements<A, B> || (detail::hash_element<A> && detail::hash_element<B>))
+	struct hash<std::pair<A, B>> {
+		/**
+		 * @brief Hash the ordered pair, packing small integer elements when possible.
+		 * @param p Pair whose first and second elements participate in order.
+		 * @return Seeded pair hash.
+		 * @complexity O(1) for packed integers; otherwise the sum of the element hash costs.
+		 */
+		std::size_t operator()(std::pair<A, B> const &p) const noexcept {
+			return detail::hash_extension<std::pair<A, B>>::call(p);
+		}
+	};
+
+	/** @brief Tuples, order-dependent, combining `hash<T>` of each decayed element type. */
+	template<typename... Ts>
+		requires(detail::hash_element<detail::hash_decayed_key_t<Ts>, detail::hash_const_argument_t<Ts>> && ...)
+	struct hash<std::tuple<Ts...>> {
+		/**
+		 * @brief Fold tuple element hashes in their declared order.
+		 * @param t Tuple to hash using decayed element hashers.
+		 * @return Seeded tuple hash, including for the empty tuple.
+		 * @complexity O(sizeof...(Ts)) combines plus the element hash costs.
+		 */
+		std::size_t operator()(std::tuple<Ts...> const &t) const noexcept {
+			return detail::hash_extension<std::tuple<Ts...>>::call(t);
+		}
+	};
+
+	/**
+	 * @brief Vectors, length included: a buffer of integers other than `bool`
+	 *        as bytes in one pass, anything else folding `hash<T>` per element
+	 *        (which respects value equality, e.g. `-0.0 == 0.0`). O(size).
+	 */
+	template<typename T>
+		requires(detail::hash_buffer_element<T> || detail::hash_element<T>)
+	struct hash<std::vector<T>> {
+		/**
+		 * @brief Hash a vector by length and ordered element values.
+		 * @param v Sequence to hash; integer buffers use a byte pass.
+		 * @return Seeded sequence hash respecting element equality.
+		 * @complexity O(v.size()) combines plus element hash costs, or O(v.size() * sizeof(T)) bytes.
+		 */
+		std::size_t operator()(std::vector<T> const &v) const noexcept {
+			return detail::hash_extension<std::vector<T>>::call(v);
+		}
+	};
+
+	/** @brief Arrays, as the vector hash with the length `N`. O(N). */
+	template<typename T, std::size_t N>
+		requires(detail::hash_buffer_element<T> || detail::hash_element<T>)
+	struct hash<std::array<T, N>> {
+		/**
+		 * @brief Hash an array by length and ordered element values.
+		 * @param a Array to hash; integer buffers use a byte pass.
+		 * @return The vector hash for the same sequence of values.
+		 * @complexity O(N) combines plus element hash costs, or O(N * sizeof(T)) bytes.
+		 */
+		std::size_t operator()(std::array<T, N> const &a) const noexcept {
+			return detail::hash_extension<std::array<T, N>>::call(a);
+		}
+	};
 }
