@@ -34,6 +34,18 @@ class SplitCheckerTests(unittest.TestCase):
         with self.assertRaisesRegex(checker.SplitError, 'lost use of missing'):
             checker.check('use.cpp', required_names=('missing',))
 
+    def test_discarded_arms_are_checked(self):
+        with self.assertRaisesRegex(checker.SplitError, 'spells unused_path'):
+            checker.check('discarded.cpp', forbidden_names=('unused_path',))
+
+    def test_qualified_cluster_name(self):
+        with self.assertRaisesRegex(checker.SplitError, 'spells top_clusters::sum'):
+            checker.check('discarded.cpp', forbidden_names=('top_clusters::sum',))
+
+    def test_comments_are_ignored(self):
+        checker.check('comments.cpp', forbidden_headers=('atl/forbidden.hpp',),
+                      forbidden_names=('unused_path',))
+
     def test_compatibility_comparison(self):
         spec = importlib.util.spec_from_file_location('compat', Path(__file__).with_name('check-header-compat.py'))
         compat = importlib.util.module_from_spec(spec)

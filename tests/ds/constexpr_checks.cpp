@@ -34,6 +34,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -1283,6 +1284,38 @@ namespace euler_tour_tree_checks {
 }
 
 namespace top_tree_checks {
+	constexpr bool algebra_constructors() {
+		using set = atl::top_clusters::sum<int>;
+		using plain = atl::top_tree<int, set::path_type, set::point_type, set::compress, set::rake, set::add_vertex, set::add_edge>;
+		using reversed = atl::top_tree<int, set::path_type, set::point_type, set::compress, set::rake, set::add_vertex, set::add_edge, std::identity>;
+		using lazy = atl::top_tree<int, set::path_type, set::point_type, set::compress, set::rake, set::add_vertex, set::add_edge,
+								   void, set::tag_type, set::mapping, set::map_path, set::map_point, set::compose>;
+		using reversed_lazy = atl::top_tree<int, set::path_type, set::point_type, set::compress, set::rake, set::add_vertex, set::add_edge,
+											std::identity, set::tag_type, set::mapping, set::map_path, set::map_point, set::compose>;
+		plain a(2, 3, {}, {}), b(std::vector{3, 3}, {}, {});
+		reversed c(2, 3, {}, {}, {}, {}, {}, {}, {}), d(std::vector{3, 3}, {}, {}, {}, {}, {}, {}, {});
+		lazy e(2, 3, {}, {}, {}, {}, {}, {}, {}), f(std::vector{3, 3}, {}, {}, {}, {}, {}, {}, {});
+		reversed_lazy g(2, 3, {}, {}, {}, {}, {}, {}, {}, {}), h(std::vector{3, 3}, {}, {}, {}, {}, {}, {}, {}, {});
+		a.link(0, 1);
+		b.link(0, 1);
+		c.link(0, 1);
+		d.link(0, 1);
+		e.link(0, 1);
+		f.link(0, 1);
+		g.link(0, 1);
+		h.link(0, 1);
+		e.path_add(0, 1, 2);
+		f.path_add(0, 1, 2);
+		g.path_add(0, 1, 2);
+		h.path_add(0, 1, 2);
+		static_assert(!noexcept(plain(2, 3, {}, {})));
+		static_assert(std::is_nothrow_move_constructible_v<plain>);
+		return a.path_sum(0, 1) == 6 && b.path_sum(0, 1) == 6 && c.path_sum(0, 1) == 6 && d.path_sum(0, 1) == 6
+			&& e.path_sum(0, 1) == 10 && f.path_sum(0, 1) == 10 && g.path_sum(0, 1) == 10 && h.path_sum(0, 1) == 10;
+	}
+
+	static_assert(algebra_constructors());
+
 	constexpr bool clusters() {
 		atl::extremes_top_tree<long long> t(std::vector<long long>{1, 2, 4, 8});
 		t.link(0, 1);
