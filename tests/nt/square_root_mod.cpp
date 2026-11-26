@@ -57,11 +57,25 @@ void check_field() {
 		Coefficient const square(reference_product(candidate, candidate, prime));
 		Coefficient const expected(std::ranges::min(candidate, prime - candidate));
 		REQUIRE(atl::square_root_mod(square) == expected);
+		REQUIRE(atl::square_root_mod(square)->value() == atl::square_root_mod(square.value(), prime));
 		REQUIRE(atl::experimental::square_root_mod_by_cipolla(square) == expected);
+	}
+	std::mt19937_64 random(prime);
+	for (int iteration = 0; iteration < 128; ++iteration) {
+		uint64_t const value = prime < 128 ? uint64_t(iteration) % prime : random() % prime;
+		auto const field_root = atl::square_root_mod(Coefficient(value));
+		auto const integer_root = atl::square_root_mod(value, prime);
+		REQUIRE(field_root.has_value() == integer_root.has_value());
+		if (field_root) {
+			REQUIRE(field_root->value() == *integer_root);
+			REQUIRE(*integer_root <= prime / 2);
+			REQUIRE(reference_product(*integer_root, *integer_root, prime) == value);
+		}
 	}
 	for (uint64_t value = 1; value < std::ranges::min(prime, uint64_t(50)); ++value) {
 		if (reference_power(value, (prime - 1) / 2, prime) == 1) continue;
 		REQUIRE_FALSE(atl::square_root_mod(Coefficient(value)));
+		REQUIRE_FALSE(atl::square_root_mod(value, prime));
 		REQUIRE_FALSE(atl::experimental::square_root_mod_by_cipolla(Coefficient(value)));
 	}
 }
@@ -70,7 +84,15 @@ TEST_CASE("square_root_mod: static field overloads", "[square_root_mod]") {
 	check_field<atl::mod_int32<2>>();
 	check_field<atl::mod_int32<3>>();
 	check_field<atl::mod_int32<17>>();
+	check_field<atl::mod_int32<41>>();
+	check_field<atl::mod_int32<97>>();
+	check_field<atl::mod_int32<257>>();
 	check_field<atl::mod_int32<998244353>>();
+	check_field<atl::mod_int32<1000000007>>();
+	check_field<atl::mod_int32<4294967291u>>();
+	check_field<atl::mod_int64<4294967291ull>>();
+	check_field<atl::mod_int64<4294967311ull>>();
+	check_field<atl::mod_int64<2305843009213693951ull>>();
 	check_field<atl::mod_int64<4179340454199820289ull>>();
 	check_field<atl::mod_int64<18446744069414584321ull>>();
 	check_field<atl::mod_int64<18446744073709551557ull>>();

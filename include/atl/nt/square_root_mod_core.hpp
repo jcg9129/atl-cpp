@@ -1,11 +1,10 @@
 #pragma once
 
+#include <atl/nt/detail/tonelli_shanks.hpp>
 #include <atl/nt/montgomery.hpp>
 #include <atl/nt/primality.hpp>
 #include <atl/nt/prime_mod_int_core.hpp>
 #include <atl/utils/assert.hpp>
-#include <algorithm>
-#include <bit>
 #include <cstdint>
 #include <optional>
 
@@ -27,38 +26,7 @@ namespace atl {
 		atl_assert(is_prime(prime));
 		atl_assert(value < prime);
 		if (value == 0 || prime == 2) return value;
-		detail::montgomery64 const arithmetic(prime);
-		auto const one = arithmetic.one();
-		auto const value_form = arithmetic.to_form(value);
-		if (arithmetic.power(value_form, (prime - 1) / 2) != one) return std::nullopt;
-		if (prime % 4 == 3) {
-			auto const root = arithmetic.from_form(arithmetic.power(value_form, prime / 4 + 1));
-			return (std::ranges::min)(root, prime - root);
-		}
-		int order = std::countr_zero(prime - 1);
-		auto const odd_part = (prime - 1) >> order;
-		std::uint64_t non_residue = 2;
-		while (arithmetic.power(arithmetic.to_form(non_residue), (prime - 1) / 2) == one) {
-			atl_assert(non_residue < prime - 1);
-			++non_residue;
-		}
-		auto generator = arithmetic.power(arithmetic.to_form(non_residue), odd_part);
-		auto remainder = arithmetic.power(value_form, odd_part);
-		auto root = arithmetic.power(value_form, odd_part / 2 + 1);
-		while (remainder != one) {
-			int exponent = 0;
-			for (auto power = remainder; power != one; power = arithmetic.mul(power, power)) ++exponent;
-			// The remainder lies in the subgroup of squares of the current generator.
-			atl_assert(exponent > 0 && exponent < order);
-			auto correction = generator;
-			for (int i = 0; i < order - exponent - 1; ++i) correction = arithmetic.mul(correction, correction);
-			root = arithmetic.mul(root, correction);
-			generator = arithmetic.mul(correction, correction);
-			remainder = arithmetic.mul(remainder, generator);
-			order = exponent;
-		}
-		auto const canonical = arithmetic.from_form(root);
-		return (std::ranges::min)(canonical, prime - canonical);
+		return detail::tonelli_shanks(value, prime, detail::montgomery64(prime));
 	}
 
 }

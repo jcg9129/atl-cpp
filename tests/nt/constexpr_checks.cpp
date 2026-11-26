@@ -856,3 +856,35 @@ namespace ntt_split_checks {
 	static_assert(atl::square_root_mod(atl::mod_int32<998244353>(4))->value() == 2);
 	static_assert(atl::square_root_mod(atl::mod_int64<18446744073709551557ULL>(4))->value() == 2);
 }
+
+namespace shared_prime_algorithm_checks {
+	template<atl::uint64... Values>
+	constexpr bool primality_agrees() {
+		return ((atl::detail::static_is_prime<Values>() == atl::is_prime(Values)) && ...);
+	}
+
+	static_assert(primality_agrees<0, 1, 2, 37, 41, 561, 1105, 1729, 3215031751ull,
+								   4759123141ull, 4294967291ull, 4294967296ull, 4294967311ull, 998244353, 1000000007,
+								   2305843009213693951ull, 3825123056546413051ull, 18446744069414584321ull,
+								   18446744073709551557ull, 18446744073709551615ull>());
+
+	template<atl::uint64 Prime>
+	constexpr bool roots_agree() {
+		using C = atl::mod_int64<Prime>;
+		for (atl::uint64 value : {atl::uint64(0), atl::uint64(1), atl::uint64(2), atl::uint64(3), atl::uint64(4), Prime - 1}) {
+			value %= Prime;
+			auto const field_root = atl::square_root_mod(C(value));
+			auto const integer_root = atl::square_root_mod(value, Prime);
+			if (field_root.has_value() != integer_root.has_value()) return false;
+			if (field_root && field_root->value() != *integer_root) return false;
+		}
+		return true;
+	}
+
+	static_assert(roots_agree<2>() && roots_agree<17>() && roots_agree<97>());
+	static_assert(roots_agree<998244353>() && roots_agree<1000000007>());
+	static_assert(roots_agree<4294967291ull>() && roots_agree<4294967311ull>());
+	static_assert(roots_agree<2305843009213693951ull>());
+	static_assert(roots_agree<18446744069414584321ull>());
+	static_assert(roots_agree<18446744073709551557ull>());
+}
