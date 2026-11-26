@@ -100,33 +100,54 @@ arena models isolate exact from geometric reservation. Loops measure throughput
 of builds, dependent update chains, reads, and allocation policies.
 
 Source: [`benchmarks/ds/persistent_array.cpp`](../benchmarks/ds/persistent_array.cpp).
-CPU: Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-15.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Cells are minimum milliseconds
-over three runs of 25 samples, plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape, n=1048576 | library persistent_array | library semi_persistent_array |
 |---|---|---|
-| build | 1.8 / 1.5 | 1.9 / 1.7 |
-| 200000 updates | 87.1 / 89.3 | 49.5 / 50.8 |
-| 1000000 reads | 26.7 / 21.0 | 49.4 / 53.3 |
+| build | 1.3 / 0.76 | 1.3 / 0.983 |
+| 200000 updates | 70.4 / 80.6 | 33 / 38.5 |
+| 1000000 reads | 10 / 12.1 | 34.3 / 39.1 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | 200000 updates, n=1048576 | ms |
 |---|---|
-| by per-update reserve(1) | 178 / 183 |
-| by up-front reserve | 90.6 / 92.9 |
-| by no reserve | 182 / 181 |
+| by per-update reserve(1) | 143 / 156 |
+| by up-front reserve | 70.3 / 76.2 |
+| by no reserve | 143 / 166 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Build size | library | by build reservation (reserved model) | by build reservation (geometric model) |
 |---|---|---|---|
-| 200000 | 0.324 / 0.278 | 0.250 / 0.176 | 0.402 / 0.334 |
-| 1048576 | 1.8 / 1.6 | 1.4 / 1.0 | 4.1 / 3.7 |
-| 4194304 | 25.0 / 24.4 | 24.6 / 21.9 | 57.1 / 55.6 |
+| 200000 | 0.246 / 0.14 | 0.223 / 0.057 | 0.267 / 0.099 |
+| 1048576 | 1.3 / 0.777 | 1.1 / 0.325 | 1.6 / 0.818 |
+| 4194304 | 22.3 / 22.1 | 21.3 / 20 | 43.8 / 43.4 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Arena operations, 7 nodes each | by exact growth | by geometric growth |
 |---|---|---|
-| 2000 | 48.9 / 49.5 | 0.163 / 0.158 |
-| 200000 | not measured yet | 136 / 135 |
+| 2000 | 15.4 / 15.5 | 0.094 / 0.093 |
+| 200000 | not measured yet | 115 / 122 |
 
 ## Pitfalls and notes
 

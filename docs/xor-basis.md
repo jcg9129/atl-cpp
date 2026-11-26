@@ -104,39 +104,47 @@ the top. The two echelon contenders are in
 builds a basis from 1e6 words; each `max_xor(start)` and `contains` row runs 1e6
 independent probes against a built basis, so they measure throughput.
 
-Xeon Platinum 8358, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
-Minimum of 3 runs, milliseconds per 1e6 operations, plain `-O2` / `-O2
--march=native`:
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | operation | library reduced | echelon, top-bit jump | echelon, scan every bit |
 |---|---|---:|---:|---:|
-| random uint64, full rank | insert | 33.6 / 23.8 | 140 / 129 | 287 / 279 |
-| random uint64, full rank | max_xor(start) | 33.6 / 22.5 | 267 / 268 | 268 / 268 |
-| random uint64, full rank | contains | 32.9 / 22.4 | 129 / 121 | 267 / 267 |
-| uint32, rank 20 of 30 bits | insert | 14.3 / 12.2 | 48.9 / 42.1 | 108 / 104 |
-| uint32, rank 20 of 30 bits | max_xor(start) | 14.9 / 12.4 | 129 / 129 | 129 / 129 |
-| uint32, rank 20 of 30 bits | contains | 14.7 / 12.4 | 46.9 / 41.2 | 117 / 119 |
-| uint64, rank 40 | insert | 23.4 / 17.6 | 90.7 / 82.2 | 207 / 201 |
-| uint64, rank 40 | max_xor(start) | 24.1 / 17.0 | 268 / 268 | 268 / 268 |
-| uint64, rank 40 | contains | 24.2 / 17.1 | 82.0 / 76.8 | 268 / 268 |
+| random uint64, full rank | insert | 30.2 / 19.3 | 103 / 94.8 | 208 / 254 |
+| random uint64, full rank | max_xor(start) | 30 / 18.4 | 211 / 244 | 211 / 266 |
+| random uint64, full rank | contains | 30.1 / 20.5 | 94.5 / 86 | 211 / 244 |
+| uint32, rank 20 of 30 bits | insert | 11.4 / 11.6 | 33.8 / 31.5 | 76.6 / 89.4 |
+| uint32, rank 20 of 30 bits | max_xor(start) | 11.4 / 11.3 | 92.5 / 107 | 92.3 / 109 |
+| uint32, rank 20 of 30 bits | contains | 11.4 / 12 | 31.4 / 31 | 90.9 / 104 |
+| uint64, rank 40 | insert | 20.8 / 15.2 | 66.6 / 61.6 | 172 / 180 |
+| uint64, rank 40 | max_xor(start) | 20.8 / 14.6 | 211 / 244 | 211 / 266 |
+| uint64, rank 40 | contains | 20.5 / 16.5 | 59.7 / 56.1 | 211 / 254 |
 
-The library form is fastest on every row: top-bit jump is 3.2-15.8x slower and
-scan every bit 7.6-15.8x slower. The reduced form wins because its pivot XORs
-do not depend on previous elimination results.
+The library form is fastest on every row: top-bit jump takes 2.58 to
+16.71 times as long and scan every bit 6.72 to 18.22 times. The reduced
+form's pivot XORs do not depend on previous elimination results.
 
 Order queries from the same benchmark, at rank 50, milliseconds per 1e6
 queries (plain `-O2` / `-O2 -march=native`). The experimental contender is a
 greedy descent over the pivots, each comparison waiting for the previous
 choice:
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | operation | plain / native |
 |---|---|
-| library `kth_smallest` (branch-free select) | 57.7 / 40.2 |
-| library `count_below` (pivot pattern) | 107 / 48.2 |
-| `count_below` by greedy descent (`count_below_by_greedy_descent`) | 208 / 130 |
+| library `kth_smallest` (branch-free select) | 45.7 / 30.3 |
+| library `count_below` (pivot pattern) | 100 / 32.4 |
+| `count_below` by greedy descent (`count_below_by_greedy_descent`) | 146 / 83.2 |
 
-The greedy descent is 1.9x slower with `-O2` and 2.7x slower with
-`-march=native`. The plain flag set has no hardware popcount instruction.
+Greedy descent takes 146/100 = 1.46 times as long plain and
+83.2/32.4 = 2.57 times native. The plain flag set has no hardware popcount instruction.
 
 ### Pitfalls and notes
 
@@ -191,8 +199,10 @@ syntax alone cannot establish those semantic laws.
 
 `benchmarks/bits/xor_basis.cpp` times offline subarray maximum XOR with
 `stamped_xor_basis`: `n = q = 5e5`, 20-bit values, queries sorted by right end.
-Xeon Platinum 8358, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15,
-minimum of 3 runs: 50.0 ms with `-O2` and 48.9 ms with `-O2 -march=native`.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux, GCC 15.2.0,
+RelWithDebInfo, assertions off, 2026-11-25; minimum of the per-run means, 5 runs
+of 25 samples: 39.4 ms with `-O2 -g -DNDEBUG -std=c++23` and 39.1 ms with
+`-march=native` added.
 
 ### Pitfalls and notes
 

@@ -1,7 +1,5 @@
 # `atl::binary_indexed_tree`
 
-
-
 A Binary Indexed Tree (Fenwick tree) over a commutative monoid, in **one or more dimensions**. It
 represents a `Dim`-dimensional box of `T`, combining a value into a cell in
 O(log^Dim n) and querying the aggregate over a prefix box `[0, i0) x [0, i1) x …` in
@@ -102,17 +100,20 @@ division and modulo computes each axis index from its flat offset, while by
 odometer carries axis counters. The library constructor uses the latter.
 The passes include copying their input; the constructor builds the same box.
 
-Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-15.
-Minimum of three runs, milliseconds; flags also include -g -DNDEBUG -std=c++23.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | flags | by division and modulo | by odometer | library |
 |---|---|---:|---:|---:|
-| 1-D, n=1e7 | -O2 | 133 | 70.0 | 67.0 |
-| 2-D, 3000 x 3000 | -O2 | 303 | 85.7 | 88.7 |
-| 3-D, 200 cubed | -O2 | 377 | 79.1 | 88.9 |
-| 1-D, n=1e7 | -O2 -march=native | 134 | 71.3 | 68.8 |
-| 2-D, 3000 x 3000 | -O2 -march=native | 305 | 88.0 | 92.0 |
-| 3-D, 200 cubed | -O2 -march=native | 372 | 89.1 | 92.4 |
+| 1-D, n=1e7 | -O2 | 75.9 | 55.6 | 54 |
+| 2-D, 3000 x 3000 | -O2 | 118 | 57.8 | 56.8 |
+| 3-D, 200 cubed | -O2 | 140 | 57.7 | 55.9 |
+| 1-D, n=1e7 | -O2 -march=native | 75.3 | 55.3 | 53.7 |
+| 2-D, 3000 x 3000 | -O2 -march=native | 118 | 57.9 | 57.2 |
+| 3-D, 200 cubed | -O2 -march=native | 138 | 56.8 | 56.1 |
 
 ## Pitfalls and notes
 

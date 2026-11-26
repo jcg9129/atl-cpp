@@ -112,23 +112,27 @@ Documented only:
 [`benchmarks/dp/exact_count_optimum.cpp`](../benchmarks/dp/exact_count_optimum.cpp)
 cuts `n = 1e5` prefix-summed items (steps below 1000) into exactly `k`
 segments of squared sum: the relaxation searches the price range `[-1, S² + 1]` (about 52 probes) over `optimal_segmentation`, against the layered
-`optimal_partition` at one `k`. Intel Xeon Platinum 8280 @ 2.70 GHz, GCC
-15.2.0, RelWithDebInfo (`-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`), assertions off, 2026-10-15; minimum per-run mean over 3
-runs of 25 samples, ms, "plain `-O2` / `-march=native`".
+`optimal_partition` at one `k`.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | ms |
 |---|---|
-| `exact_count_optimum` over `optimal_segmentation`, k = 20 | 250 / 251 |
-| `exact_count_optimum` over `optimal_segmentation`, k = 1000 | 249 / 251 |
-| `exact_count_optimum` over `optimal_segmentation`, k = 50000 | 228 / 229 |
-| `optimal_partition`, k = 20 | 55.1 / 50.9 |
+| `exact_count_optimum` over `optimal_segmentation`, k = 20 | 161 / 165 |
+| `exact_count_optimum` over `optimal_segmentation`, k = 1000 | 158 / 163 |
+| `exact_count_optimum` over `optimal_segmentation`, k = 50000 | 143 / 147 |
+| `optimal_partition`, k = 20 | 46.3 / 50.4 |
 
-The relaxation costs about the same for every `k`. The layered solver is
-4.5-4.9x cheaper at `k = 20`; it grows about linearly in `k` (an
-extrapolation, not measured here), so the relaxation should pay off from
-roughly `k = 100` on this shape. A tighter price range (a bound on `f`'s
-slopes) cuts the probes to its logarithm.
+The relaxation varies less with `k` than the layered algorithm's layer
+count would suggest. At k=20, relaxation loses to the layered solver
+(161/165 versus 46.3/50.4 ms), taking 3.48/3.27 times as long. The table
+does not locate a crossover at larger `k`. A tighter valid price range
+reduces the binary search's probe bound.
+
 
 ## Pitfalls and notes
 

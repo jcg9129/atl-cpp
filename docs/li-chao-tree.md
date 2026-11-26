@@ -132,44 +132,60 @@ phase rows separate construction, insertion and query throughput. Every
 variant is checked against the library checksum outside the timed loops.
 The array tree knows the query coordinates up front; the online tree does not.
 
-Xeon Platinum 8168, GCC 15.2, RelWithDebInfo, assertions off, 2026-11-03;
-minimum of three runs, milliseconds, plain -O2 / -O2 -march=native
-(also -g -DNDEBUG -std=c++23). int64 random lines, 2e5 initial inserts
-followed by 2e5 mixed operations, except the 1e6-line row.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | library | by materialized paths | by whole first query |
 |---|---:|---:|---:|
-| lines, absolute x <= 1e9 | 7.5 / 7.8 | 6.9 / 7.1 | 8.0 / 7.6 |
-| lines, [0,1e6) | 4.2 / 4.3 | 3.6 / 3.8 | 4.4 / 4.1 |
-| 1e6 lines, absolute x <= 1e9 | 37.0 / 38.1 | 33.6 / 34.7 | 39.1 / 36.7 |
+| lines, absolute x <= 1e9 | 5.5 / 5.3 | 5.7 / 5 | 5.6 / 5.1 |
+| lines, [0,1e6) | 2.5 / 2.4 | 2.6 / 2.2 | 2.6 / 2.3 |
+| 1e6 lines, absolute x <= 1e9 | 25.8 / 24.9 | 26.4 / 23.6 | 26.4 / 24.1 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | segment workload | library | by whole first query | by omitted dominated exit | by clip overwrite | by optional dominated exit (enabled) | by optional dominated exit (disabled) |
 |---|---:|---:|---:|---:|---:|---:|
-| absolute x <= 1e9 | 28.8 / 30.6 | 627 / 659 | 629 / 665 | 549 / 593 | 28.7 / 30.3 | 625 / 656 |
-| suffix, absolute x <= 1e9 | 20.5 / 21.7 | 256 / 280 | 257 / 286 | 232 / 264 | 20.5 / 21.7 | 253 / 282 |
-| [0,1e6) | 28.1 / 29.8 | 424 / 444 | 431 / 454 | 419 / 449 | 28.1 / 29.6 | 426 / 445 |
-| suffix, [0,1e6) | 18.9 / 20.0 | 211 / 232 | 212 / 233 | 188 / 208 | 18.9 / 19.8 | 208 / 228 |
-| improving, [0,1e6) | 122 / 131 | — | 109 / 134 | — | 121 / 130 | 111 / 124 |
+| absolute x <= 1e9 | 18.8 / 19.3 | 469 / 478 | 459 / 477 | 407 / 403 | 18.9 / 18.8 | 467 / 480 |
+| suffix, absolute x <= 1e9 | 13.4 / 13.4 | 174 / 179 | 175 / 181 | 159 / 170 | 13.5 / 12.7 | 172 / 177 |
+| [0,1e6) | 18.5 / 19.2 | 281 / 288 | 286 / 283 | 292 / 283 | 18.5 / 18.3 | 277 / 286 |
+| suffix, [0,1e6) | 12.2 / 12.4 | 131 / 134 | 130 / 137 | 117 / 110 | 12.3 / 11.6 | 126 / 131 |
+| improving, [0,1e6) | 78.1 / 72.4 | — | 72.4 / 67.2 | — | 78.7 / 69.9 | 70.6 / 67.8 |
 
 The dominated exit removes most random segment work. Improving segments
 show its cost when pruning cannot help; the controlled optional-exit copy
-keeps the same layout and code apart from that condition. Whole-first
-queries can win or lose depending on flags and domain; they do not give
-a consistent improvement. Materialized paths remain competitive on lines
+keeps the same layout and code apart from that condition. On lines, whole-first queries beat the library native (5.1 versus
+5.3 ms over absolute x<=1e9) and lose plain (5.6 versus 5.5 ms).
+On improving segments the library loses to omitted dominated exit
+(78.1/72.4 versus 72.4/67.2 ms); the random segment rows favor keeping
+the exit. Materialized paths remain competitive on lines
 but allocate long boundary paths for segments.
 
-Array coordinate contenders: Xeon Platinum 8280, GCC 15.2, RelWithDebInfo,
-assertions off, 2026-11-01; same flags and units. By endpoint carry reuses
+Array coordinate contenders: By endpoint carry reuses
 endpoint values during descent; by branchless search and by Eytzinger
-search change only coordinate lookup. Both searches lose some workloads.
+search change only coordinate lookup. Both searches lose some workloads. The library loses array segments to
+Eytzinger search (132/140 versus 127/126 ms), and full-segment queries at
+lo to branchless search (4/3 versus 3.5/2.8 ms).
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | array coordinate workload | library | by endpoint carry | by branchless search | by Eytzinger search |
 |---|---:|---:|---:|---:|
-| full segments, queries at lo | 8.7 / 8.5 | 9.1 / 8.9 | 7.7 / 7.9 | 8.5 / 8.0 |
-| segments | 196 / 197 | 200 / 206 | 201 / 204 | 195 / 200 |
-| lines | 27.6 / 27.3 | 27.8 / 27.8 | 27.5 / 27.7 | 28.7 / 28.6 |
-| full segments | 42.0 / 42.0 | 45.5 / 45.4 | 44.1 / 43.9 | 61.4 / 60.8 |
-| suffix segments | 140 / 142 | 146 / 147 | 142 / 142 | 149 / 150 |
+| full segments, queries at lo | 4 / 3 | 4.3 / 3.3 | 3.5 / 2.8 | 3.8 / 3.2 |
+| segments | 132 / 140 | 134 / 143 | 133 / 144 | 127 / 126 |
+| lines | 21.5 / 22.1 | 21.3 / 21.8 | 21.7 / 22.8 | 22.7 / 21.2 |
+| full segments | 30.5 / 30.9 | 30.5 / 30.8 | 30.9 / 31.4 | 48.1 / 39.1 |
+| suffix segments | 95.9 / 98.7 | 97 / 98.8 | 93.4 / 100 | 104 / 103 |
 
 ## Pitfalls and choosing
 

@@ -119,7 +119,7 @@ otherwise. Let n be the vertex count and k the requested step count.
 The public defaults use indegree peeling and the existing `lca::ancestor` with cycle
 arithmetic: linear construction and storage, with constexpr support. Tail folds compose
 reversed preorder segment-tree intervals; cycle prefixes/suffixes supply rotated complete
-laps. These bounds motivate the defaults; there is no measured performance comparison.
+laps. These bounds motivate the defaults.
 
 ## Preconditions
 
@@ -148,8 +148,10 @@ query-count limit is imposed beyond the containers' allocation limits.
 
 ## Measured performance
 
-The comparison is **not measured yet**. The source is [benchmarks/graph/functional_graph.cpp](../benchmarks/graph/functional_graph.cpp).
-No benchmark records, timings or measured rankings are available.
+Measurements: 2026-11-25. The source is
+[benchmarks/graph/functional_graph.cpp](../benchmarks/graph/functional_graph.cpp).
+Both plain and native flag sets are measured; no single engine is claimed
+to win all phases and workloads.
 
 The benchmark compares peeling with marking decomposition; online endpoint and walk-fold
 lifting against the public engines; heavy-chain upward prefixes; and both offline reverse-DFS
@@ -171,7 +173,7 @@ the middle of a cycle must repeat the lap starting there. A prefix cannot be sub
 a fold without an inverse, and the API makes no such assumption.
 
 Experimental contenders live in `<atl/experimental/graph/functional_graph_variants.hpp>`
-under `atl::experimental` (add `-Iexperimental`). Every contender is not measured yet:
+under `atl::experimental` (add `-Iexperimental`).
 
 | Entity | Purpose and theoretical bounds |
 |---|---|
@@ -183,7 +185,7 @@ under `atl::experimental` (add `-Iexperimental`). Every contender is not measure
 | `functional_graph_walks_by_reverse_dfs(successors, values, queries, identity, operation)` | Plain `std::vector<functional_graph_walk_result<Value>>`, O((n+q)log(n+1) + sum log(k+1)) time, O(n+q) peak space |
 
 Here L = bit_width(10^18), and query ranges satisfy `functional_graph_query_range`. All are
-constexpr, have the same input/query and monoid contracts, and are **not measured yet**. Batches
+constexpr and have the same input/query and monoid contracts. Batches
 preserve input query order and duplicates. Their step bound is fixed at 10^18; no constructor
 step-limit argument or accessor exists. Batch functions preprocess once for the supplied query set and retain no reusable index.
 

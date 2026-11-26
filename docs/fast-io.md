@@ -152,30 +152,41 @@ The library row runs `io::writer` on the same values into the null device, so it
 also includes the buffered stdio flush. Each row formats a whole vector,
 space-separated, so it measures throughput.
 
-Xeon Platinum 8280, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
-Minimum of 3 runs, milliseconds per vector:
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | flags | library (io::writer to null device) | scratch + copy | in place (count digits first) |
 |---|---|---:|---:|---:|
-| 1e7 uint32, mixed lengths | `-O2` | 119 | 152 | 121 |
-| 1e7 uint32, mixed lengths | `-O2 -march=native` | 136 | 144 | 136 |
-| 1e7 uint32, nine digits | `-O2` | n/a | 96.8 | 73.1 |
-| 1e7 uint32, nine digits | `-O2 -march=native` | n/a | 94.2 | 68.9 |
-| 1e7 uint64, mixed lengths | `-O2` | 186 | 183 | 171 |
-| 1e7 uint64, mixed lengths | `-O2 -march=native` | 177 | 192 | 170 |
+| 1e7 uint32, mixed lengths | `-O2` | 96.1 | 119 | 97.2 |
+| 1e7 uint32, mixed lengths | `-O2 -march=native` | 113 | 136 | 119 |
+| 1e7 uint32, nine digits | `-O2` | n/a | 75.7 | 59.8 |
+| 1e7 uint32, nine digits | `-O2 -march=native` | n/a | 67 | 48.3 |
+| 1e7 uint64, mixed lengths | `-O2` | 150 | 165 | 142 |
+| 1e7 uint64, mixed lengths | `-O2 -march=native` | 165 | 183 | 161 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | flags | library (io::writer to null device) | 128-bit digit pairs | 10^19 chunks |
 |---|---|---:|---:|---:|
-| 1e6 uint128, full width | `-O2` | 83.2 | 161 | 83.8 |
-| 1e6 uint128, full width | `-O2 -march=native` | 82.4 | 181 | 83.0 |
+| 1e6 uint128, full width | `-O2` | 36.8 | 141 | 37.2 |
+| 1e6 uint128, full width | `-O2 -march=native` | 35.9 | 134 | 37.8 |
 
 Placing the digits in the output is never slower than scratch + copy: the
-scratch + copy form is 6-37% slower on 32- and 64-bit values. 128-bit digit
-pairs are 1.9-2.2x slower than 10^19 chunks, which tie the library.
+scratch + copy form takes 13.66% to 38.72% longer on 32- and 64-bit
+values. 128-bit digit pairs take 141/37.2 = 3.79 times as long as 10^19
+chunks plain (134/37.8 = 3.54 native). Chunks take 37.2/37.8 ms versus
+the library's 36.8/35.9 ms; the library includes buffered flushing.
 
-No measurements are recorded for software int128 or the interactive backend.
+Software int128 and the interactive backend are not measured yet.
 The experimental harness in `experimental/io_bench/` compares complete backends
-and pure input/output workloads; its range-sum workload has no recorded timings.
+and pure input/output workloads; its range-sum workload is not measured yet.
 
 ## Pitfalls and notes
 
@@ -189,9 +200,9 @@ short-read platforms diagnose the opt-in macro at compile time.
 
 `ATL_USE_MMAP` is optional and POSIX-only; Windows keeps the buffered path.
 `ATL_IO_BIG_LUT` chooses a 40 KiB, four-digit table with scratch-and-copy over
-the default 200-byte, two-digit table. It was not part of the recorded race;
-measure on your target before enabling it. All switches must match across
-translation units because they change inline definitions.
+the default 200-byte, two-digit table. Measure on your target before enabling
+it. All switches must match across translation units because they change
+inline definitions.
 
 ## How it works
 

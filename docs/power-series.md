@@ -237,9 +237,9 @@ check the interface and the primality of the modulus, not user-defined arithmeti
 
 ## Measured performance
 
-Not measured yet. Every library choice below is a provisional default and every
-contender is an `atl::experimental` function named `<function>_by_<method>`; the
-races are pending. The recurrence/Newton crossover is provisionally 64 coefficients.
+Both flag sets are measured; adoption decisions remain open. Every library choice below is a
+provisional default and every contender is an `atl::experimental`
+function named `<function>_by_<method>`. The recurrence/Newton crossover is provisionally 64 coefficients.
 
 | Operation | Library default | Contenders (`<atl/experimental/nt/power_series_variants.hpp>`, `<atl/experimental/nt/square_root_mod_variants.hpp>`) |
 |---|---|---|
@@ -263,7 +263,16 @@ The sources are `benchmarks/nt/power_series.cpp` (lengths 2^10, 2^12, 2^16, 2^20
 shapes `s` = 2, 8, 64) and `benchmarks/nt/square_root_mod.cpp` (998244353,
 1000000007, the 62-bit prime `29 * 2^57 + 1` and seeded random 64-bit primes). The
 quadratic contenders are timed only up to length 2^12. A winner needs x86-64
-records under both plain `-O2` and `-march=native`.
+measurements under both plain `-O2` and `-march=native`.
+
+Measurements (2026-11-23, AMD EPYC-Milan ccx23, GCC 15.2.0,
+RelWithDebInfo, assertions off; plain `-O2` / `-O2 -march=native`, minimum
+of five run means, 25 samples per row), in plain/native milliseconds:
+At p=998244353, n=1024, library logarithm loses to inverse-product
+logarithm (0.246/0.232 versus 0.231/0.217 ms). Library division also loses
+(0.24/0.228 versus 0.225/0.212 ms), but the plain inverse-product division
+row varies between runs (1.30x spread). These examples do not establish
+one winner across all series operations.
 
 ## Pitfalls and notes
 

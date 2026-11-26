@@ -113,9 +113,14 @@ Mutations provide no transactional rollback guarantee.
 
 ## Measured performance
 
-`benchmarks/ds/treap_sequence.cpp`: **not measured yet**. It compares
+Measurements from `benchmarks/ds/treap_sequence.cpp`
+(2026-11-22, AMD EPYC-Milan ccx23,
+GCC 15.2.0, RelWithDebInfo, assertions off; plain `-O2` /
+`-O2 -march=native`, five runs of 25 samples). It compares
 shared-engine and direct-field treaps on inserts and folds, and treap versus
-lazy segment tree on fixed-size affine updates and sums. Setup is timed.
+lazy segment tree on fixed-size affine updates and sums. Setup is timed. The shared-engine library wins insert/fold
+(423/269 versus 494/346 ms), but loses fixed-size apply/fold to the
+lazy segment tree (886/710 versus 283/282 ms).
 
 ## Pitfalls and notes
 

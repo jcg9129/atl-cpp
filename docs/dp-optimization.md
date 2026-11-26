@@ -99,14 +99,6 @@ values in `[j, i)`" satisfies the reverse (maximize it).
 Every index count is asserted below `2^32 - 1` (the family's `uint32`
 indices keep one value free); the per-function bounds follow.
 
-Measurements on this page: Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0,
-RelWithDebInfo (`-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`),
-assertions off; each cell is the minimum per-run mean over 3 runs of 25
-samples, in ms, as "plain `-O2` / `-march=native`". Records of 2026-10-15,
-except the partition engines (2026-11-01). Those records formed candidate totals in
-the cost's own type; the wide totals of the shared interface are not
-measured yet (the `int64` rows now add and compare in `int128`).
-
 ## Row minima
 
 For every row of the implicit `rows x cols` matrix `cost(i, j)`, its leftmost
@@ -169,21 +161,27 @@ Documented only: monotone leftmost argmins, or total monotonicity.
 whole call of each library function. `A[i][j] = f(x_i - y_j)` over sorted
 random points: "cheap" `f = d²`, "pow1.5" `f = |d|^1.5` (a sqrt).
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | rows x cols | cost | `totally_monotone_row_minima` | `monotone_row_minima` |
 |---|---|---|---|
-| 1e5 x 1e5 | cheap | 2.9 / 2.9 | 3.3 / 2.9 |
-| 1e5 x 1e5 | pow1.5 | 3.8 / 3.8 | 4.4 / 4.4 |
-| 1e6 x 1e6 | cheap | 37.5 / 37.3 | 41.0 / 36.2 |
-| 1e6 x 1e6 | pow1.5 | 44.3 / 43.9 | 54.1 / 54.7 |
-| 1e5 x 1e6 | cheap | 10.6 / 10.4 | 21.5 / 17.6 |
-| 1e5 x 1e6 | pow1.5 | 13.9 / 13.5 | 32.0 / 31.4 |
-| 1e6 x 1e5 | cheap | 11.4 / 12.0 | 12.5 / 11.8 |
-| 1e6 x 1e5 | pow1.5 | 12.6 / 12.5 | 15.7 / 15.8 |
+| 1e5 x 1e5 | cheap | 2 / 1.9 | 2.2 / 2.2 |
+| 1e5 x 1e5 | pow1.5 | 3.1 / 3.1 | 4.4 / 4.3 |
+| 1e6 x 1e6 | cheap | 20.9 / 20.2 | 25.4 / 25.5 |
+| 1e6 x 1e6 | pow1.5 | 32.2 / 31.4 | 52.3 / 51.5 |
+| 1e5 x 1e6 | cheap | 6 / 5.6 | 15.4 / 15.1 |
+| 1e5 x 1e6 | pow1.5 | 11.4 / 11 | 36.3 / 35.6 |
+| 1e6 x 1e5 | cheap | 6.8 / 6.2 | 7.6 / 6.5 |
+| 1e6 x 1e5 | pow1.5 | 8.1 / 7.6 | 11.6 / 11 |
 
-SMAWK wins or ties every shape: 1.7-2.3x when columns outnumber rows, and
-1.16-1.26x with the pow1.5 cost on the other shapes. On square and tall
-shapes with the cheap cost it leads by at most 1.14x at `-O2`, and the
-divide and conquer is up to 3% faster with `-march=native`.
+SMAWK wins every row in both modes: 2.57 to 3.24 times as fast when columns
+outnumber rows, and 1.39 to 1.64 times with pow1.5 on square and tall
+shapes. With cheap cost on square and tall shapes it is 1.10 to 1.22 times
+as fast plain and 1.05 to 1.26 times native.
 
 ### Pitfalls and notes
 
@@ -255,17 +253,24 @@ monotone divide and conquer or with SMAWK across the halves, and SMAWK on
 doubling blocks (the linear-time method). Segment cost `f(S_i - S_j - L)`
 over prefix sums: "cheap" `f = d²`, "pow1.5" `f = |d|^1.5`.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | n | cost | library | by halving divide and conquer | by halving SMAWK | by SMAWK blocks |
 |---|---|---|---|---|---|
-| 1e5 | cheap | 4.3 / 4.4 | 20.9 / 21.6 | 25.6 / 26.2 | 7.7 / 7.1 |
-| 1e5 | pow1.5 | 7.9 / 7.7 | 29.4 / 28.4 | 30.0 / 30.0 | 8.3 / 8.2 |
-| 1e6 | cheap | 50.2 / 52.4 | 276 / 282 | 295 / 302 | 81.9 / 74.7 |
-| 1e6 | pow1.5 | 93.7 / 91.0 | 390 / 379 | 349 / 344 | 87.7 / 86.4 |
+| 1e5 | cheap | 3.8 / 4.8 | 16.2 / 18.6 | 16 / 19.2 | 4.5 / 5 |
+| 1e5 | pow1.5 | 8.9 / 10.5 | 22.5 / 25.8 | 17 / 19.6 | 5.6 / 6 |
+| 1e6 | cheap | 44.5 / 55.4 | 219 / 239 | 181 / 215 | 47.5 / 51 |
+| 1e6 | pow1.5 | 104 / 122 | 302 / 346 | 196 / 221 | 55.9 / 60.3 |
 
-The decision queue is fastest on three shapes of four, by 1.05-1.8x over the
-SMAWK blocks and 3.7-6.0x over the halving contenders. The SMAWK blocks pull
-ahead only at n = 1e6 with the pow1.5 cost, by 5-6%: their fewer
-evaluations pay off once an evaluation is dear.
+The decision queue wins cheap n=1e5 (3.8/4.8 versus SMAWK blocks
+4.5/5 ms). It loses both pow1.5 shapes: 8.9/10.5 versus 5.6/6 ms at
+n=1e5 and 104/122 versus 55.9/60.3 ms at n=1e6. Cheap n=1e6 favors
+the library plain (44.5 versus 47.5 ms) and SMAWK blocks native
+(51 versus 55.4 ms). Both halving contenders lose all four shapes.
 
 ### Pitfalls and notes
 
@@ -341,56 +346,55 @@ candidate `dp_{k-1}[j] + cost(j, i)`); not `bool` (rejected).
 [`benchmarks/dp/optimal_partition.cpp`](../benchmarks/dp/optimal_partition.cpp)
 races the library against contenders in
 `experimental/atl/experimental/dp/optimal_partition_variants.hpp` that change
-only how a layer is solved. The 2026-11-01 record ("layer engines") covers
-two of them: the divide-and-conquer rows also floored at the previous
-layer's argmin ("by floored divide and conquer"), and SMAWK on every layer
-but the last ("by SMAWK", opt-in only: it evaluates out of order). Costs over
+only how a layer is solved. "By floored divide and conquer" floors the
+search at the previous layer's argmin. "By SMAWK" uses SMAWK on every layer
+but the last (opt-in only: it evaluates out of order). Costs over
 random prefix sums `S` (steps below 1000): "cheap" `(S_i - S_j)²`, "pow1.5"
 `|S_i - S_j - L|^1.5`.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | n | K | cost | library | by floored divide and conquer | by SMAWK |
 |---|---|---|---|---|---|
-| 1e3 | 2 | cheap | 0.002 / 0.002 | 0.002 / 0.002 | 0.002 / 0.002 |
-| 1e3 | 2 | pow1.5 | 0.004 / 0.004 | 0.004 / 0.004 | 0.004 / 0.004 |
-| 1e3 | 20 | cheap | 0.289 / 0.268 | 0.308 / 0.294 | 0.596 / 0.644 |
-| 1e3 | 20 | pow1.5 | 0.419 / 0.420 | 0.424 / 0.440 | 0.977 / 0.905 |
-| 1e3 | 100 | cheap | 1.0 / 1.0 | 1.0 / 0.992 | 3.2 / 3.4 |
-| 1e3 | 100 | pow1.5 | 1.5 / 1.5 | 1.5 / 1.5 | 5.2 / 4.8 |
-| 1e3 | 1e3 | cheap | 3.3 / 3.3 | 3.2 / 3.1 | 15.0 / 16.6 |
-| 1e3 | 1e3 | pow1.5 | 4.8 / 5.1 | 4.7 / 5.0 | 25.1 / 21.8 |
-| 5e3 | 2 | cheap | 0.012 / 0.011 | 0.012 / 0.010 | 0.012 / 0.010 |
-| 5e3 | 2 | pow1.5 | 0.023 / 0.022 | 0.023 / 0.023 | 0.022 / 0.022 |
-| 5e3 | 20 | cheap | 2.0 / 1.8 | 2.0 / 2.0 | 3.0 / 3.3 |
-| 5e3 | 20 | pow1.5 | 3.1 / 3.2 | 3.0 / 3.0 | 5.0 / 4.6 |
-| 5e3 | 100 | cheap | 6.6 / 6.3 | 6.6 / 6.2 | 16.7 / 18.3 |
-| 5e3 | 100 | pow1.5 | 9.7 / 9.8 | 9.7 / 9.7 | 28.2 / 25.9 |
-| 5e3 | 500 | cheap | 24.1 / 23.8 | 23.8 / 23.2 | 81.5 / 89.2 |
-| 5e3 | 500 | pow1.5 | 34.7 / 36.3 | 34.6 / 36.5 | 135 / 124 |
-| 5e3 | 5e3 | cheap | 84.8 / 80.8 | 77.8 / 80.6 | 386 / 427 |
-| 5e3 | 5e3 | pow1.5 | 116 / 128 | 116 / 128 | 647 / 566 |
-| 2e4 | 2 | cheap | 0.050 / 0.044 | 0.048 / 0.044 | 0.049 / 0.044 |
-| 2e4 | 2 | pow1.5 | 0.094 / 0.093 | 0.092 / 0.092 | 0.092 / 0.093 |
-| 2e4 | 20 | cheap | 8.7 / 7.7 | 8.8 / 8.9 | 12.4 / 13.4 |
-| 2e4 | 20 | pow1.5 | 14.1 / 14.1 | 13.3 / 13.4 | 20.4 / 19.1 |
-| 2e4 | 100 | cheap | 33.7 / 31.0 | 33.3 / 31.4 | 69.1 / 76.8 |
-| 2e4 | 100 | pow1.5 | 50.5 / 51.3 | 49.0 / 49.4 | 115 / 108 |
-| 2e4 | 2000 | cheap | 385 / 384 | 382 / 364 | 1344 / 1474 |
-| 2e4 | 2000 | pow1.5 | 558 / 569 | 559 / 572 | 2217 / 2038 |
-| 2e4 | 2e4 | cheap | 1538 / 1521 | 1473 / 1460 | 6298 / 7004 |
-| 2e4 | 2e4 | pow1.5 | 2147 / 2263 | 2142 / 2268 | 10509 / 9184 |
+| 1e3 | 2 | cheap | 0.001 / 0.002 | 0.001 / 0.002 | 0.001 / 0.002 |
+| 1e3 | 2 | pow1.5 | 0.004 / 0.005 | 0.004 / 0.005 | 0.004 / 0.005 |
+| 1e3 | 20 | cheap | 0.255 / 0.201 | 0.274 / 0.214 | 0.368 / 0.408 |
+| 1e3 | 20 | pow1.5 | 0.468 / 0.362 | 0.47 / 0.336 | 0.633 / 0.63 |
+| 1e3 | 100 | cheap | 1 / 1 | 1 / 1 | 2.6 / 2.7 |
+| 1e3 | 100 | pow1.5 | 1.6 / 1.5 | 1.5 / 1.5 | 3.6 / 3.9 |
+| 1e3 | 1e3 | cheap | 2.6 / 2.6 | 2.6 / 2.6 | 8.9 / 10.1 |
+| 1e3 | 1e3 | pow1.5 | 3.7 / 3.6 | 3.8 / 3.6 | 13.1 / 13.9 |
+| 5e3 | 2 | cheap | 0.007 / 0.009 | 0.007 / 0.009 | 0.007 / 0.009 |
+| 5e3 | 2 | pow1.5 | 0.022 / 0.026 | 0.022 / 0.026 | 0.022 / 0.026 |
+| 5e3 | 20 | cheap | 1.9 / 2.1 | 2 / 2.2 | 2.4 / 2.6 |
+| 5e3 | 20 | pow1.5 | 3.6 / 4 | 3.4 / 3.8 | 3.5 / 3.8 |
+| 5e3 | 100 | cheap | 7.1 / 7.2 | 7.2 / 7.2 | 13.3 / 14.5 |
+| 5e3 | 100 | pow1.5 | 11.8 / 11.8 | 11.6 / 11.6 | 19.3 / 21.3 |
+| 5e3 | 500 | cheap | 20.1 / 19.1 | 20.4 / 19.1 | 62.3 / 65.8 |
+| 5e3 | 500 | pow1.5 | 28.6 / 27.3 | 28.5 / 27 | 89.8 / 96.9 |
+| 5e3 | 5e3 | cheap | 49.4 / 52.4 | 50.1 / 52.6 | 211 / 241 |
+| 5e3 | 5e3 | pow1.5 | 73.3 / 74.7 | 73.2 / 74.4 | 318 / 340 |
+| 2e4 | 2 | cheap | 0.026 / 0.037 | 0.026 / 0.037 | 0.026 / 0.037 |
+| 2e4 | 2 | pow1.5 | 0.086 / 0.104 | 0.086 / 0.105 | 0.087 / 0.105 |
+| 2e4 | 20 | cheap | 8.1 / 9.4 | 8.5 / 9.4 | 9.7 / 10.6 |
+| 2e4 | 20 | pow1.5 | 16 / 18.1 | 15.3 / 16.8 | 14.2 / 15.6 |
+| 2e4 | 100 | cheap | 34.3 / 37.1 | 35.3 / 36.9 | 55.2 / 59.7 |
+| 2e4 | 100 | pow1.5 | 61.9 / 66 | 60.5 / 62.8 | 79.6 / 88.6 |
+| 2e4 | 2000 | cheap | 276 / 246 | 282 / 243 | 1070 / 1140 |
+| 2e4 | 2000 | pow1.5 | 371 / 345 | 364 / 343 | 1540 / 1670 |
+| 2e4 | 2e4 | cheap | 737 / 754 | 728 / 753 | 4340 / 4660 |
+| 2e4 | 2e4 | pow1.5 | 1070 / 1080 | 1070 / 1080 | 6300 / 6730 |
 
-The floor ties the library: between 0.92x and 1.16x of its time on every
-shape, with no consistent direction (the largest gap, n = 2e4, K = 20, cheap,
-`-march=native`: 8.9 against 7.7 ms). SMAWK ties at K = 2, where every
-contender runs the last layer's single row, and is 1.35-5.6x slower from
-K = 20 up: its linear evaluation count does not make up for its constant
-factor and out-of-order access.
-
-The race against Knuth's bound on every layer and divide and conquer on
-every layer, the switch-budget calibration, the Knuth engine's tuning steps
-and the two large workloads in the same benchmark are not measured yet in
-the current records; the experimental header's docstrings keep the race's
-verdict.
+Floored divide and conquer takes 0.93 to 1.07 times the library's time,
+with no consistent winner. At n=2e4, K=20, pow1.5 the library loses to both
+floored divide and conquer (16/18.1 versus 15.3/16.8 ms) and SMAWK
+(14.2/15.6 ms). SMAWK also wins n=5e3, K=20, pow1.5 (3.5/3.8 versus
+3.6/4 ms), but loses all represented K>=100 rows. At K=2 the methods tie
+or differ only in the final rounded digit.
 
 ### Pitfalls and notes
 
@@ -477,10 +481,16 @@ type every candidate total must fit `Value`.
 times one whole table on stone merging with random weights; there is no
 race.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | workload | ms |
 |---|---|
-| stone merging, n = 2000 | 18.1 / 19.5 |
-| stone merging, n = 5000 | 214 / 222 |
+| stone merging, n = 2000 | 17 / 17.7 |
+| stone merging, n = 5000 | 165 / 171 |
 
 ## How it works
 

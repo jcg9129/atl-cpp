@@ -80,63 +80,70 @@ The latter two live in
 `experimental/atl/experimental/strings/lexicographic_order_variants.hpp`;
 the tests use a stable comparison sort as the certifying oracle.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean milliseconds over three runs of 25 samples.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape / operation | Contender | -O2 ms | native ms |
 |---|---|---|---|
-| char random26 2e5 | library (MSD radix) | 13.3 | 13.1 |
-| char random26 2e5 | by stable sort, bulk append | 44.4 | 44.9 |
-| char random26 2e5 | by stable sort, per-symbol append | 47.5 | 47.1 |
-| char random26 2e5 | by stable sort, ranges compare | 46.4 | 45.9 |
-| char random26 2e5 | by unsigned bytes | 51.0 | 51.3 |
-| char random26 2e5 | by LCP merge | 48.1 | 48.9 |
-| char random2 2e5 | library (MSD radix) | 22.2 | 22.2 |
-| char random2 2e5 | by stable sort, bulk append | 64.8 | 65.4 |
-| char random2 2e5 | by stable sort, per-symbol append | 67.5 | 67.3 |
-| char random2 2e5 | by stable sort, ranges compare | 69.5 | 69.4 |
-| char random2 2e5 | by unsigned bytes | 49.0 | 49.4 |
-| char random2 2e5 | by LCP merge | 50.8 | 49.5 |
-| char duplicates 2e5 | library (MSD radix) | 9.4 | 9.3 |
-| char duplicates 2e5 | by stable sort, bulk append | 41.5 | 41.8 |
-| char duplicates 2e5 | by stable sort, per-symbol append | 45.0 | 44.2 |
-| char duplicates 2e5 | by stable sort, ranges compare | 45.3 | 44.4 |
-| char duplicates 2e5 | by unsigned bytes | 41.7 | 41.5 |
-| char duplicates 2e5 | by LCP merge | 36.0 | 36.1 |
-| char prefix500 2e4 | library (MSD radix) | 11.7 | 12.0 |
-| char prefix500 2e4 | by stable sort, bulk append | 82.9 | 81.7 |
-| char prefix500 2e4 | by stable sort, per-symbol append | 105 | 98.9 |
-| char prefix500 2e4 | by stable sort, ranges compare | 123 | 122 |
-| char prefix500 2e4 | by unsigned bytes | 18.3 | 18.2 |
-| char prefix500 2e4 | by LCP merge | 16.8 | 17.0 |
-| int random26 2e5 | library (stable sort) | 51.7 | 51.8 |
-| int random26 2e5 | by stable sort, per-symbol append | 53.9 | 53.9 |
-| int random26 2e5 | by MSD partition | 76.3 | 76.4 |
-| int random26 2e5 | by LCP merge | 58.1 | 58.2 |
-| uint64 random26 2e5 | library (stable sort) | 63.3 | 63.0 |
-| uint64 random26 2e5 | by stable sort, per-symbol append | 63.4 | 62.2 |
-| uint64 random26 2e5 | by MSD partition | 92.5 | 90.6 |
-| uint64 random26 2e5 | by LCP merge | 74.2 | 75.6 |
-| int duplicates 2e5 | library (stable sort) | 49.4 | 49.9 |
-| int duplicates 2e5 | by stable sort, per-symbol append | 50.5 | 50.5 |
-| int duplicates 2e5 | by MSD partition | 63.5 | 63.8 |
-| int duplicates 2e5 | by LCP merge | 39.6 | 40.5 |
-| int prefix500 2e4 | library (stable sort) | 155 | 155 |
-| int prefix500 2e4 | by stable sort, per-symbol append | 160 | 160 |
-| int prefix500 2e4 | by MSD partition | 67.7 | 66.4 |
-| int prefix500 2e4 | by LCP merge | 72.1 | 71.9 |
-| uint64 prefix500 2e4 | library (stable sort) | 243 | 242 |
-| uint64 prefix500 2e4 | by stable sort, per-symbol append | 251 | 251 |
-| uint64 prefix500 2e4 | by MSD partition | 122 | 121 |
-| uint64 prefix500 2e4 | by LCP merge | 127 | 127 |
+| char random26 2e5 | library (MSD radix) | 9.5 | 10.3 |
+| char random26 2e5 | by stable sort, bulk append | 34.7 | 36.1 |
+| char random26 2e5 | by stable sort, per-symbol append | 35.6 | 36.1 |
+| char random26 2e5 | by stable sort, ranges compare | 36.3 | 36.4 |
+| char random26 2e5 | by unsigned bytes | 43.1 | 43.6 |
+| char random26 2e5 | by LCP merge | 37 | 40.4 |
+| char random2 2e5 | library (MSD radix) | 15.3 | 17.1 |
+| char random2 2e5 | by stable sort, bulk append | 48 | 50 |
+| char random2 2e5 | by stable sort, per-symbol append | 47.2 | 49.7 |
+| char random2 2e5 | by stable sort, ranges compare | 51.8 | 56.3 |
+| char random2 2e5 | by unsigned bytes | 42.5 | 42.3 |
+| char random2 2e5 | by LCP merge | 39.3 | 41.8 |
+| char duplicates 2e5 | library (MSD radix) | 5.8 | 7 |
+| char duplicates 2e5 | by stable sort, bulk append | 32.2 | 34.1 |
+| char duplicates 2e5 | by stable sort, per-symbol append | 32.7 | 34.2 |
+| char duplicates 2e5 | by stable sort, ranges compare | 34.8 | 38.3 |
+| char duplicates 2e5 | by unsigned bytes | 35.7 | 36.2 |
+| char duplicates 2e5 | by LCP merge | 27 | 29.3 |
+| char prefix500 2e4 | library (MSD radix) | 4.8 | 4.8 |
+| char prefix500 2e4 | by stable sort, bulk append | 78.9 | 86 |
+| char prefix500 2e4 | by stable sort, per-symbol append | 73.8 | 89.1 |
+| char prefix500 2e4 | by stable sort, ranges compare | 95.2 | 110 |
+| char prefix500 2e4 | by unsigned bytes | 12.1 | 14.4 |
+| char prefix500 2e4 | by LCP merge | 12 | 13.7 |
+| int random26 2e5 | library (stable sort) | 37.2 | 39.8 |
+| int random26 2e5 | by stable sort, per-symbol append | 39.7 | 41.5 |
+| int random26 2e5 | by MSD partition | 52.4 | 58.7 |
+| int random26 2e5 | by LCP merge | 42.1 | 44.8 |
+| uint64 random26 2e5 | library (stable sort) | 43.9 | 45.6 |
+| uint64 random26 2e5 | by stable sort, per-symbol append | 44.2 | 46.5 |
+| uint64 random26 2e5 | by MSD partition | 58.6 | 67.8 |
+| uint64 random26 2e5 | by LCP merge | 48.4 | 58.1 |
+| int duplicates 2e5 | library (stable sort) | 35.2 | 38.1 |
+| int duplicates 2e5 | by stable sort, per-symbol append | 36.8 | 39.7 |
+| int duplicates 2e5 | by MSD partition | 41.4 | 49.3 |
+| int duplicates 2e5 | by LCP merge | 29 | 30.3 |
+| int prefix500 2e4 | library (stable sort) | 103 | 118 |
+| int prefix500 2e4 | by stable sort, per-symbol append | 127 | 142 |
+| int prefix500 2e4 | by MSD partition | 63.1 | 68.7 |
+| int prefix500 2e4 | by LCP merge | 69.6 | 73.7 |
+| uint64 prefix500 2e4 | library (stable sort) | 185 | 201 |
+| uint64 prefix500 2e4 | by stable sort, per-symbol append | 257 | 258 |
+| uint64 prefix500 2e4 | by MSD partition | 118 | 131 |
+| uint64 prefix500 2e4 | by LCP merge | 128 | 141 |
 
 
-MSD radix wins all byte shapes. The wide-symbol contenders lose random words
-but can win duplicate or common-prefix shapes, so general wide symbols retain
-stable sort. The shared reserve policy has no separate lexicographic-order
+MSD radix wins all byte shapes. The wide-symbol contenders lose random words. The library loses int
+duplicates to LCP merge (35.2/38.1 versus 29/30.3 ms), and prefix500
+to MSD partition for both int (103/118 versus 63.1/68.7 ms) and uint64
+(185/201 versus 118/131 ms). No wide-symbol method wins every shape. The shared reserve policy has no separate lexicographic-order
 measurement yet; forward ranges reserve total symbols only for trivially copyable
 projected types.
+
+Wide-symbol duplicate and uint64 random-word rows include contenders that
+vary between runs (spreads up to 1.80x); these minima alone do not establish
+stable rankings.
 
 ## Pitfalls and notes
 

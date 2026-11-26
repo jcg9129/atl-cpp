@@ -95,23 +95,23 @@ values can collide even as single-symbol sequences.
 `benchmarks/strings/string_hash.cpp` measures construction and query throughput
 with explicit base 131; there is no alternative contender in this benchmark.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean ms over three runs of 25 samples; parentheses are
-slowest/fastest spread.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library -O2 | library native |
 |---|---:|---:|
-| build 10^6 | 4.8 (1.00x) | 5.0 (1.00x) |
-| 10^5 instances of length 10 | 9.9 (1.00x) | 9.7 (1.06x) |
-| forward + reverse 10^6 | 19.9 (1.01x) | 19.6 (1.01x) |
-| 10^6 substring queries | 14.4 (1.12x) | 12.5 (1.11x) |
+| build 10^6 | 2.7 (1.02x) | 2.6 (1.01x) |
+| 10^5 instances of length 10 | 5.8 (1.04x) | 5.6 (1.04x) |
+| forward + reverse 10^6 | 14.5 (1.01x) | 13.7 (1.00x) |
+| 10^6 substring queries | 6.7 (1.96x) | 5.4 (1.26x) |
 
 ## Pitfalls and notes
 
-Reserved push_back tables are retained because presized indexed writes did
-not win consistently across construction shapes; the supplied record contains
-only library timings for that comparison.
+Reserved push_back tables are used because presized indexed writes did
+not win consistently across construction shapes.
 
 Hash equality is not content equality. For distinct encoded sequences whose
 difference polynomial has degree d, a uniformly random base from

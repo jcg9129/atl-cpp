@@ -167,78 +167,111 @@ rows call the entry points directly. Samples include result/scratch allocation;
 batch rows sum 20000 products. The experimental by-definition product is the
 certifying oracle.
 
-Source: `benchmarks/nt/convolution.cpp`. Intel Xeon Platinum 8280, GCC 15.2,
-RelWithDebInfo, assertions disabled, 2026-10-15. Minimum milliseconds of three
-per-run means (25 samples each), `-O2 -g -DNDEBUG -std=c++23` and the same
-flags plus `-march=native`. Vector engines use targeted AVX2 in both flag
-sets. Each cell is plain / native milliseconds; a dash means that shape was
-not recorded for that contender. MSVC and software-wide performance are not
+Source: `benchmarks/nt/convolution.cpp`. Vector engines use targeted AVX2 in both flag
+sets. Each cell is plain / native milliseconds; a dash means that shape has
+no measurement for that contender. MSVC and software-wide performance are not
 measured yet.
 
 Full products through the library driver (the library column uses the scalar default):
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | library | lazy Montgomery engine | radix-4 engine | simd engine | conv8 engine |
 |---|---:|---:|---:|---:|---:|
-| balanced 2^19 × 2^19 | 82.8 / 81.0 | 82.2 / 83.7 | 84.4 / 83.1 | 40.3 / 38.5 | 21.3 / 21.1 |
-| square 2^19 | 54.3 / 52.1 | — | 57.2 / 55.7 | 27.3 / 25.3 | 15.4 / 15.1 |
-| lopsided 2^20 × 2^6 | 48.1 / 45.8 | 47.1 / 45.2 | 48.6 / 46.4 | 38.7 / 35.9 | — |
-| batch 20000 × (64×64) | 97.4 / 92.8 | — | — | 78.4 / 70.8 | 27.4 / 26.0 |
+| balanced 2^19 × 2^19 | 59.5 / 62.6 | 60.1 / 64 | 57.2 / 58.3 | 24.4 / 24 | 10.2 / 10.4 |
+| square 2^19 | 39.2 / 40.4 | — | 38.1 / 38.9 | 16.6 / 15.7 | 7.6 / 7.8 |
+| lopsided 2^20 × 2^6 | 37.1 / 36.1 | 36.5 / 36.5 | 36.1 / 34 | 27.3 / 24.9 | — |
+| batch 20000 × (64×64) | 68.9 / 70.4 | — | — | 49 / 47.8 | 14 / 14.1 |
 
 Scalar algorithm contenders (the lazy contender pads the lopsided shape):
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | library | by radix2 | by DIF | by lazy Montgomery | by radix4 |
 |---|---:|---:|---:|---:|---:|
-| balanced 2^19 × 2^19 | 82.8 / 81.0 | 156 / 155 | 80.2 / 79.9 | 80.8 / 80.9 | 83.8 / 81.6 |
-| lopsided 2^20 × 2^6 | 48.1 / 45.8 | — | — | 168 / 168 | — |
+| balanced 2^19 × 2^19 | 59.5 / 62.6 | 127 / 133 | 56.5 / 61.4 | 58.7 / 62.8 | 56 / 57.4 |
+| lopsided 2^20 × 2^6 | 37.1 / 36.1 | — | — | 122 / 131 | — |
 
 Vector pointwise/scaling and fused-block alternatives:
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | simd engine | by vector pointwise | conv8 engine | by scalar block reduce |
 |---|---:|---:|---:|---:|
-| balanced 2^19 × 2^19 | 40.3 / 38.5 | 38.8 / 38.1 | 21.3 / 21.1 | 24.2 / 22.8 |
-| batch 20000 × (64×64) | 78.4 / 70.8 | — | 27.4 / 26.0 | 40.2 / 35.9 |
+| balanced 2^19 × 2^19 | 24.4 / 24 | 22.9 / 22.9 | 10.2 / 10.4 | 12.1 / 12.5 |
+| batch 20000 × (64×64) | 49 / 47.8 | — | 14 / 14.1 | 22.8 / 23.7 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library | by prescaled spectrum | by definition |
 |---|---:|---:|---:|
-| lopsided 2^20 × 2^6 | 48.1 / 45.8 | 49.4 / 44.9 | — |
-| batch 20000 × (48×48) | 71.0 / 70.6 | — | 75.5 / 70.7 |
+| lopsided 2^20 × 2^6 | 37.1 / 36.1 | 32.9 / 33.8 | — |
+| batch 20000 × (48×48) | 53 / 61.5 | — | 52.5 / 55.4 |
 
 Other moduli and exact integer products:
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | library | by padded FFT split | Garner with conv8 engine |
 |---|---:|---:|---:|
-| lopsided 2^20 × 2^6, mod 7340033 | 48.3 / 45.1 | 538 / 521 | — |
-| lopsided 2^20 × 2^6, mod 1e9+7 | 108 / 99.7 | 540 / 517 | — |
+| lopsided 2^20 × 2^6, mod 7340033 | 36.5 / 35.5 | 303 / 280 | — |
+| lopsided 2^20 × 2^6, mod 1e9+7 | 64.8 / 52.8 | 308 / 290 | — |
 | 1e9+7, balanced 2^19 × 2^19 (now Garner) | not measured yet | — | — |
 | 1e9+7, square 2^19 (now Garner) | not measured yet | — | — |
-| 2^32−5, balanced 2^19 × 2^19 (Garner) | 266 / 259 | — | 84.6 / 82.5 |
-| 2^32−5, square 2^19 (Garner) | 178 / 171 | — | 66.1 / 63.7 |
-| uint64 two-prime, balanced 2^19 × 2^19 | 168 / 164 | — | — |
-| uint64 two-prime, square 2^19 | 110 / 104 | — | — |
+| 2^32−5, balanced 2^19 × 2^19 (Garner) | 192 / 205 | — | 45.6 / 45 |
+| 2^32−5, square 2^19 (Garner) | 130 / 137 | — | 37.2 / 37.6 |
+| uint64 three-prime, balanced 2^19 × 2^19 | 123 / 125 | — | — |
+| uint64 three-prime, square 2^19 | 78.8 / 81.4 | — | — |
 
 The 1e9+7 balanced and square 2^19 inputs have planned size 2^20, above the
-FFT split's exact range, so they now take three-prime Garner (not measured yet).
-The FFT split measured 227 / 217 ms and 183 / 171 ms on them, but is not exact
-there for worst-case inputs: at planned size 2^20 thousands of coefficients
-round wrongly.
+FFT split's exact range, so they use three-prime Garner.
+`benchmarks/nt/convolution.cpp` measures 183/191 ms balanced and 121/122 ms
+square. FFT splitting is not exact there for worst-case inputs.
 
-The uint64 three-prime balanced and square 2^19 shapes are not measured yet.
-They use the same benchmark loop and include exact widened agreement checks.
+The dedicated large-coefficient uint64 three-prime shapes take
+182/191 ms balanced and 119/123 ms square. The table's
+123/125 and 78.8/81.4 ms uint64 rows are the separate small-coefficient
+workloads; they do not measure the dedicated three-prime shapes.
 
-On balanced products, conv8 is 3.89× / 3.84× as fast as the scalar default,
-and simd is 2.05× / 2.10× as fast (plain / native). Conv8's tuned block path
-reduces time against scalar block reduction by 12.0% / 7.5% balanced and
-31.8% / 27.6% on the 64×64 batch. The lazy and radix-4 driver engines have no
-consistent advantage over the scalar default, which stays portable.
+On balanced products the scalar default loses to conv8 by
+59.5/10.2 = 5.83 times plain and 62.6/10.4 = 6.02 native; simd is
+2.44/2.61 times as fast. Conv8 reduces time against scalar block reduction
+by 15.70%/16.80% balanced and 38.60%/40.51% on the 64×64 batch. Radix-4
+beats the scalar default on every represented driver shape; lazy Montgomery
+wins the lopsided driver plain (36.5 versus 37.1 ms) but loses it native
+(36.5 versus 36.1 ms) and loses balanced products in both modes.
 
-Vectorized pointwise/scaling lost the adoption decision: it saves only
-3.7% / 1.0% over simd (40.3 → 38.8 ms plain, 38.5 → 38.1 ms native), so the
-base-class scalar loops stay. Prescaled overlap-add tied across flags:
-49.4 versus 48.1 ms plain (2.7% slower), 44.9 versus 45.8 ms native (2.0%
-faster), so per-chunk scaling stays. Planning overlap-add instead of a padded
-FFT split is 11.14× / 11.55× as fast at mod 7340033 and 5.00× / 5.19× at
-mod 1e9+7. Garner with conv8 is 3.14× / 3.14× as fast for balanced products
-and 2.69× / 2.68× for squares.
+The simd engine loses to vector pointwise/scaling on balanced products
+(24.4/24 versus 22.9/22.9 ms), a 6.15%/4.58% saving. The library's
+lopsided product loses to prescaled spectrum (37.1/36.1 versus
+32.9/33.8 ms). On the 48×48 batch it loses to by-definition multiplication
+(53/61.5 versus 52.5/55.4 ms). These measurements do not support scalar
+pointwise loops or per-chunk scaling.
+Overlap-add is 303/36.5 = 8.30 times as fast as padded FFT split at mod
+7340033 plain (280/35.5 = 7.89 native), and 4.75/5.49 times as fast at mod
+1e9+7. Garner with conv8 is 4.21/4.56 times as fast as the scalar library
+for balanced 2^32−5 products and 3.49/3.64 times for squares.
+
 
 ## Pitfalls and notes
 

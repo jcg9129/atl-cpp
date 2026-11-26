@@ -134,29 +134,34 @@ finish; contenders use greedy Hopcroft-Karp, per-root Kuhn, pass-structured
 Kuhn, a full bid scan, a scan stopping at level zero, or a max_flow reduction.
 The max_flow comparison includes its network construction and certificate.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, x86-64 Linux, GCC 15.2.0,
-RelWithDebInfo, assertions off, 2026-10-15. Milliseconds, minimum of three
-per-run means, ten samples per row. Each pair is plain `-O2` / `-O2 -march=native`,
-both with `-g -DNDEBUG -std=c++23`.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library | by bid scan full | by bid scan level zero | by kuhn passes | by hopcroft karp | by kuhn | by max flow |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| random L=R=1e5 m=2e5 | 15.9 / 16.8 | 15.7 / 15.5 | 18.2 / 18.1 | 18.4 / 18.1 | 18.8 / 18.9 | 12.8 / 12.7 | 77.1 / 79 |
-| band L=R=66000 | 2.7 / 2.7 | 2.7 / 2.8 | 2.2 / 2.3 | 1.1 / 1.2 | 1 / 1 | 1.2 / 1.2 | 25.7 / 24.9 |
-| line L=R=1e5 | 2.2 / 2.2 | 2.1 / 2 | 2 / 2 | 1 / 1.1 | 0.884 / 0.883 | 1.1 / 1.1 | 14.5 / 14.7 |
-| augmented cycle L=R=66000 | 33.6 / 34.9 | 31.8 / 31.3 | 40.1 / 40.1 | 345 / 341 | 404 / 401 | 1385 / 1380 | 668 / 679 |
-| skewed L=1e5 R=1e3 | 4.8 / 4.9 | 5 / 4.8 | 4.8 / 4.8 | 3.8 / 3.7 | 3.8 / 3.7 | 692 / 701 | 32.4 / 32.3 |
-| dense L=R=3000 m=1e6 | 10.5 / 10.9 | 9.7 / 9.3 | 9.3 / 9.7 | 4 / 4.1 | 4.6 / 4.7 | 4.3 / 4.3 | 92.7 / 94.8 |
-| dense L=R=3000 m=3e6 | 55.7 / 54.3 | 53.3 / 52.2 | 49.4 / 49.5 | 17.9 / 18.2 | 18.9 / 19.5 | 17.8 / 18 | 389 / 389 |
-| complete L=R=2000 | 39.8 / 39.9 | 37 / 36.8 | 35.6 / 35.4 | 21 / 20.5 | 20.6 / 21 | 20.6 / 21.5 | 431 / 432 |
+| random L=R=1e5 m=2e5 | 11.2 / 12.6 | 10.8 / 11.8 | 12.7 / 12.8 | 14 / 13.9 | 14.1 / 13.9 | 10.6 / 10.1 | 72.3 / 55.3 |
+| band L=R=66000 | 1.7 / 2 | 1.5 / 1.8 | 1.1 / 1.6 | 0.528 / 0.767 | 0.5 / 0.703 | 0.513 / 0.705 | 15.1 / 18.1 |
+| line L=R=1e5 | 1.3 / 1.8 | 1.2 / 1.6 | 1.1 / 1.7 | 0.504 / 0.698 | 0.453 / 0.684 | 0.467 / 0.666 | 7.8 / 9.9 |
+| augmented cycle L=R=66000 | 26.1 / 31.5 | 24 / 28.5 | 32.3 / 34.4 | 305 / 320 | 303 / 338 | 1220 / 1280 | 547 / 509 |
+| skewed L=1e5 R=1e3 | 3 / 3.3 | 3.1 / 3.2 | 2.9 / 3 | 2.3 / 2.4 | 2.4 / 2.4 | 351 / 445 | 22.9 / 23 |
+| dense L=R=3000 m=1e6 | 4 / 4.4 | 3.7 / 3.8 | 3 / 3.3 | 1.2 / 1.7 | 1.8 / 2.3 | 1.4 / 1.7 | 56.5 / 56.2 |
+| dense L=R=3000 m=3e6 | 20.4 / 23.2 | 19 / 20.2 | 17.8 / 18.7 | 8.2 / 8.4 | 9.3 / 9.6 | 8.3 / 7.8 | 199 / 209 |
+| complete L=R=2000 | 14.7 / 18.8 | 12.7 / 16 | 11.8 / 15.3 | 4.7 / 6.9 | 4.8 / 6.4 | 4.8 / 5.4 | 274 / 326 |
 
-The plain augmented-cycle row is 404/33.6 = 12.02 times faster than pure
-Hopcroft-Karp. Dense m=3e6 is 55.7/18.9 = 2.95 times slower. The level-zero
-scan takes 18.2 versus 15.9 ms on random and 40.1 versus 33.6 on augmented
-cycles; it helps the band and dense shapes. Per-pass Kuhn avoids repeated
-failed searches on skewed sides (3.8 versus per-root Kuhn's 692 ms), while
-augmented cycles still take 345 ms. The library retains the adversarial-path
-win despite its adjacency-scan overhead on dense graphs.
+The augmented-cycle library row is 303/26.1 = 11.61 times faster than
+Hopcroft-Karp plain (338/31.5 = 10.73 native), but loses to the full bid
+scan (26.1/31.5 versus 24/28.5 ms). On dense m=3e6 it loses to
+Hopcroft-Karp by 20.4/9.3 = 2.19 times plain and 23.2/9.6 = 2.42 native.
+The level-zero scan loses to the library on random inputs (12.7/12.8 versus
+11.2/12.6 ms) and augmented cycles (32.3/34.4 versus 26.1/31.5 ms), but
+beats it on band, line, skewed, dense and complete inputs. Per-pass Kuhn
+takes 2.3/2.4 ms on skewed sides versus per-root Kuhn's 351/445 ms; the
+library takes 3/3.3 ms. The library also loses to per-root Kuhn on random
+inputs (11.2/12.6 versus 10.6/10.1 ms). Band and line favor the pure
+matching contenders, as do dense and complete graphs.
 
 ### DAG closure and chain covers
 
@@ -167,63 +172,92 @@ DFS. It also isolates two-direction matching CSR construction, matching and
 independent-set stages, and complete chain covers sharing CSR or rebuilding
 from arc lists. Inputs are constructed outside the timed regions.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15; same flags and sampling as above. Milliseconds, plain / native.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | closure, plain -O2 ms | sparse 2000/10000 | dense 2000/200000 | chain 2000 | dense p=1/4 5000 | bare chain 5000 | complete 2000 |
 |---|---:|---:|---:|---:|---:|---:|
-| library | 1.2 | 3.5 | 2.2 | 61.3 | 40.0 | 13.1 |
-| by topological bitsets | 1.6 | 8.5 | 3.7 | 271 | 70.5 | 53.1 |
-| by topological bitsets skip | 1.5 | 5.2 | 3.7 | 91.5 | 70.7 | 15.2 |
-| by topological bitsets nearest first | 1.6 | 6.0 | 3.6 | 139 | 70.1 | 37.8 |
-| by floyd warshall | 16.4 | 36.1 | 36.0 | not measured yet | not measured yet | not measured yet |
-| by dfs | 15.9 | 150 | 19.8 | not measured yet | not measured yet | not measured yet |
+| library | 0.812 | 2 | 1.3 | 42.8 | 35 | 5 |
+| by topological bitsets | 0.773 | 3.5 | 1.3 | 145 | 57.2 | 20.7 |
+| by topological bitsets skip | 0.793 | 2 | 1.3 | 65.4 | 57.7 | 5.5 |
+| by topological bitsets nearest first | 0.819 | 2.2 | 1.3 | 80.6 | 57.5 | 12.1 |
+| by floyd warshall | 9.1 | 17.8 | 18 | not measured yet | not measured yet | not measured yet |
+| by dfs | 9.2 | 92.6 | 7 | not measured yet | not measured yet | not measured yet |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | closure, -O2 -march=native ms | library | by topological bitsets | by topological bitsets skip | by topological bitsets nearest first |
 |---|---:|---:|---:|---:|
-| sparse n=2000 m=10000 | 1.0 | 1.5 | 1.5 | 1.5 |
-| dense n=2000 m=200000 | 3.4 | 8.0 | 5.2 | 6.0 |
-| chain with chords n=2000 | 1.9 | 3.7 | 3.7 | 3.6 |
-| dense p=1/4 n=2000 | 4.4 | 14.5 | 6.3 | 9.3 |
-| sparse m=4n n=2000 | 0.859 | 1.2 | 1.2 | 1.2 |
-| bare chain n=2000 | 1.8 | 3.7 | 3.7 | 3.6 |
-| dense p=1/4 n=5000 | 60.3 | 253 | 92.7 | 141 |
-| sparse m=4n n=5000 | 4.8 | 6.8 | 6.8 | 6.8 |
-| bare chain n=5000 | 38.4 | 72.7 | 72.2 | 72.2 |
-| complete n=2000 | 13.0 | 43.9 | 15.0 | 35.4 |
+| sparse n=2000 m=10000 | 0.628 | 0.68 | 0.701 | 0.716 |
+| dense n=2000 m=200000 | 1.6 | 3.3 | 1.9 | 2.1 |
+| chain with chords n=2000 | 0.94 | 1.2 | 1.1 | 1.2 |
+| dense p=1/4 n=2000 | 2 | 6.7 | 2.3 | 3.2 |
+| sparse m=4n n=2000 | 0.503 | 0.543 | 0.559 | 0.59 |
+| bare chain n=2000 | 0.927 | 1.1 | 1.1 | 1.1 |
+| dense p=1/4 n=5000 | 37.3 | 142 | 63.1 | 80.6 |
+| sparse m=4n n=5000 | 2.8 | 3.1 | 3.2 | 3.2 |
+| bare chain n=5000 | 30.1 | 55.3 | 55.6 | 55.3 |
+| complete n=2000 | 4.8 | 20.6 | 5.3 | 12.6 |
 
-Floyd-Warshall native times are 19.5, 48.0 and 48.8 ms on the first three
-shapes; DFS takes 15.4, 153 and 20.0 ms respectively.
+Floyd-Warshall native times are 5.9, 9.7 and 9.7 ms on the first three
+shapes; DFS takes 8.9, 89.5 and 6.9 ms respectively. Plain sparse closure
+favors topological bitsets over the library (0.773 versus 0.812 ms); native
+favors the library (0.628 versus 0.68 ms).
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | chain cover, plain / native ms | library | by arc lists |
 |---|---:|---:|
-| sparse n=2000 m=10000 | 6.5 / 6.4 | 10.3 / 10.3 |
-| dense n=2000 m=200000 | 25.8 / 26.4 | 47.3 / 46.9 |
-| chain with chords n=2000 | 13.7 / 13.5 | 30.5 / 30.6 |
-| dense p=1/4 n=2000 | 53.2 / 53.6 | 82.1 / 79.5 |
-| sparse m=4n n=2000 | 4.1 / 4.1 | 6.8 / 6.8 |
-| bare chain n=2000 | 13.3 / 13.3 | 31.0 / 31.0 |
-| dense p=1/4 n=5000 | 461 / 465 | 789 / 771 |
-| sparse m=4n n=5000 | 27.8 / 26.5 | 49.0 / 49.4 |
-| bare chain n=5000 | 233 / 233 | 377 / 382 |
-| complete n=2000 | 24.8 / 24.2 | 80.7 / 72.8 |
+| sparse n=2000 m=10000 | 3.8 / 3.6 | 4.7 / 4.6 |
+| dense n=2000 m=200000 | 14.3 / 13.9 | 21.4 / 21.3 |
+| chain with chords n=2000 | 5.9 / 5.5 | 12 / 12.2 |
+| dense p=1/4 n=2000 | 33 / 33 | 42.9 / 43.4 |
+| sparse m=4n n=2000 | 2.5 / 2.4 | 3.2 / 3.1 |
+| bare chain n=2000 | 5.9 / 5.6 | 11.4 / 11.3 |
+| dense p=1/4 n=5000 | 269 / 264 | 456 / 448 |
+| sparse m=4n n=5000 | 15.1 / 13.9 | 22.9 / 23.2 |
+| bare chain n=5000 | 115 / 108 | 222 / 217 |
+| complete n=2000 | 9.5 / 9.4 | 31.1 / 31.9 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | stages, -O2 -march=native ms | CSR by scatter | CSR by bucket grouping | matching | independent set |
 |---|---:|---:|---:|---:|
-| sparse n=2000 m=10000 | 3.9 | 7.0 | 6.6 | 2.2 |
-| dense n=2000 m=200000 | 29.4 | 42.6 | 29.2 | 7.6 |
-| chain with chords n=2000 | 31.2 | 46.1 | 20.5 | 6.8 |
-| dense p=1/4 n=2000 | 30.8 | 44.8 | 55.9 | 6.7 |
-| sparse m=4n n=2000 | 2.7 | 4.8 | 4.0 | 1.6 |
-| bare chain n=2000 | 32.6 | 47.8 | 21.7 | 6.8 |
-| dense p=1/4 n=5000 | 437 | 675 | 453 | 74.6 |
-| bare chain n=5000 | 438 | 694 | 247 | 74.6 |
-| complete n=2000 | 30.3 | 42.3 | 19.0 | 6.7 |
+| sparse n=2000 m=10000 | 1.1 | 1.9 | 3.2 | 0.701 |
+| dense n=2000 m=200000 | 7.1 | 9.2 | 14.3 | 2.2 |
+| chain with chords n=2000 | 7.6 | 15.9 | 8.2 | 1.6 |
+| dense p=1/4 n=2000 | 7.8 | 12.9 | 34.1 | 1.6 |
+| sparse m=4n n=2000 | 0.807 | 1.3 | 1.9 | 0.536 |
+| bare chain n=2000 | 7.3 | 12.2 | 8.4 | 1.7 |
+| dense p=1/4 n=5000 | 124 | 253 | 271 | 34.5 |
+| bare chain n=5000 | 124 | 251 | 128 | 34 |
+| complete n=2000 | 7.7 | 12.6 | 8.6 | 1.6 |
 
-The Floyd-Warshall and DFS contenders on the remaining shapes are not measured
-yet. Reached-target skipping saves a whole bitset-row OR when its target's
+`benchmarks/graph/dag_cover.cpp` also measures Floyd-Warshall and DFS on the
+additional n=2000 shapes; n=5000 remains unmeasured for these contenders.
+Reached-target skipping saves a whole bitset-row OR when its target's
 finished row is already contained. Shared CSR also avoids constructing the
 same closure adjacency for matching and cover separately.
+
+Random, skewed and dense matching comparisons include rows that vary
+between runs (spreads up to 1.58x); the quoted minima alone do not establish
+stable rankings there. Several chain-cover and stage rows also vary,
+with spreads up to 1.60x.
 
 ## Pitfalls and notes
 

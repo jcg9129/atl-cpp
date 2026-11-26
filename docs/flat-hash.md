@@ -110,7 +110,7 @@ seed changes. Earlier computed hashes and table placement become invalid after a
 seed change. A table built during static initialization can observe seed zero
 before the initializer runs. Hash values are not stable serialization.
 
-The static-initialization seed is the retained winner over a guarded function-local
+The static-initialization seed wins over a guarded function-local
 seed; `benchmarks/ds/hash.cpp` keeps both implementations for comparison. See the published
 [hash contract](types-and-utilities.md#hash-customization-and-seed-lifetime) for
 customization requirements. Sequence keys cost O(length) to hash.
@@ -152,34 +152,47 @@ library's single packed round. Loops measure batch throughput; string queries
 address 100000 stored strings of 32–64 characters.
 
 Source: [`benchmarks/ds/flat_hash.cpp`](../benchmarks/ds/flat_hash.cpp).
-CPU: Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-23.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Cells are minimum milliseconds
-over three runs of 25 samples, plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library transparent lookup | by string temporary |
 |---|---|---|
-| 1e6 string-view lookups | 143 / 133 | 237 / 205 |
+| 1e6 string-view lookups | 82.1 / 157 | 114 / 235 |
 
-Other flat-container, packed-key and reservation-boundary shapes: not measured yet.
+The native transparent-lookup row varies between runs (1.56x spread); its minimum
+does not establish a stable speedup by itself.
 
 
 Source: [`benchmarks/ds/hash.cpp`](../benchmarks/ds/hash.cpp).
-CPU: Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-15.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Cells are minimum milliseconds
-over three runs of 25 samples, plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library | by function local seed |
 |---|---|---|
-| uint64 insert 1e6 | 18.1 / 16.5 | 18.4 / 17.7 |
-| uint64 lookup 1e6, alternating hits/misses | 29.1 / 27.6 | 30.6 / 29.9 |
-| uint64 hash only 1e6 | 1.3 / 0.788 | 1.5 / 1.5 |
+| uint64 insert 1e6 | 19.9 / 12 | 20.4 / 12.6 |
+| uint64 lookup 1e6, alternating hits/misses | 19.4 / 15.4 | 29.4 / 18.1 |
+| uint64 hash only 1e6 | 0.829 / 0.895 | 0.978 / 1.1 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library packed pair | by three seeded rounds |
 |---|---|---|
-| uint32 pair insert 1e6 | 18.6 / 18.6 | 24.0 / 23.4 |
-| uint32 pair lookup 1e6, alternating hits/misses | 30.0 / 27.9 | 37.8 / 39.2 |
+| uint32 pair insert 1e6 | 19.9 / 12.8 | 26.2 / 17.4 |
+| uint32 pair lookup 1e6, alternating hits/misses | 23.1 / 16.9 | 35 / 22.8 |
 
 ## Pitfalls and notes
 

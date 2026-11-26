@@ -70,43 +70,46 @@ run the library algorithm; groups() materializes an already computed partition.
 
 [benchmarks/graph/scc.cpp](../benchmarks/graph/scc.cpp).
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, assertions off, `-O2 -g -DNDEBUG -std=c++23`, also
-`-march=native`, measured 2026-10-15. Each cell is the minimum of three
-run means, with 25 samples per run. Spread is slowest run / fastest run.
-Timing and spread pairs are plain / native. Benchmarks are built in CI and
+Benchmarks are built in CI and
 measured separately.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | ms plain / native | spread plain / native |
 |---|---|---|---|
-| random m=4e6 | library | 163 / 169 | 1.09 / 1.08 |
-| random m=4e6 | by tarjan events | 259 / 266 | 1.05 / 1.10 |
-| random m=4e6 | by tarjan | 231 / 227 | 1.03 / 1.06 |
-| random m=4e6 | by gabow | 181 / 188 | 1.13 / 1.14 |
-| random m=4e6 | by kosaraju | 457 / 462 | 1.01 / 1.07 |
-| random m=4e6 | library on nested vectors | 287 / 283 | 1.04 / 1.03 |
-| random m=4e6 | library on forward-only rows | 297 / 300 | 1.02 / 1.01 |
-| random m=4e6 | groups() | 5.3 / 5.1 | 1.02 / 1.03 |
-| giant cycle + chords | library | 24.1 / 25.4 | 1.02 / 1.05 |
-| giant cycle + chords | by tarjan events | 36.2 / 36.1 | 1.03 / 1.05 |
-| giant cycle + chords | by tarjan | 28.4 / 28.2 | 1.02 / 1.07 |
-| giant cycle + chords | by gabow | 26.1 / 26.5 | 1.02 / 1.05 |
-| giant cycle + chords | by kosaraju | 113 / 114 | 1.07 / 1.05 |
-| giant cycle + chords | library on nested vectors | 36.6 / 37.0 | 1.03 / 1.01 |
-| giant cycle + chords | library on forward-only rows | 64.4 / 65.2 | 1.03 / 1.04 |
-| giant cycle + chords | groups() | 3.2 / 3.2 | 1.02 / 1.01 |
-| deep DAG | library | 21.0 / 21.5 | 1.04 / 1.01 |
-| deep DAG | by tarjan events | 31.6 / 30.3 | 1.01 / 1.02 |
-| deep DAG | by tarjan | 25.4 / 28.7 | 1.09 / 1.02 |
-| deep DAG | by gabow | 24.1 / 25.2 | 1.08 / 1.04 |
-| deep DAG | by kosaraju | 61.6 / 63.5 | 1.09 / 1.09 |
-| deep DAG | library on nested vectors | 32.2 / 31.9 | 1.03 / 1.02 |
-| deep DAG | library on forward-only rows | 55.3 / 57.6 | 1.05 / 1.01 |
-| deep DAG | groups() | 76.1 / 75.6 | 1.04 / 1.02 |
+| random m=4e6 | library | 121 / 122 | 1.24 / 1.54 |
+| random m=4e6 | by tarjan events | 202 / 205 | 1.29 / 1.34 |
+| random m=4e6 | by tarjan | 164 / 182 | 1.03 / 1.18 |
+| random m=4e6 | by gabow | 139 / 140 | 1.27 / 1.30 |
+| random m=4e6 | by kosaraju | 190 / 209 | 1.53 / 1.33 |
+| random m=4e6 | library on nested vectors | 267 / 285 | 1.21 / 1.10 |
+| random m=4e6 | library on forward-only rows | 280 / 307 | 1.05 / 1.07 |
+| random m=4e6 | groups() | 4.7 / 4.8 | 1.01 / 1.02 |
+| giant cycle + chords | library | 17 / 18.1 | 1.03 / 1.05 |
+| giant cycle + chords | by tarjan events | 20.8 / 24.3 | 1.06 / 1.19 |
+| giant cycle + chords | by tarjan | 19.3 / 19.3 | 1.05 / 1.04 |
+| giant cycle + chords | by gabow | 17.7 / 18.6 | 1.02 / 1.03 |
+| giant cycle + chords | by kosaraju | 57.6 / 62 | 1.09 / 1.12 |
+| giant cycle + chords | library on nested vectors | 20.9 / 20.9 | 1.03 / 1.02 |
+| giant cycle + chords | library on forward-only rows | 44.1 / 47.1 | 1.02 / 1.04 |
+| giant cycle + chords | groups() | 1.2 / 1.4 | 1.00 / 1.03 |
+| deep DAG | library | 16.2 / 16.1 | 1.11 / 1.08 |
+| deep DAG | by tarjan events | 17.6 / 20.9 | 1.33 / 1.08 |
+| deep DAG | by tarjan | 17.5 / 19.1 | 1.31 / 1.06 |
+| deep DAG | by gabow | 17.3 / 18.5 | 1.31 / 1.06 |
+| deep DAG | by kosaraju | 37.2 / 39.9 | 1.02 / 1.05 |
+| deep DAG | library on nested vectors | 17.5 / 18.6 | 1.04 / 1.04 |
+| deep DAG | library on forward-only rows | 41.2 / 41.9 | 1.03 / 1.06 |
+| deep DAG | groups() | 54.6 / 49.5 | 1.02 / 1.05 |
 
-The library leads the algorithm contenders on all three shapes. Kosaraju's
-extra traversal and transpose make it slower but provide a readable,
-independent test oracle. All four contenders remain in
+The library has the smallest algorithm-contender minimum on all three
+shapes. The random rows vary between runs (library spread 1.24x/1.54x,
+Gabow 1.27x/1.30x), so that row alone does not establish a stable ranking.
+Kosaraju is slower on all three shapes and provides an independent oracle. All four contenders remain in
 `experimental/atl/experimental/graph/scc_variants.hpp` as
 `scc_by_tarjan_events`, `scc_by_tarjan`, `scc_by_gabow` and `scc_by_kosaraju`.
 
@@ -160,42 +163,49 @@ partition at n=1e6; adjacency construction and correctness comparisons are outsi
 
 [benchmarks/graph/two_edge_connected_components.cpp](../benchmarks/graph/two_edge_connected_components.cpp).
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, assertions off, `-O2 -g -DNDEBUG -std=c++23`, also
-`-march=native`, measured 2026-10-15. Each cell is the minimum of three
-run means, with 25 samples per run. Spread is slowest run / fastest run.
-Timing and spread pairs are plain / native. Benchmarks are built in CI and
+Benchmarks are built in CI and
 measured separately.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | ms plain / native | spread plain / native |
 |---|---|---|---|
-| random m=4e6 | library | 263 / 267 | 1.05 / 1.04 |
-| random m=4e6 | by low link | 325 / 332 | 1.08 / 1.08 |
-| random m=4e6 | by gabow | 252 / 255 | 1.05 / 1.07 |
-| random m=4e6 | by chain decomposition | 476 / 497 | 1.06 / 1.04 |
-| random m=4e6 | library on nested vectors | 388 / 387 | 1.05 / 1.03 |
-| random m=4e6 | library on forward-only rows | 391 / 385 | 1.01 / 1.02 |
-| giant cycle + chords | library | 35.7 / 37.6 | 1.02 / 1.04 |
-| giant cycle + chords | by low link | 42.3 / 43.9 | 1.02 / 1.05 |
-| giant cycle + chords | by gabow | 35.9 / 36.6 | 1.02 / 1.05 |
-| giant cycle + chords | by chain decomposition | 57.6 / 60.7 | 1.03 / 1.04 |
-| giant cycle + chords | library on nested vectors | 79.6 / 83.4 | 1.04 / 1.05 |
-| giant cycle + chords | library on forward-only rows | 54.3 / 55.4 | 1.03 / 1.01 |
-| deep path + chords | library | 35.2 / 37.1 | 1.00 / 1.03 |
-| deep path + chords | by low link | 41.4 / 42.3 | 1.01 / 1.03 |
-| deep path + chords | by gabow | 35.9 / 35.9 | 1.03 / 1.02 |
-| deep path + chords | by chain decomposition | 59.3 / 61.4 | 1.01 / 1.02 |
-| deep path + chords | library on nested vectors | 78.9 / 81.7 | 1.02 / 1.03 |
-| deep path + chords | library on forward-only rows | 53.0 / 53.6 | 1.00 / 1.01 |
-| random tree | library | 57.4 / 60.0 | 1.01 / 1.02 |
-| random tree | by low link | 93.4 / 96.3 | 1.01 / 1.05 |
-| random tree | by gabow | 68.4 / 69.7 | 1.03 / 1.08 |
-| random tree | by chain decomposition | 173 / 178 | 1.00 / 1.05 |
-| random tree | library on nested vectors | 193 / 188 | 1.01 / 1.02 |
-| random tree | library on forward-only rows | 195 / 197 | 1.07 / 1.02 |
+| random m=4e6 | library | 392 / 258 | 1.07 / 1.29 |
+| random m=4e6 | by low link | 478 / 316 | 1.06 / 1.21 |
+| random m=4e6 | by gabow | 385 / 261 | 1.10 / 1.23 |
+| random m=4e6 | by chain decomposition | 525 / 422 | 1.15 / 1.14 |
+| random m=4e6 | library on nested vectors | 452 / 386 | 1.05 / 1.11 |
+| random m=4e6 | library on forward-only rows | 450 / 377 | 1.03 / 1.11 |
+| giant cycle + chords | library | 18.5 / 17.4 | 1.25 / 1.06 |
+| giant cycle + chords | by low link | 22.3 / 20.2 | 1.14 / 1.06 |
+| giant cycle + chords | by gabow | 20.3 / 19 | 1.09 / 1.03 |
+| giant cycle + chords | by chain decomposition | 46.1 / 40.1 | 1.21 / 1.04 |
+| giant cycle + chords | library on nested vectors | 59.8 / 54.4 | 1.09 / 1.06 |
+| giant cycle + chords | library on forward-only rows | 22.3 / 21.3 | 1.24 / 1.08 |
+| deep path + chords | library | 20.6 / 18.2 | 1.11 / 1.07 |
+| deep path + chords | by low link | 23.3 / 20.3 | 1.17 / 1.06 |
+| deep path + chords | by gabow | 20.5 / 18.9 | 1.13 / 1.04 |
+| deep path + chords | by chain decomposition | 44.3 / 42 | 1.15 / 1.06 |
+| deep path + chords | library on nested vectors | 58.2 / 50.9 | 1.08 / 1.12 |
+| deep path + chords | library on forward-only rows | 25.1 / 21.8 | 1.08 / 1.07 |
+| random tree | library | 95.1 / 27.6 | 1.12 / 2.80 |
+| random tree | by low link | 132 / 61.9 | 1.06 / 1.82 |
+| random tree | by gabow | 105 / 34.6 | 1.10 / 2.50 |
+| random tree | by chain decomposition | 124 / 56.2 | 1.13 / 1.94 |
+| random tree | library on nested vectors | 145 / 130 | 1.03 / 1.16 |
+| random tree | library on forward-only rows | 154 / 129 | 1.02 / 1.17 |
 
-Gabow wins the random case; the library is close on cycles and paths and
-faster on trees, using a single discovery/low-link/component array. The
+Gabow beats the library plain on random graphs (385 versus 392 ms) and
+deep paths (20.5 versus 20.6 ms); native the library wins those rows
+(258 versus 261 ms, and 18.2 versus 18.9 ms). The library wins cycles
+and trees in both modes. Native random graphs and trees vary between runs
+(library spreads 1.29x and 2.80x), as does the plain cycle (1.25x); those
+minima alone do not establish stable rankings. The library uses a single
+discovery/low-link/component array. The
 contenders are `two_edge_connected_components_by_low_link`,
 `two_edge_connected_components_by_gabow` and
 `two_edge_connected_components_by_chain_decomposition` in
@@ -288,64 +298,72 @@ on the library result independently. Unless a row states n=4e6, n=1e6.
 
 [benchmarks/graph/biconnected_components.cpp](../benchmarks/graph/biconnected_components.cpp).
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, assertions off, `-O2 -g -DNDEBUG -std=c++23`, also
-`-march=native`, measured 2026-10-15. Each cell is the minimum of three
-run means, with 25 samples per run. Spread is slowest run / fastest run.
-Timing and spread pairs are plain / native. Benchmarks are built in CI and
+Benchmarks are built in CI and
 measured separately.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | ms plain / native | spread plain / native |
 |---|---|---|---|
-| random m=4e6 | library | 260 / 263 | 1.08 / 1.03 |
-| random m=4e6 | by single array | 369 / 346 | 1.07 / 1.08 |
-| random m=4e6 | by low link | 308 / 294 | 1.07 / 1.05 |
-| random m=4e6 | by chain decomposition (cuts only) | 505 / 505 | 1.07 / 1.05 |
-| random m=4e6 | by paired boundaries | 270 / 258 | 1.04 / 1.05 |
-| random m=4e6 | library on nested vectors | 390 / 388 | 1.04 / 1.03 |
-| random m=4e6 | library on forward-only rows | 391 / 397 | 1.01 / 1.02 |
-| random m=4e6 | by paired boundaries on forward-only rows | 389 / 390 | 1.02 / 1.02 |
-| random m=4e6 | groups() | 3.3 / 3.3 | 1.01 / 1.03 |
-| giant cycle + chords | library | 39.6 / 39.8 | 1.01 / 1.01 |
-| giant cycle + chords | by single array | 45.2 / 44.8 | 1.04 / 1.01 |
-| giant cycle + chords | by low link | 44.2 / 42.4 | 1.02 / 1.02 |
-| giant cycle + chords | by chain decomposition (cuts only) | 67.5 / 71.6 | 1.02 / 1.05 |
-| giant cycle + chords | by paired boundaries | 38.5 / 39.6 | 1.01 / 1.02 |
-| giant cycle + chords | library on nested vectors | 81.2 / 82.0 | 1.01 / 1.00 |
-| giant cycle + chords | library on forward-only rows | 51.7 / 52.9 | 1.00 / 1.01 |
-| giant cycle + chords | by paired boundaries on forward-only rows | 52.0 / 52.4 | 1.02 / 1.01 |
-| giant cycle + chords | groups() | 3.2 / 3.2 | 1.01 / 1.00 |
-| deep path + chords | library | 38.2 / 38.3 | 1.03 / 1.03 |
-| deep path + chords | by single array | 45.3 / 45.0 | 1.05 / 1.01 |
-| deep path + chords | by low link | 42.8 / 41.0 | 1.01 / 1.02 |
-| deep path + chords | by chain decomposition (cuts only) | 68.4 / 72.2 | 1.01 / 1.02 |
-| deep path + chords | by paired boundaries | 38.8 / 40.0 | 1.01 / 1.01 |
-| deep path + chords | library on nested vectors | 80.3 / 80.9 | 1.02 / 1.01 |
-| deep path + chords | library on forward-only rows | 50.2 / 51.5 | 1.00 / 1.01 |
-| deep path + chords | by paired boundaries on forward-only rows | 50.9 / 51.2 | 1.02 / 1.00 |
-| deep path + chords | groups() | 3.5 / 3.5 | 1.01 / 1.02 |
-| random tree | library | 83.8 / 83.4 | 1.04 / 1.02 |
-| random tree | by single array | 90.6 / 87.8 | 1.02 / 1.01 |
-| random tree | by low link | 101 / 102 | 1.05 / 1.03 |
-| random tree | by chain decomposition (cuts only) | 198 / 221 | 1.07 / 1.03 |
-| random tree | by paired boundaries | 80.8 / 80.5 | 1.31 / 1.02 |
-| random tree | library on nested vectors | 189 / 190 | 1.03 / 1.02 |
-| random tree | library on forward-only rows | 179 / 185 | 1.04 / 1.05 |
-| random tree | by paired boundaries on forward-only rows | 175 / 176 | 1.05 / 1.04 |
-| random tree | groups() | 181 / 180 | 1.02 / 1.01 |
-| deep path + chords n=4e6 | library | 213 / 216 | 1.02 / 1.02 |
-| deep path + chords n=4e6 | by single array | 410 / 392 | 1.02 / 1.02 |
-| deep path + chords n=4e6 | by low link | 251 / 242 | 1.03 / 1.01 |
-| deep path + chords n=4e6 | by chain decomposition (cuts only) | 384 / 413 | 1.01 / 1.01 |
-| deep path + chords n=4e6 | by paired boundaries | 254 / 259 | 1.03 / 1.01 |
-| deep path + chords n=4e6 | library on nested vectors | 422 / 423 | 1.00 / 1.01 |
-| deep path + chords n=4e6 | library on forward-only rows | 305 / 311 | 1.01 / 1.00 |
-| deep path + chords n=4e6 | by paired boundaries on forward-only rows | 355 / 358 | 1.02 / 1.02 |
-| deep path + chords n=4e6 | groups() | 13.1 / 13.1 | 1.01 / 1.01 |
+| random m=4e6 | library | 236 / 197 | 1.25 / 1.05 |
+| random m=4e6 | by single array | 252 / 210 | 1.37 / 1.04 |
+| random m=4e6 | by low link | 271 / 210 | 1.27 / 1.08 |
+| random m=4e6 | by chain decomposition (cuts only) | 398 / 337 | 1.23 / 1.09 |
+| random m=4e6 | by paired boundaries | 253 / 195 | 1.25 / 1.04 |
+| random m=4e6 | library on nested vectors | 375 / 341 | 1.13 / 1.05 |
+| random m=4e6 | library on forward-only rows | 380 / 338 | 1.11 / 1.05 |
+| random m=4e6 | by paired boundaries on forward-only rows | 382 / 336 | 1.09 / 1.02 |
+| random m=4e6 | groups() | 1.7 / 1.7 | 1.00 / 1.01 |
+| giant cycle + chords | library | 21 / 20 | 1.03 / 1.04 |
+| giant cycle + chords | by single array | 25.2 / 27.1 | 1.05 / 1.03 |
+| giant cycle + chords | by low link | 19.9 / 18.6 | 1.02 / 1.05 |
+| giant cycle + chords | by chain decomposition (cuts only) | 48.3 / 48.3 | 1.04 / 1.05 |
+| giant cycle + chords | by paired boundaries | 19.4 / 18.5 | 1.02 / 1.02 |
+| giant cycle + chords | library on nested vectors | 49.9 / 45.6 | 1.12 / 1.14 |
+| giant cycle + chords | library on forward-only rows | 19.1 / 19.3 | 1.03 / 1.06 |
+| giant cycle + chords | by paired boundaries on forward-only rows | 18.5 / 19.2 | 1.04 / 1.03 |
+| giant cycle + chords | groups() | 1.3 / 1.3 | 1.00 / 1.01 |
+| deep path + chords | library | 21.1 / 20.3 | 1.02 / 1.05 |
+| deep path + chords | by single array | 25.9 / 27.4 | 1.03 / 1.03 |
+| deep path + chords | by low link | 19.4 / 18.9 | 1.07 / 1.03 |
+| deep path + chords | by chain decomposition (cuts only) | 49.4 / 49.8 | 1.04 / 1.06 |
+| deep path + chords | by paired boundaries | 20 / 18.8 | 1.04 / 1.06 |
+| deep path + chords | library on nested vectors | 47.4 / 44.9 | 1.14 / 1.15 |
+| deep path + chords | library on forward-only rows | 20 / 20.6 | 1.05 / 1.06 |
+| deep path + chords | by paired boundaries on forward-only rows | 19.3 / 19.7 | 1.04 / 1.06 |
+| deep path + chords | groups() | 1.3 / 1.3 | 1.01 / 1.01 |
+| random tree | library | 61.4 / 43.8 | 1.89 / 1.41 |
+| random tree | by single array | 56.5 / 44.6 | 1.82 / 1.44 |
+| random tree | by low link | 79.3 / 49.4 | 1.63 / 2.09 |
+| random tree | by chain decomposition (cuts only) | 82.2 / 66.9 | 1.60 / 1.27 |
+| random tree | by paired boundaries | 54.7 / 41.5 | 2.08 / 1.91 |
+| random tree | library on nested vectors | 152 / 140 | 1.12 / 1.05 |
+| random tree | library on forward-only rows | 158 / 138 | 1.12 / 1.11 |
+| random tree | by paired boundaries on forward-only rows | 151 / 131 | 1.11 / 1.05 |
+| random tree | groups() | 43.3 / 42.8 | 1.02 / 1.02 |
+| deep path + chords n=4e6 | library | 139 / 123 | 1.14 / 1.09 |
+| deep path + chords n=4e6 | by single array | 226 / 210 | 1.15 / 1.07 |
+| deep path + chords n=4e6 | by low link | 163 / 144 | 1.17 / 1.06 |
+| deep path + chords n=4e6 | by chain decomposition (cuts only) | 299 / 269 | 1.08 / 1.15 |
+| deep path + chords n=4e6 | by paired boundaries | 179 / 158 | 1.05 / 1.06 |
+| deep path + chords n=4e6 | library on nested vectors | 312 / 298 | 1.07 / 1.09 |
+| deep path + chords n=4e6 | library on forward-only rows | 188 / 186 | 1.12 / 1.06 |
+| deep path + chords n=4e6 | by paired boundaries on forward-only rows | 206 / 200 | 1.09 / 1.07 |
+| deep path + chords n=4e6 | groups() | 5 / 5 | 1.01 / 1.00 |
 
-The library outperforms the separate low-link and single-array variants on
-these shapes. Paired boundaries are close at n=1e6 and take 254/259 ms
-against the library's 213/216 ms at n=4e6. Contenders remain in
+The library loses to separate low-links on cycles (21/20 versus
+19.9/18.6 ms) and deep paths at n=1e6 (21.1/20.3 versus 19.4/18.9 ms).
+Paired boundaries also beat it on those shapes and on random trees
+(54.7/41.5 versus 61.4/43.8 ms); the tree rows vary between runs, with
+library spread 1.89x/1.41x and paired-boundary spread 2.08x/1.91x.
+On random graphs paired boundaries win native (195 versus 197 ms),
+while the library wins plain (236 versus 253 ms); the plain rows vary
+between runs. At n=4e6 the library beats paired boundaries
+(139/123 versus 179/158 ms). Contenders remain in
 `experimental/atl/experimental/graph/biconnected_components_variants.hpp` as
 `biconnected_components_by_single_array`, `biconnected_components_by_low_link`,
 `biconnected_components_by_paired_boundaries` and

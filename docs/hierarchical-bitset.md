@@ -68,25 +68,34 @@ Loops measure throughput of random inserts, insert/erase churn, and next/prev
 queries in dense and sparse universes.
 
 Source: [`benchmarks/ds/hierarchical_bitset.cpp`](../benchmarks/ds/hierarchical_bitset.cpp).
-CPU: Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-15.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Cells are minimum milliseconds
-over three runs of 25 samples, plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape (1e6 operations) | library | by full propagation | by inline offsets |
 |---|---|---|---|
-| insert, universe 1e6 | 5.2 / 5.2 | 7.9 / 6.0 | 4.9 / 4.7 |
-| insert, universe 2^26 | 11.3 / 10.7 | 14.8 / 13.3 | not measured yet |
-| insert/erase churn, universe 1e6 | 5.7 / 5.3 | 8.5 / 7.0 | 5.3 / 5.7 |
-| next, universe 1e6 | 2.6 / 2.9 | 3.3 / 2.8 | 3.3 / 2.8 |
-| next, universe 2^26 | 16.8 / 14.8 | 16.5 / 14.4 | 16.8 / 14.6 |
-| prev, universe 1e6 | 2.0 / 1.7 | 2.1 / 2.5 | 2.4 / 1.7 |
-| prev, universe 2^26 | 14.3 / 13.5 | 14.2 / 14.1 | 14.9 / 13.3 |
+| insert, universe 1e6 | 4.4 / 4.1 | 5.1 / 5.1 | 4.7 / 4.3 |
+| insert, universe 2^26 | 6.2 / 5.6 | 5.3 / 4.4 | not measured yet |
+| insert/erase churn, universe 1e6 | 4.2 / 4.1 | 5.1 / 4.9 | 4.5 / 4.4 |
+| next, universe 1e6 | 1.6 / 1.4 | 1.6 / 1.3 | 1.6 / 1.4 |
+| next, universe 2^26 | 9.2 / 7.9 | 9.1 / 8.3 | 9.1 / 8 |
+| prev, universe 1e6 | 1.3 / 1.2 | 1.3 / 1.2 | 1.3 / 1.1 |
+| prev, universe 2^26 | 8.4 / 7.8 | 8.5 / 7.9 | 8.5 / 7.4 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape (1e6 operations, universe 1e6) | std::set |
 |---|---|
-| insert | 537 / 557 |
-| lower_bound | 482 / 484 |
+| insert | 289 / 251 |
+| lower_bound | 368 / 391 |
 
 ## Pitfalls and notes
 

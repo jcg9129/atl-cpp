@@ -91,10 +91,9 @@ The three precision tiers need different expectations:
 
 ## Measured performance
 
-Not measured yet with a complete publication record for this family. The
-half-plane benchmark includes a comparison on two finished circle hulls, but
-the supplied dispatch-size record does not measure that row. The wide path is
-not measured yet; the benchmark includes a coordinates-near-`2^60` shape.
+`benchmarks/geometry/halfplane_intersection.cpp` measures intersection of
+two finished circle hulls, including coordinates near `2^60`.
+This is not a complete comparison for this operations family.
 
 ## Pitfalls and notes
 

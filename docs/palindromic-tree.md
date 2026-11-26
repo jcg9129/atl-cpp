@@ -113,21 +113,23 @@ destroyed or assigned to.
 
 `benchmarks/strings/palindromic_tree.cpp` races reserve plus whole-word build.
 The library files a node in the same descent that probes for it; by find
-then emplace probes again for missing nodes. These supplied measurements use
-32-bit occurrence seeds; the widened counters require remeasurement.
+then emplace probes again for missing nodes.
+The native sigma=26 10^6 find-then-emplace row varies between runs
+(1.29x spread); its minimum alone does not establish a stable ranking.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean ms over three runs of 25 samples; parentheses are
-slowest/fastest spread.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library -O2 | by find then emplace -O2 | library native | by find then emplace native |
 |---|---:|---:|---:|---:|
-| 10^6 sigma=2 | 19.3 (1.01x) | 20.6 (1.00x) | 19.2 (1.01x) | 20.5 (1.01x) |
-| 10^6 sigma=26 | 43.5 (1.02x) | 47.9 (1.02x) | 41.7 (1.08x) | 48.0 (1.05x) |
-| 10^6 all-a | 24.3 (1.02x) | 24.8 (1.01x) | 24.7 (1.03x) | 27.5 (1.01x) |
-| 10^6 sigma=10^6 | 538 (1.04x) | 643 (1.08x) | 528 (1.03x) | 634 (1.05x) |
-| 5*10^6 sigma=26 | 234 (1.02x) | 250 (1.09x) | 222 (1.05x) | 229 (1.08x) |
+| 10^6 sigma=2 | 12.1 (1.03x) | 13.4 (1.01x) | 12.7 (1.11x) | 13.7 (1.11x) |
+| 10^6 sigma=26 | 30.4 (1.04x) | 34.5 (1.23x) | 30.4 (1.15x) | 36.5 (1.29x) |
+| 10^6 all-a | 26.3 (1.00x) | 27.2 (1.02x) | 26.8 (1.05x) | 27.4 (1.06x) |
+| 10^6 sigma=10^6 | 341 (1.04x) | 446 (1.04x) | 404 (1.10x) | 526 (1.15x) |
+| 5*10^6 sigma=26 | 164 (1.05x) | 197 (1.18x) | 172 (1.07x) | 193 (1.22x) |
 
 ## Pitfalls and notes
 

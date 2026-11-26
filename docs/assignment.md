@@ -95,87 +95,124 @@ epsilon-scaling auction, and the general min-cost-flow reduction. Separate
 loops time column-reduction traversal, flattening copies and transpose order;
 each sample includes its own working-storage allocation.
 
-Intel Xeon Platinum 8280 at 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions
-disabled, 2026-10-15. Minimum of three per-run means, ten samples per row.
-Plain flags: `-O2 -g -DNDEBUG -std=c++23`; native adds `-march=native`.
-All times below are milliseconds; a dash means that operation is not in that
-shape's race.
-
 ### Plain -O2
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | contender | uniform 1e9 500² | uniform 0..9 500² | product mod 4096 500² | banded 500² | wide 100×5000 |
 |---|---|---|---|---|---|
-| library | 2.8 | 0.919 | 3.0 | 0.66 | 1.2 |
-| by shortest augmenting paths | 7.1 | 0.74 | 9.2 | 0.46 | 1.2 |
-| by auction | 7.7 | 4.4 | 6.6 | 5.3 | — |
-| by min cost flow reduction | 33.7 | 12.1 | 33.6 | 10.1 | — |
+| library | 2 | 0.523 | 2.1 | 0.385 | 0.494 |
+| by shortest augmenting paths | 5.1 | 0.482 | 6.5 | 0.224 | 0.482 |
+| by auction | 8.6 | 5 | 7.3 | 4.9 | — |
+| by min cost flow reduction | 13.6 | 3 | 13.2 | 1.6 | — |
 
 ### -O2 -march=native
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | contender | uniform 1e9 500² | uniform 0..9 500² | product mod 4096 500² | banded 500² | wide 100×5000 |
 |---|---|---|---|---|---|
-| library | 3.3 | 0.926 | 3.5 | 0.651 | 1.2 |
-| by shortest augmenting paths | 8.4 | 0.725 | 10.8 | 0.444 | 1.2 |
-| by auction | 7.9 | 4.5 | 6.6 | 5.6 | — |
-| by min cost flow reduction | 38.1 | 13.0 | 38.6 | 10.5 | — |
+| library | 2.1 | 0.563 | 2.2 | 0.386 | 0.468 |
+| by shortest augmenting paths | 5.4 | 0.456 | 6.9 | 0.208 | 0.478 |
+| by auction | 8.6 | 5.1 | 7.3 | 4.9 | — |
+| by min cost flow reduction | 13.6 | 3 | 13.2 | 1.5 | — |
 
 ### Additional solves
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | library shape | plain -O2 | -O2 -march=native |
 |---|---|---|
-| uniform 1e9 int32 500², int64 sums | 2.1 | 1.8 |
-| Monge 500² | 0.644 | 0.527 |
-| tall 5000×100 | 1.4 | 1.4 |
-| same tall data stored wide 100×5000 | 1.1 | 1.0 |
-| tall 2000×1000 int32 | 11.2 | 8.9 |
-| uniform 1e9 int64 2000² | 98.8 | 113 |
-| Monge 3000² | 62.2 | 60.3 |
+| uniform 1e9 int32 500², int64 sums | 1.6 | 1.5 |
+| Monge 500² | 0.252 | 0.25 |
+| tall 5000×100 | 0.546 | 0.539 |
+| same tall data stored wide 100×5000 | 0.432 | 0.437 |
+| tall 2000×1000 int32 | 6.9 | 6.7 |
+| uniform 1e9 int64 2000² | 70.6 | 71.9 |
+| Monge 3000² | 48 | 46.9 |
 
 ### Matrix passes, plain -O2
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | column reduction by column major | by row major | flatten by push back | by row insert |
 |---|---|---|---|---|
-| uniform 1e9 500² | 0.331 | 0.295 | 0.209 | 0.203 |
-| uniform 0..9 500² | 0.309 | 0.278 | 0.210 | 0.191 |
-| uniform 1e9 int64 2000² | 32.8 | 5.0 | 6.0 | 6.8 |
-| uniform 1e9 int32 2000² | 25.2 | 4.4 | 3.8 | 2.4 |
-| uniform 1e9 int64 4000² | 200 | 21.6 | 77.8 | 81.1 |
-| uniform 1e9 int32 4000² | 140 | 17.7 | 44.8 | 39.7 |
-| Monge 3000² | — | — | 45.5 | 47.7 |
+| uniform 1e9 500² | 0.168 | 0.1 | 0.087 | 0.05 |
+| uniform 0..9 500² | 0.165 | 0.08 | 0.087 | 0.048 |
+| uniform 1e9 int64 2000² | 4.8 | 1.5 | 1.5 | 1.3 |
+| uniform 1e9 int32 2000² | 2.8 | 1.3 | 1.3 | 0.582 |
+| uniform 1e9 int64 4000² | 36 | 8.1 | 72.7 | 66.4 |
+| uniform 1e9 int32 4000² | 21.6 | 6.3 | 38.1 | 33.8 |
+| Monge 3000² | — | — | 41.5 | 38.1 |
 
 ### Matrix passes, -O2 -march=native
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | column reduction by column major | by row major | flatten by push back | by row insert |
 |---|---|---|---|---|
-| uniform 1e9 500² | 0.343 | 0.125 | 0.210 | 0.202 |
-| uniform 0..9 500² | 0.316 | 0.108 | 0.210 | 0.194 |
-| product mod 4096 500² | 0.334 | 0.119 | 0.201 | 0.201 |
-| banded 500² | 0.365 | 0.129 | 0.207 | 0.191 |
-| uniform 1e9 int64 500² | 0.331 | 0.122 | 0.200 | 0.201 |
-| uniform 1e9 int32 500² | 0.289 | 0.092 | 0.143 | 0.103 |
-| uniform 1e9 int64 2000² | 32.3 | 2.9 | 6.0 | 6.9 |
-| uniform 1e9 int32 2000² | 26.2 | 1.6 | 3.0 | 2.4 |
-| uniform 1e9 int64 4000² | 200 | 15.2 | 78.1 | 80.9 |
-| uniform 1e9 int32 4000² | 140 | 9.7 | 41.1 | 39.4 |
-| Monge 3000² | — | — | 46.1 | 47.7 |
+| uniform 1e9 500² | 0.175 | 0.03 | 0.088 | 0.051 |
+| uniform 0..9 500² | 0.165 | 0.027 | 0.088 | 0.05 |
+| product mod 4096 500² | 0.167 | 0.028 | 0.087 | 0.05 |
+| banded 500² | 0.151 | 0.038 | 0.087 | 0.05 |
+| uniform 1e9 int64 500² | 0.173 | 0.03 | 0.088 | 0.05 |
+| uniform 1e9 int32 500² | 0.151 | 0.026 | 0.085 | 0.027 |
+| uniform 1e9 int64 2000² | 4.8 | 0.777 | 1.4 | 1.2 |
+| uniform 1e9 int32 2000² | 2.6 | 0.462 | 1.3 | 0.559 |
+| uniform 1e9 int64 4000² | 35.9 | 5.4 | 72.2 | 66 |
+| uniform 1e9 int32 4000² | 22.1 | 4 | 37.8 | 33.4 |
+| Monge 3000² | — | — | 40.7 | 37.3 |
 
 ### Transpose passes
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | row order, plain | tiles, plain | row order, native | tiles, native |
 |---|---|---|---|---|
-| tall 5000×100 int64 | 0.788 | 0.841 | 0.787 | 0.806 |
-| tall 2000×1000 int32 | 5.1 | 2.7 | 6.2 | 2.4 |
-| tall 2000×1000 int64 | 8.1 | 5.9 | 8.1 | 6.0 |
+| tall 5000×100 int64 | 0.21 | 0.261 | 0.209 | 0.265 |
+| tall 2000×1000 int32 | 1.3 | 0.836 | 1.3 | 0.822 |
+| tall 2000×1000 int64 | 2.2 | 1.9 | 2.2 | 2.1 |
 
-JV preprocessing helps large-range costs but costs more than the tail it saves
-on tie-heavy and banded matrices; SAP alone wins those shapes. The separate
-matrix and sum types reduce the uniform 500² plain solve from 2.8 to 2.1 ms.
-Row-major column minima cost 5.0 versus 32.8 ms on int64 2000² in plain mode.
-Tiles help the 2000×1000 transpose, while 5000×100 sees a small regression.
-Row inserts benefit several int32 copies but lose on large int64 copies, so
-the solver keeps per-element push_back. Auction never strictly wins a recorded
-shape. The general flow comparison remains useful for showing specialization
-cost and as an independent oracle; its timings include the full reduction.
+The library beats SAP alone on the large-range square matrices, but loses
+on tie-heavy costs (0.523/0.563 versus 0.482/0.456 ms) and banded matrices
+(0.385/0.386 versus 0.224/0.208 ms). The wide shape favors SAP plain
+(0.482 versus 0.494 ms) and the library native (0.468 versus 0.478 ms).
+Separate matrix and sum types reduce the uniform 500² solve from 2/2.1 to
+1.6/1.5 ms. Row-major column minima take 1.5 versus 4.8 ms on int64 2000²
+plain (0.777 versus 4.8 ms native). Tiles help both 2000×1000 transposes,
+but slow 5000×100 from 0.21/0.209 to 0.261/0.265 ms, or 24.29%/26.79%.
+Row insertion beats per-element `push_back` on every represented flattening
+workload, including int64 4000² (66.4/66 versus 72.7/72.2 ms).
+Auction loses every measured shape. The general flow timings include the
+full reduction; that contender also serves as an independent oracle.
+
+The int64 2000×1000 transpose rows vary between runs (spreads up to
+1.76x), as do some matrix passes; the transpose minima alone do not
+establish a stable tile advantage.
 
 ## Pitfalls and notes
 

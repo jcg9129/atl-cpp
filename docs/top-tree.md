@@ -221,76 +221,116 @@ must be representable; signed overflow is not checked.
 
 ## Measured performance
 
-Measurements using `benchmarks/ds/top_tree.cpp`, 2026-10-25, Xeon Platinum 8168
-(other records of the dynamic forests ran on a Xeon Platinum 8280: compare
-rows only within one record), asserts off, min ms over 3 runs,
-`-march=native -O2` / plain `-O2`, N = Q = 5e5 (the record also has 2e5).
-Euler-tour measurements below use the by-splay contender. The benchmark
-reference uses the library treap backend, so those rows need remeasurement.
-Static contenders use [lca::path](lca.md), a lazy segment tree for path
-addition and sums, and a direction-aware segment tree for affine composition.
-They share the dynamic contenders' operation loops and verify answer agreement
-outside timing. These restored contenders are **not measured yet** in the
-supplied record for either flag set.
+`benchmarks/ds/top_tree.cpp` measures complete dependent workloads, including
+construction, at N = Q = 2e5 and 5e5. Static contenders use [lca::path](lca.md),
+a lazy segment tree for path addition and sums, and a direction-aware segment
+tree for affine composition. They share the dynamic contenders' operation loops
+and verify answer agreement outside timing. Euler tour references below use
+the library treap backend. The path-sum link-cut reference uses commutative
+folding with lazy add; the affine reference uses ordered composition.
 
-| shape | library top_tree | link_cut_tree | other |
-|---|---|---|---|
-| path add + path sum, random tree | 2175 / 2172 | 558 / 542 | |
-| path add + path sum, path | 824 / 864 | 588 / 562 | |
-| path add + path sum, star | 1672 / 1672 | 106 / 106 | |
-| path add + path sum, caterpillar | 2172 / 2198 | 1106 / 1050 | |
-| path add + path sum, binary | 2287 / 2321 | 781 / 781 | |
-| set + affine path composite (library reversal; user `Reverse` 1576 / 1551) | 1514 / 1496 | 507 / 507 | |
-| churn + vertex add + subtree sum (`sum_top_tree`) | 1896 / 1906 | | `subtree_link_cut_tree` 844 / 850; splay ETT 1280 / 1247 |
-| churn + subtree add + subtree sum (`sum_top_tree`) | 2298 / 2344 | | splay ETT 2373 / 2341 |
-| mixed path/subtree mix (`extremes_top_tree`) | 2656 / 2683 | | |
-| weight set + diameter, random / path / star / caterpillar | 2952 / 2938, 1826 / 1806, 2100 / 2100, 2204 / 2160 | | |
-| edge replacement churn + diameter (`diameter_top_tree`) | 4311 / 4288 | | |
-| marked toggles + distance sums (`marked_distance_top_tree`) | 1719 / 1699 | | |
-| structure only: assign_parents + churn | 886 / 886 | 419 / 419 | splay ETT 817 / 817 |
-| structure only: N - 1 links | 465 / 465 | 3.9 / 3.9 | splay ETT 423 / 423 |
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 3 runs of 25 samples per row.
+Every timing pair is plain / native. A dash means that combination is not timed.
 
-Native-flag contender comparison from the same source, CPU, compiler,
-build and date, minimum milliseconds:
+| workload | N = Q | library top tree | `link_cut_tree` | by heavy light | by interleaved layout | by rake append |
+| --- | --- | --- | --- | --- | --- | --- |
+| path add + path sum, random tree | 5e5 | 1680 / 1820 | 399 / 442 | 665 / 687 | 1627 / 1727 | 1777 / 1841 |
+| path add + path sum, path | 5e5 | 573 / 570 | 403 / 412 | 116 / 117 | 583 / 607 | 571 / 571 |
+| path add + path sum, star | 5e5 | 1177 / 1302 | 57.0† / 65.7 | 213† / 228† | 1218 / 1190 | 1136 / 1212 |
+| path add + path sum, caterpillar | 5e5 | 1486 / 1541 | 773 / 796 | 279 / 309 | 1651 / 1592 | 1553 / 1666 |
+| path add + path sum, binary | 5e5 | 1700 / 1821† | 568 / 624 | 1033 / 1127 | 1709 / 1759† | 1768 / 1883 |
+| path add + path sum, star | 2e5 | 283 / 298 | 10.8 / 10.5 | 50.6 / 47.2 | 300 / 286 | 263 / 307 |
+| set + affine path composite | 5e5 | 1066 / 1163 | 319 / 344† | 307 / 332† | — | — |
+| set + affine path composite, user `Reverse` | 5e5 | 1018 / 1048† | 319 / 344† | 307 / 332† | — | — |
+| set + affine path composite | 2e5 | 276 / 320 | 84.3 / 94.3 | 72.7 / 75.6 | — | — |
 
-| workload | N = Q | library | by per-splay push | by edge leaves |
-|---|---:|---:|---:|---:|
-| diameter, random tree | 2e5 | 939 | 975 | 978 |
-| diameter, random tree | 5e5 | 2952 | 3045 | 3053 |
-| diameter, path | 2e5 | 558 | 603 | 771 |
-| diameter, path | 5e5 | 1826 | 1937 | 2489 |
-| diameter, star | 2e5 | 606 | 599 | 625 |
-| diameter, star | 5e5 | 2100 | 2087 | 2057 |
-| diameter, caterpillar | 2e5 | 685 | 732 | 789 |
-| diameter, caterpillar | 5e5 | 2204 | 2321 | 2540 |
-| diameter, edge churn | 2e5 | 1375 | | 1291 |
-| diameter, edge churn | 5e5 | 4311 | | 4114 |
-| marked toggles and distance sums | 2e5 | 476 | | 448 |
-| marked toggles and distance sums | 5e5 | 1719 | | 1617 |
+| workload, N = Q = 5e5 | library top tree | same-workload references |
+| --- | --- | --- |
+| churn + vertex add + subtree sum (`sum_top_tree`) | 1417 / 1419 | `subtree_link_cut_tree` 630 / 693; treap ETT 804 / 858 |
+| churn + subtree add + subtree sum (`sum_top_tree`) | 1677 / 1871 | treap ETT 1448 / 1630 |
+| mixed path/subtree mix (`extremes_top_tree`) | 1856 / 1964 | — |
+| weight set + diameter, random tree | 1997 / 2144 | — |
+| weight set + diameter, path | 1238 / 1281 | — |
+| weight set + diameter, star | 1403 / 1499 | — |
+| weight set + diameter, caterpillar | 1474 / 1537 | — |
+| edge replacement churn + diameter (`diameter_top_tree`) | 3016 / 3155 | — |
+| marked toggles + distance sums (`marked_distance_top_tree`) | 1207 / 1267 | — |
+| structure only: `assign_parents` + churn | 642 / 650 | `link_cut_tree<>` 296 / 315; treap ETT 399 / 419 |
+| structure only: N - 1 links | 357 / 357 | `link_cut_tree<>` 4.0 / 4.2; treap ETT 214 / 226 |
 
-The `by per-splay push` contender loses the path-sum path at 5e5:
-975 / 975 ms versus library 824 / 864 ms. The `by edge leaves` contender
-loses that diameter path at 2489 / 2458 ms versus library 1826 / 1806 ms,
-but wins edge-replacement churn at 4114 ms (`-march=native`) versus 4311 ms with the same flags,
-and marked distances at 1617 / 1647 ms versus 1719 / 1699 ms.
-Interleaved layout, rake append, rerooting and cached vertex clusters are
-not measured in the supplied x86-64 record; the benchmark includes all of them.
+Top-tree contenders change vertex-cluster caching, rerooting, node layout,
+ancestor pushing, rake insertion or the representation of edges:
+
+| workload, N = Q = 5e5 | library | cached vertex cluster | rerooting | interleaved layout | per-splay push | rake append | edge leaves |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| path add + path sum, random tree | 1680 / 1820 | 1744 / 1833 | 2212 / 2341 | 1627 / 1727 | 1799 / 1924 | 1777 / 1841 | — |
+| path add + path sum, path | 573 / 570 | 784 / 720 | 736 / 728 | 583 / 607 | 654 / 654 | 571 / 571 | — |
+| set + affine path composite | 1066 / 1163 | — | 1307 / 1380 | — | — | — | — |
+| churn + vertex add + subtree sum | 1417 / 1419 | — | 1455 / 1576 | — | — | — | — |
+| churn + subtree add + subtree sum | 1677 / 1871 | 1876 / 1994 | 1774 / 1939 | — | — | — | — |
+| weight set + diameter, random tree | 1997 / 2144 | 2029 / 2168 | — | 1986 / 2035 | 2047 / 2127 | 2009 / 2045 | 2053 / 2168 |
+| weight set + diameter, path | 1238 / 1281 | 1351 / 1391 | — | 1313 / 1374 | 1333 / 1387 | 1235 / 1280 | 1709 / 1735 |
+| weight set + diameter, star | 1403 / 1499 | 1464 / 1536 | — | 1403 / 1480 | 1410 / 1477 | 1420 / 1490 | 1422 / 1490 |
+| weight set + diameter, caterpillar | 1474 / 1537 | 1463 / 1542 | — | 1535 / 1577 | 1563 / 1628 | 1479 / 1506 | 1690 / 1782 |
+| edge replacement churn + diameter | 3016 / 3155 | — | — | — | — | — | 2867 / 2969 |
+| marked toggles + distance sums | 1207 / 1267 | — | — | — | — | — | 1136 / 1170 |
+| structure only: `assign_parents` + churn | 642 / 650 | — | — | — | — | 643 / 684 | — |
+
+† marks a timing with slowest/fastest-run spread at least 1.25x (up to 1.45x
+here). Those minima alone do not establish rankings. The 2e5 star and affine
+rows and the plain binary timings provide comparisons with lower spreads.
+
+The library loses path-only workloads to narrower structures: on the random
+tree it takes 1680 / 1820 ms versus 399 / 442 for link-cut and 665 / 687 for
+heavy light. On a path, heavy light takes 116 / 117 ms versus 573 / 570.
+The smaller star workload also favors link-cut (10.8 / 10.5 ms) and heavy
+light (50.6 / 47.2) over the top tree (283 / 298), supporting the direction
+of the noisier 5e5 comparisons. Affine composition at 2e5 loses to link-cut
+and heavy light too: 276 / 320 versus 84.3 / 94.3 and 72.7 / 75.6 ms.
+
+For vertex add + subtree sum under churn, the top tree loses to subtree
+link-cut (1417 / 1419 versus 630 / 693 ms) and treap ETT (804 / 858).
+Subtree add + subtree sum also loses to treap ETT (1677 / 1871 versus
+1448 / 1630 ms). Structure-only churn takes 642 / 650 ms versus 296 / 315
+for link-cut and 399 / 419 for treap ETT; incremental links take 357 / 357
+versus 4.0 / 4.2 and 214 / 226 ms respectively.
+
+Interleaved layout beats the library on random-tree path sums
+(1627 / 1727 versus 1680 / 1820 ms) but loses on a path
+(583 / 607 versus 573 / 570). Rake append has no uniform advantage:
+random-tree path sums take 1777 / 1841 ms and path sums on a path take
+571 / 571, versus library 1680 / 1820 and 573 / 570. Rerooting and cached
+vertex clusters lose path sums on a path (736 / 728 and 784 / 720 versus
+573 / 570 ms); caching also loses subtree add + subtree sum
+(1876 / 1994 versus 1677 / 1871 ms). Per-splay push loses path sums on a
+path (654 / 654 versus 573 / 570 ms) and diameter on a path
+(1333 / 1387 versus 1238 / 1281 ms).
+
+Edge leaves lose diameter on a path (1709 / 1735 versus 1238 / 1281 ms),
+but the library loses edge-replacement diameter churn to them
+(3016 / 3155 versus 2867 / 2969 ms), as well as marked distances
+(1207 / 1267 versus 1136 / 1170 ms). These variants have no uniform win
+across the measured workloads.
 
 ## Pitfalls and choosing
 
 | Need on a changing forest | Take |
 |---|---|
-| path folds / lazy path updates only | [`link_cut_tree`](link-cut-tree.md): 1.40-4.01x faster on non-star path sums, 15.77x on stars; static HLD comparison not measured yet |
-| subtree folds over a commutative **group** (sum, xor), point updates, maybe path folds | [`subtree_link_cut_tree`](subtree-link-cut-tree.md): vertex add + subtree sum 850 ms vs 1906 for the top tree (and 1247 for the splay ETT) |
+| path folds / lazy path updates only | [`link_cut_tree`](link-cut-tree.md): 1.38-4.21x faster on non-star path sums; for fixed topology, heavy light also wins the shown path workloads (see spread caveat above) |
+| subtree folds over a commutative **group** (sum, xor), point updates, maybe path folds | [`subtree_link_cut_tree`](subtree-link-cut-tree.md): vertex add + subtree sum 630 / 693 ms vs 1417 / 1419 for the top tree (treap ETT: 804 / 858) |
 | subtree / component folds and lazy subtree updates, no paths | [`euler_tour_tree`](euler-tour-tree.md) for component and edge-side operations |
 | path AND subtree updates together, a non-invertible subtree fold (min, max) with paths or re-rooting, or a whole-tree shape aggregate (diameter, farthest vertex, distance sums) | **`top_tree`** |
 
 Use the top tree only for what the others cannot do. A top tree pull calls
 `add_vertex` and two to four `compress`es, a rake pull two `rake`s and one
 `add_edge`, so where a narrower structure applies it is slower: the table
-above puts it 1.40-15.77x behind `link_cut_tree` on path sums and 2.24-2.25x behind
-`subtree_link_cut_tree` on vertex add + subtree sum; plain connectivity
-churn costs it 2.11x the link-cut tree's time.
+above puts it 1.38-4.21x behind `link_cut_tree` on non-star path sums and
+2.05-2.25x behind `subtree_link_cut_tree` on vertex add + subtree sum;
+connectivity churn costs it 2.06-2.17x the link-cut tree's time.
 
 - `fold(u, v)` returns the whole tree as a cluster: read the spine part for
   a path query (`spine.sum` in the sum set), the whole for a component one.

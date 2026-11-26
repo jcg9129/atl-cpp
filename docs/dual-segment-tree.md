@@ -31,7 +31,7 @@ st.apply(l, r, affine{b, c});
 auto v = st.at(i);
 ```
 
-On its home workload it measures **about 2.2× faster** than a `lazy_segment_tree`
+On its home workload it measures **1.85–2.11× faster** than a `lazy_segment_tree`
 forced into the same job with a width-carrying algebra (see
 [Measured performance](#measured-performance)).
 
@@ -107,32 +107,46 @@ Documented only:
 
 ## Measured performance
 
-Measured 2026-11-01 using `benchmarks/ds/dual_segment_tree.cpp`.
-x86-64 Xeon Platinum 8280, g++ 15.2, asserts off; milliseconds, plain
-`-O2` / `-march=native`, minimum over three runs; n=1e6, 1e6 operations,
+`benchmarks/ds/dual_segment_tree.cpp`: n=1e6, 1e6 operations,
 including construction, int64 values and tags.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+Every timing pair is plain / native.
+
 | workload | commutative dual tree | difference_fenwick |
-|---|---|---|
-| range add / point get, 50/50 | 93.0 / 98.0 | 40.1 / 39.9 |
-| range add / point get, 90/10 | 128 / 143 | 57.0 / 58.1 |
-| range xor / point get, 50/50 | 103 / 99.0 | 39.6 / 38.8 |
-| range xor / point get, 90/10 | 145 / 144 | 57.3 / 57.2 |
+| --- | --- | --- |
+| range add / point get, 50/50 | 79.4 / 77.3† | 57.8 / 59.7 |
+| range add / point get, 90/10 | 109 / 108 | 90.9 / 92.6 |
+| range xor / point get, 50/50 | 79.0 / 74.8 | 56.9 / 60.4 |
+| range xor / point get, 90/10 | 110 / 104 | 94.8 / 93.5 |
 
-The same source, CPU and compiler also measure affine updates and tag-order
-modes on 2026-10-24. These rows use `-O2 -march=native -g -DNDEBUG -std=c++23`:
+The same source also measures affine updates and tag-order modes:
 
-| 1,000,000 operations, n=1e6 | library | comparison |
-|---|---:|---:|
-| affine apply/read, 50/50 | 504 | 1177, lazy aggregation |
-| add/read, 50/50, ordered / commutative | 168 | 111, commutative tags |
-| add/read, 90/10, ordered / commutative | 227 | 155, commutative tags |
+| workload | library | comparison |
+| --- | --- | --- |
+| affine apply/read, 50/50 | 457 / 421 | 844 / 890, lazy aggregation |
+| add/read, 50/50, ordered / commutative | 118† / 112† | 75.5 / 77.2†, commutative tags |
+| add/read, 90/10, ordered / commutative | 170 / 159† | 106 / 108, commutative tags |
 
-For these invertible commutative operations, use
-[`difference_fenwick`](difference-fenwick.md): it reduces the measured cost
-substantially on these shapes. The dual tree stays available for other tag actions, `set`
-and `values()`. It does not automatically dispatch to the Fenwick wrapper;
-there is no performance claim for other sizes, types or operation mixes.
+Affine apply/read takes 457 / 421 ms versus 844 / 890 for lazy aggregation,
+a 1.85x / 2.11x speedup. † marks a timing with slowest/fastest-run spread
+at least 1.25x (up to 1.33x here). The tag-order minima alone do not establish
+stable ratios; the plain 90/10 row also supports skipping boundary pushes
+for commutative tags (106 versus 170 ms).
+
+The commutative dual tree loses all four shown invertible workloads to
+[`difference_fenwick`](difference-fenwick.md): add takes 79.4 / 77.3 versus
+57.8 / 59.7 ms at 50/50 and 109 / 108 versus 90.9 / 92.6 at 90/10;
+xor takes 79.0 / 74.8 versus 56.9 / 60.4 ms at 50/50 and 110 / 104 versus
+94.8 / 93.5 at 90/10. The native 50/50 add dual-tree timing has 1.25x spread;
+the plain row and both 90/10 rows also favor Fenwick. The dual tree stays
+available for other tag actions, `set` and `values()`. It does not automatically
+dispatch to the Fenwick wrapper; there is no performance claim for other
+sizes, types or operation mixes.
 
 ## Pitfalls and notes
 

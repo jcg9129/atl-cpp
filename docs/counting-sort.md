@@ -89,23 +89,29 @@ elements, either `int32` keys or 16-byte records sorted by an `int32` field,
 with key span 10³ or 10⁶, so it measures throughput. "Copy only" is the copy of
 the input without sorting, the floor shared by every row.
 
-Xeon Platinum 8280, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
-Minimum of 3 runs, milliseconds per sort including the copy:
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | flags | copy only | library | by cycle walk | `std::ranges::sort` | `std::ranges::stable_sort` |
 |---|---|---:|---:|---:|---:|---:|
-| ints, span 10³ | `-O2` | 0.722 | **7.3** | 37.1 | 43.7 | 60.8 |
-| ints, span 10³ | `-O2 -march=native` | 0.719 | **7.1** | 36.6 | 42.2 | 61.1 |
-| ints, span 10⁶ | `-O2` | 0.723 | **26.0** | 55.8 | 71.0 | 84.3 |
-| ints, span 10⁶ | `-O2 -march=native` | 0.719 | **26.3** | 55.6 | 70.3 | 84.4 |
-| records, span 10³ | `-O2` | 2.9 | **21.6** | 45.2 | 55.5 | 78.8 |
-| records, span 10³ | `-O2 -march=native` | 2.9 | **22.7** | 45.8 | 49.4 | 74.4 |
-| records, span 10⁶ | `-O2` | 2.9 | **43.1** | 66.2 | 83.6 | 104 |
-| records, span 10⁶ | `-O2 -march=native` | 2.9 | **43.2** | 67.2 | 76.3 | 96.3 |
+| ints, span 10³ | `-O2` | 0.083 | **2.9** | 22 | 41 | 54.6 |
+| ints, span 10³ | `-O2 -march=native` | 0.089 | **2.6** | 19.9 | 34.6 | 44.5 |
+| ints, span 10⁶ | `-O2` | 0.087 | **4.5** | 23.5 | 69.4 | 81 |
+| ints, span 10⁶ | `-O2 -march=native` | 0.088 | **4.5** | 21.6 | 57.1 | 64.5 |
+| records, span 10³ | `-O2` | 0.442 | **4.5** | 23.3 | 45.6 | 61.6 |
+| records, span 10³ | `-O2 -march=native` | 0.528 | **8.1** | 24.5 | 39.3 | 57.6 |
+| records, span 10⁶ | `-O2` | 0.447 | **7.9** | 26.3 | 74.1 | 90.2 |
+| records, span 10⁶ | `-O2 -march=native` | 0.522 | **9.3** | 25.9 | 62.3 | 82 |
 
-The library is fastest on every shape with both flag sets. By cycle walk is 1.5
-to 5.2 times slower (ints, span 10³: 5.1 times; records, span 10⁶: 1.5 times),
-`std::ranges::sort` 1.8 to 6.0 times and `std::ranges::stable_sort` 2.2 to 8.6
-times. Native instructions change none of this by more than a few percent,
-except that `std::ranges::sort` on records is faster with them (49.4 against
-55.5 ms at span 10³).
+The library is the fastest sorting contender on every shape in both modes.
+Cycle walk takes 2.78 to 7.65 times as long, `std::ranges::sort` 4.85 to
+15.42 times and `std::ranges::stable_sort` 7.11 to 18.83 times. Native flags
+change some costs substantially: library records at span 10³ rise from
+4.5 to 8.1 ms, while `std::ranges::sort` on those records falls from
+45.6 to 39.3 ms.
+
+The native int span-10³ library row varies between runs (1.39x spread);
+its minimum alone does not establish a stable speedup.

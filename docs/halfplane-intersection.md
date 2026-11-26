@@ -128,29 +128,34 @@ the library run detector with forced key sort and forced rotated-run sort on
 circle tangents. Other rows vary the determinant filter, deque pass, buffer,
 sort-key width and radix width, plus two finished circle hulls.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-11-02. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run means over three runs of 25 samples; ms.
 Two runs are a circularly rotated sequence; eight and nine are ascending key
-runs. Only these dispatch-size rows have supplied measurements.
+runs.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | n | Key runs | Library -O2 / native | By key sort -O2 / native | By rotated runs -O2 / native |
 |---:|---:|---:|---:|---:|
-| 1000 | 2 | 0.066 / 0.069 | 0.070 / 0.073 | 0.066 / 0.069 |
-| 1000 | 8 | 0.069 / 0.071 | 0.074 / 0.074 | 0.069 / 0.072 |
-| 1000 | 9 | 0.072 / 0.074 | 0.071 / 0.075 | — |
-| 10000 | 2 | 0.668 / 0.681 | 0.734 / 0.746 | 0.666 / 0.683 |
-| 10000 | 8 | 0.674 / 0.694 | 0.727 / 0.735 | 0.677 / 0.692 |
-| 10000 | 9 | 0.731 / 0.746 | 0.731 / 0.740 | — |
-| 50000 | 2 | 3.4 / 3.6 | 3.8 / 3.9 | 3.4 / 3.6 |
-| 50000 | 8 | 3.5 / 3.6 | 3.8 / 3.9 | 3.5 / 3.6 |
-| 50000 | 9 | 3.8 / 3.9 | 3.8 / 3.9 | — |
-| 500000 | 2 | 35.8 / 37.1 | 41.9 / 42.6 | 36.0 / 36.7 |
-| 500000 | 8 | 37.7 / 38.3 | 42.0 / 42.6 | 37.9 / 38.1 |
-| 500000 | 9 | 42.5 / 43.0 | 41.7 / 42.8 | — |
+| 1000 | 2 | 0.057 / 0.047 | 0.06 / 0.051 | 0.057 / 0.047 |
+| 1000 | 8 | 0.059 / 0.046 | 0.063 / 0.05 | 0.059 / 0.046 |
+| 1000 | 9 | 0.062 / 0.049 | 0.062 / 0.049 | — |
+| 10000 | 2 | 0.563 / 0.472 | 0.601 / 0.504 | 0.567 / 0.473 |
+| 10000 | 8 | 0.585 / 0.48 | 0.606 / 0.498 | 0.585 / 0.477 |
+| 10000 | 9 | 0.613 / 0.488 | 0.604 / 0.483 | — |
+| 50000 | 2 | 2.8 / 2.3 | 3 / 2.5 | 2.8 / 2.3 |
+| 50000 | 8 | 3 / 2.3 | 3 / 2.4 | 2.9 / 2.3 |
+| 50000 | 9 | 3 / 2.4 | 3 / 2.4 | — |
+| 500000 | 2 | 26.5 / 23 | 28.8 / 25.4 | 26.4 / 23 |
+| 500000 | 8 | 27.9 / 24 | 29.3 / 25.3 | 28.1 / 24 |
+| 500000 | 9 | 29.6 / 25.8 | 29.1 / 25.6 | — |
 
-At 500000 constraints and two runs, dispatch saves 14.6% with plain -O2
-((41.9 - 35.8) / 41.9) and 12.9% with native flags ((42.6 - 37.1) / 42.6).
+At 500000 constraints and two runs, dispatch saves 7.99% plain
+((28.8 - 26.5)/28.8) and 9.45% native ((25.4 - 23)/25.4) against key sort.
+At nine runs it loses to key sort at n=10000 (0.613/0.488 versus
+0.604/0.483 ms) and n=500000 (29.6/25.8 versus 29.1/25.6 ms).
 The nine-run rows use the full-sort fallback.
 
 ## Pitfalls and notes
@@ -173,8 +178,7 @@ layout. Rounded determinants carry `fast`'s limitations and are checked against
 the public `fast` call: their boundary can differ from `exact` on tangent inputs. The Dekker contender
 requires uncontracted split arithmetic; its implementation enforces rounding
 stores. Standard-deque compositions are runtime only because that container
-is not constexpr. These additional race rows are not measured yet in the
-supplied publication record.
+is not constexpr.
 
 ## How it works
 

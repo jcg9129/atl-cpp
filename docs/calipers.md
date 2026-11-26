@@ -154,25 +154,26 @@ applications on scattered clouds. Parallel and opposed dual streams differ
 in their second support direction; applications fold those events for their
 own objectives. There is no alternative implementation in this benchmark.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo,
-assertions off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run means over three runs of 25 samples;
-milliseconds.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Row | -O2 | native |
 |---|---:|---:|
-| antipodal sweep, 1e5-vertex hull | 2.1 | 2.3 |
-| dual sweep parallel, 1e5 + 1e5 | 4.3 | 4.3 |
-| dual sweep opposed, 1e5 + 1e5 | 4.3 | 4.3 |
-| farthest pair, 1e6 cloud | 12.4 | 11.6 |
-| narrowest strip, 1e6 cloud | 12.5 | 11.6 |
-| farthest pair between two 5e5 clouds | 11.5 | 11.0 |
-| hull-region distance, two 5e5 clouds | 14.8 | 14.3 |
-| minimum-area rectangle, 1e6 cloud | 12.4 | 11.8 |
+| antipodal sweep, 1e5-vertex hull | 1.2 | 1.2 |
+| dual sweep parallel, 1e5 + 1e5 | 3.3 | 3.4 |
+| dual sweep opposed, 1e5 + 1e5 | 3.3 | 3.4 |
+| farthest pair, 1e6 cloud | 4.4 | 5 |
+| narrowest strip, 1e6 cloud | 4.5 | 5.3 |
+| farthest pair between two 5e5 clouds | 4.1 | 5.1 |
+| hull-region distance, two 5e5 clouds | 5 | 5.7 |
+| minimum-area rectangle, 1e6 cloud | 4.2 | 5.1 |
 
-The plain antipodal row is 21 ns per input hull vertex (2.1 ms / 1e5).
-End-to-end cloud times are dominated by hull construction. The perimeter
-rectangle has no supplied measurement.
+The antipodal row is 12 ns per input hull vertex in both modes
+(1.2 ms / 1e5). The cloud rows include hull construction. The perimeter
+rectangle is not measured yet.
 
 ## Pitfalls and notes
 

@@ -94,84 +94,98 @@ hull-heavy circles because of its O(n h) cost. A final row forms a Minkowski
 sum of finished circle hulls. Divide and conquer is not raced: it has the
 same bound as the monotone chain with more merge machinery.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo,
-assertions off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run means, three runs of 25 samples; milliseconds.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Row | -O2 | native |
 |---|---:|---:|
-| library, uniform 1e6 int64 | 12.1 | 11.3 |
-| by unpruned chain, uniform | 136 | 136 |
-| library, circle 1e6 | 132 | 132 |
-| by unpruned chain, circle | 133 | 132 |
-| library, Gaussian cluster 1e6 | 12.5 | 11.5 |
-| by unpruned chain, cluster | 142 | 139 |
-| library, uniform double 1e6 | 11.3 | 12.5 |
-| by Graham scan, uniform | 256 | 287 |
-| by Graham scan, circle | 257 | 287 |
-| by Quickhull, uniform | 37.5 | 42.2 |
-| by Quickhull, cluster | 32.3 | 36.3 |
-| by Quickhull, circle | 289 | 342 |
-| by Chan, uniform | 278 | 279 |
-| by Chan, circle | 462 | 479 |
-| by Jarvis march, uniform (h about 30) | 333 | 406 |
-| Minkowski sum, two circle hulls | 12.8 | 13.6 |
+| library, uniform 1e6 int64 | 4.7 | 5.2 |
+| by unpruned chain, uniform | 109 | 104 |
+| library, circle 1e6 | 107 | 99.6 |
+| by unpruned chain, circle | 108 | 101 |
+| library, Gaussian cluster 1e6 | 5 | 5.6 |
+| by unpruned chain, cluster | 116 | 112 |
+| library, uniform double 1e6 | 5.5 | 5.2 |
+| by Graham scan, uniform | 184 | 183 |
+| by Graham scan, circle | 182 | 176 |
+| by Quickhull, uniform | 26.1 | 25.1 |
+| by Quickhull, cluster | 22.3 | 21.5 |
+| by Quickhull, circle | 226 | 219 |
+| by Chan, uniform | 199 | 179 |
+| by Chan, circle | 296 | 278 |
+| by Jarvis march, uniform (h about 30) | 217 | 205 |
+| Minkowski sum, two circle hulls | 8.7 | 8.2 |
 
-Pruning is about 11.2 times faster on the plain uniform row (136 / 12.1),
-while its sample gate avoids an expensive full scan on hull-heavy inputs.
-Quickhull uses explicit heap tasks and Graham scan orders same-ray ties
-with raw coordinates;
-the supplied measurements establish the algorithm comparison, while their
-current implementation costs need a new measurement.
+Pruning is 109/4.7 = 23.19 times faster than the unpruned chain on the
+plain uniform row (104/5.2 = 20.00 native); circle times are 107/99.6 versus
+108/101 ms. Quickhull uses explicit heap tasks and Graham scan orders
+same-ray ties with raw coordinates; these implementations are measured here.
 
-The same source record also measures hull-union paths (now reproduced by
-`benchmarks/geometry/convex_hull_merge.cpp`); CPU, compiler and flags as above.
+Hull-union paths are measured by
+`benchmarks/geometry/convex_hull_merge.cpp`; CPU, compiler and flags as above.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Union of two circle sets | -O2 | native |
 |---|---:|---:|
-| by concatenation, raw 1e6 + 1e6 | 320 | 317 |
-| by materialized chains with rehull, raw | 303 | 301 |
-| by copodal walk with rehull, raw | 334 | 332 |
-| by concatenation, finished hulls | 48.2 | 47.8 |
-| by materialized chains with rehull, finished hulls | 87.4 | 87.2 |
-| by materialized chains, finished hulls | 26.4 | 26.1 |
-| by copodal walk with rehull, finished hulls | 117 | 117 |
-| by copodal walk, finished hulls | 56.2 | 56.6 |
+| by concatenation, raw 1e6 + 1e6 | 246 | 247 |
+| by materialized chains with rehull, raw | 225 | 227 |
+| by copodal walk with rehull, raw | 252 | 255 |
+| by concatenation, finished hulls | 34.1 | 35 |
+| by materialized chains with rehull, finished hulls | 57.8 | 64 |
+| by materialized chains, finished hulls | 19.9 | 21.2 |
+| by copodal walk with rehull, finished hulls | 82 | 90.4 |
+| by copodal walk, finished hulls | 42.8 | 47 |
 
 The merge dispatch-size race compares streamed chains with binary bridges on
-separated hulls. Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0,
-RelWithDebInfo, assertions off, 2026-11-02. Same flag sets and sampling method;
-milliseconds. Source: `benchmarks/geometry/convex_hull_merge.cpp`.
+separated hulls. Source: `benchmarks/geometry/convex_hull_merge.cpp`.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Type, shape, total vertices | by streamed chains -O2 / native | library -O2 / native |
 |---|---:|---:|
 | int64, halves, 256 | 0.001 / 0.001 | 0.001 / 0.001 |
-| int64, circles, 256 | 0.002 / 0.002 | 0.002 / 0.002 |
+| int64, circles, 256 | 0.001 / 0.002 | 0.001 / 0.002 |
 | int64, halves, 512 | 0.002 / 0.002 | 0.002 / 0.002 |
-| int64, circles, 512 | 0.004 / 0.004 | 0.004 / 0.005 |
-| int64, halves, 1024 | 0.004 / 0.004 | 0.001 / 0.002 |
-| int64, circles, 1024 | 0.009 / 0.009 | 0.001 / 0.002 |
-| int64, halves, 2048 | 0.008 / 0.008 | 0.002 / 0.003 |
-| int64, circles, 2048 | 0.018 / 0.018 | 0.002 / 0.002 |
-| int64, halves, 8192 | 0.031 / 0.031 | 0.005 / 0.006 |
-| int64, circles, 8192 | 0.071 / 0.071 | 0.003 / 0.004 |
-| int64, halves, 32768 | 0.121 / 0.123 | 0.016 / 0.017 |
-| int64, circles, 32768 | 0.282 / 0.282 | 0.009 / 0.010 |
-| int64, halves, 100000 | 0.364 / 0.377 | 0.122 / 0.111 |
-| int64, circles, 100000 | 0.860 / 0.862 | 0.052 / 0.049 |
-| int64, halves, 300000 | 1.1 / 1.1 | 0.365 / 0.331 |
-| int64, circles, 300000 | 2.2 / 2.6 | 0.186 / 0.168 |
+| int64, circles, 512 | 0.002 / 0.004 | 0.003 / 0.004 |
+| int64, halves, 1024 | 0.003 / 0.004 | 0.001 / 0.002 |
+| int64, circles, 1024 | 0.005 / 0.007 | 0.001 / 0.002 |
+| int64, halves, 2048 | 0.006 / 0.007 | 0.001 / 0.003 |
+| int64, circles, 2048 | 0.01 / 0.014 | 0.001 / 0.002 |
+| int64, halves, 8192 | 0.022 / 0.028 | 0.003 / 0.006 |
+| int64, circles, 8192 | 0.04 / 0.054 | 0.002 / 0.004 |
+| int64, halves, 32768 | 0.088 / 0.115 | 0.009 / 0.017 |
+| int64, circles, 32768 | 0.161 / 0.221 | 0.004 / 0.009 |
+| int64, halves, 100000 | 0.279 / 0.349 | 0.039 / 0.044 |
+| int64, circles, 100000 | 0.485 / 0.68 | 0.018 / 0.024 |
+| int64, halves, 300000 | 0.833 / 1 | 0.102 / 0.116 |
+| int64, circles, 300000 | 1.5 / 2 | 0.057 / 0.064 |
 | int32, halves, 256 | 0.001 / 0.001 | 0.001 / 0.001 |
 | int32, circles, 256 | 0.001 / 0.001 | 0.001 / 0.001 |
-| int32, halves, 1024 | 0.003 / 0.003 | 0.001 / 0.001 |
-| int32, circles, 1024 | 0.005 / 0.005 | 0.001 / 0.001 |
-| int32, halves, 8192 | 0.020 / 0.024 | 0.003 / 0.003 |
-| int32, circles, 8192 | 0.039 / 0.042 | 0.002 / 0.002 |
+| int32, halves, 1024 | 0.002 / 0.002 | 0.001 / 0.002 |
+| int32, circles, 1024 | 0.003 / 0.004 | 0.001 / 0.001 |
+| int32, halves, 8192 | 0.015 / 0.019 | 0.002 / 0.004 |
+| int32, circles, 8192 | 0.027 / 0.031 | 0.001 / 0.003 |
 
-The 300000-vertex disjoint-circle row saves about 91.5% with plain -O2
-(1 - 0.186 / 2.2). Overlapping, nested, identical, disk and interleaved rows
-remain in the benchmark; their current dispatch comparison is not measured
-yet in the supplied record.
+The 300000-vertex int64 disjoint-circle row saves 96.20% plain
+(1 - 0.057/1.5) and 96.80% native (1 - 0.064/2). At 512 int64 circle
+vertices the library loses plain (0.003 versus 0.002 ms) and ties native
+(0.004 ms).
+
+The uniform pruning row varies between runs (spread up to 1.78x), as do
+the 300000-vertex int64 circle dispatch rows (up to 1.36x). Their quoted
+ratios describe minima; neither row alone establishes a stable speedup.
 
 ### Pitfalls and notes
 
@@ -203,15 +217,19 @@ needed, because the input is a point cloud.
 
 `benchmarks/geometry/convex_layers.cpp` measures complete peeling on square
 and disk clouds and nested octagons; there is no rival implementation.
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo,
-assertions off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run means, three runs of 25 samples; milliseconds.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Input | -O2 | native |
 |---|---:|---:|
-| uniform square, 100k | 1991 | 2009 |
-| uniform disk, 100k | 1797 | 1812 |
-| 2500 nested octagons, 20k | 641 | 662 |
+| uniform square, 100k | 1370 | 1480 |
+| uniform disk, 100k | 1220 | 1330 |
+| 2500 nested octagons, 20k | 435 | 504 |
 
 ### Pitfalls and notes
 

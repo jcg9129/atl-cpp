@@ -122,40 +122,42 @@ the serialized rows, on a chain where each result picks the next triple
 the rounding error by `|left| + |right|` whatever the signs of the two products,
 instead of first returning on opposite signs; it shares the adaptive stages.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run mean over three runs of 25 samples; ms per
-1e6 calls, which is ns per call. Spreads 1.01x to 1.15x.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Policy or contender | -O2 | native |
 |---|---|---:|---:|
-| int32 uniform within 1e9 | exact | 2.7 | 2.6 |
-| int64 uniform within 2^61 | exact (int128 products) | 7.7 | 7.7 |
-| double generic position | exact | 16.6 | 16.5 |
-| double generic position | fast | 5.8 | 5.7 |
-| double generic position | approx{1e-9} | 5.8 | 5.6 |
-| double generic position | by branchless filter | 6.6 | 6.1 |
-| double collinear grid | exact | 24.1 | 18.1 |
-| double collinear grid | fast | 5.5 | 5.4 |
-| double collinear grid | by branchless filter | 24.0 | 18.1 |
-| double grid nudged one ulp | exact | 24.2 | 18.0 |
-| double grid nudged one ulp | fast | 5.6 | 5.6 |
-| double grid nudged one ulp | by branchless filter | 28.1 | 22.8 |
-| double mixed-exponent collinear | exact | 85.7 | 68.6 |
-| double mixed-exponent collinear | fast | 5.6 | 5.4 |
-| double generic, serialized | exact | 25.9 | 24.8 |
-| double generic, serialized | fast | 16.3 | 15.7 |
-| double generic, serialized | by branchless filter | 17.4 | 16.4 |
-| int32, serialized | exact | 11.7 | 11.6 |
+| int32 uniform within 1e9 | exact | 2.1 | 2.2 |
+| int64 uniform within 2^61 | exact (int128 products) | 3.2 | 3.5 |
+| double generic position | exact | 17.9 | 18.1 |
+| double generic position | fast | 1.5 | 1.5 |
+| double generic position | approx{1e-9} | 1.4 | 1.4 |
+| double generic position | by branchless filter | 2.4 | 1.9 |
+| double collinear grid | exact | 13.3 | 11.7 |
+| double collinear grid | fast | 1.4 | 1.5 |
+| double collinear grid | by branchless filter | 13 | 11.3 |
+| double grid nudged one ulp | exact | 13.4 | 11.7 |
+| double grid nudged one ulp | fast | 1.4 | 1.4 |
+| double grid nudged one ulp | by branchless filter | 13 | 11.4 |
+| double mixed-exponent collinear | exact | 58.4 | 51.4 |
+| double mixed-exponent collinear | fast | 1.5 | 1.5 |
+| double generic, serialized | exact | 28.5 | 27.9 |
+| double generic, serialized | fast | 12.7 | 12.9 |
+| double generic, serialized | by branchless filter | 13.1 | 13.1 |
+| int32, serialized | exact | 10.5 | 10.7 |
 
-Exactness costs 2.9x over `fast` in throughput on generic doubles but 1.6x in
-the serialized loop, where latency dominates. The collinear grid exits after
-the exact product of the rounded differences; about half of the
-mixed-exponent triples reach the full expansion, the worst case at about
-86 ns. The branchless filter runs generic position 2.5x faster (6.6 against
-16.6 ns) and the serialized loop 33% faster, but it is 16% slower one ulp from
-degeneracy at `-O2` (28.1 against 24.2 ns) and 27% slower with
-`-march=native`; whether to adopt it is open.
+Exact generic-double orientation takes 17.9/1.5 = 11.93 times the fast
+policy's throughput time plain (18.1/1.5 = 12.07 native), and
+28.5/12.7 = 2.24 times as long serialized (27.9/12.9 = 2.16 native).
+Mixed-exponent collinear triples take 58.4/51.4 ns per orientation.
+The library exact filter loses to the branchless filter on generic doubles
+(17.9/18.1 versus 2.4/1.9 ms), serialized doubles (28.5/27.9 versus
+13.1/13.1 ms), the collinear grid (13.3/11.7 versus 13/11.3 ms) and the
+one-ulp grid (13.4/11.7 versus 13/11.4 ms). These results no longer show a
+degenerate-input loss for the branchless contender.
 
 ### Pitfalls
 
@@ -286,28 +288,32 @@ row is one full call on random boxes in a 1e9 square: small boxes (sides below
 whole square; the int32 rows narrow the same boxes. Tests certify both against
 a per-cell brute force.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run mean over three runs of 25 samples;
-milliseconds. Spreads 1.00x to 1.03x.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | -O2 | native |
 |---|---|---:|---:|
-| int64 small boxes 2e5 | library | 259 | 261 |
-| int64 small boxes 2e5 | by top-down tree | 346 | 346 |
-| int64 small boxes 1e6 | library | 2001 | 1995 |
-| int64 small boxes 1e6 | by top-down tree | 2587 | 2561 |
-| int64 nested boxes 2e5 | library | 276 | 283 |
-| int64 nested boxes 2e5 | by top-down tree | 368 | 369 |
-| int64 nested boxes 1e6 | library | 2145 | 2143 |
-| int64 nested boxes 1e6 | by top-down tree | 2743 | 2716 |
-| int32 small boxes 1e6 | library | 1603 | 1577 |
-| int32 small boxes 1e6 | by top-down tree | 2206 | 2205 |
-| int32 nested boxes 1e6 | library | 1727 | 1723 |
-| int32 nested boxes 1e6 | by top-down tree | 2328 | 2370 |
+| int64 small boxes 2e5 | library | 235 | 204 |
+| int64 small boxes 2e5 | by top-down tree | 310 | 292 |
+| int64 small boxes 1e6 | library | 1770 | 1550 |
+| int64 small boxes 1e6 | by top-down tree | 2400 | 2030 |
+| int64 nested boxes 2e5 | library | 246 | 210 |
+| int64 nested boxes 2e5 | by top-down tree | 350 | 298 |
+| int64 nested boxes 1e6 | library | 1880 | 1660 |
+| int64 nested boxes 1e6 | by top-down tree | 2480 | 2150 |
+| int32 small boxes 1e6 | library | 1450 | 1200 |
+| int32 small boxes 1e6 | by top-down tree | 2060 | 1720 |
+| int32 nested boxes 1e6 | library | 1580 | 1320 |
+| int32 nested boxes 1e6 | by top-down tree | 2180 | 1860 |
 
-The top-down tree takes 28-38% longer at `-O2` and 27-40% longer with
-`-march=native`, on every shape.
+The top-down tree takes 31.91% to 42.28% longer plain and 29.52% to
+43.33% longer native across the represented shapes.
+
+Several million-box rows vary between runs (spreads up to 1.38x);
+the percentage range describes measured minima, not a stable bound.
 
 ## Polar-angle sort
 

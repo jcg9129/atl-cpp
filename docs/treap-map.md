@@ -102,10 +102,17 @@ Mutation has no transactional rollback guarantee.
 
 ## Measured performance
 
-`benchmarks/ds/treap_map.cpp`: **not measured yet**. It compares mixed
+Measurements from `benchmarks/ds/treap_map.cpp`
+(2026-11-22, AMD EPYC-Milan ccx23, GCC 15.2.0,
+RelWithDebInfo, assertions off; plain `-O2` / `-O2 -march=native`,
+five runs of 25 samples). It compares mixed
 insert/erase/rank with a `std::map` membership stand-in (the query costs are
 not equivalent), and tree union with inserting every incoming key separately.
-Both union loops include the same deep-copy setup.
+Both union loops include the same deep-copy setup. The 1e4-key union
+into a copy of 1e6 takes 106/65.1 ms for the library versus 116/73.5 ms
+by element insertion. The mixed library stream takes 145/141 ms versus
+101/78.7 ms for the standard-map stand-in, which omits rank queries;
+that is not an equivalent-operation speed comparison.
 
 ## Pitfalls and notes
 

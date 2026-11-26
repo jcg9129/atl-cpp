@@ -59,33 +59,31 @@ weight. The [Euclidean minimum spanning tree](delaunay.md) runs beside these on 
 same uniform and gridded clouds. It builds a different tree; its agreement
 check is only `size() == n - 1`.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run mean over three runs of 25 samples;
-milliseconds. Spreads 1.00x to 1.02x.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | -O2 | native |
 |---|---|---:|---:|
-| uniform 1e5 | library | 174 | 175 |
-| uniform 1e5 | by Fenwick prefix minimum | 182 | 178 |
-| uniform 1e5 | euclidean_mst | 172 | 172 |
-| uniform 4e5, 1e9 span | library | 976 | 966 |
-| uniform 4e5, 1e9 span | by Fenwick prefix minimum | 1134 | 1109 |
-| gridded 1e5 (many ties) | library | 129 | 129 |
-| gridded 1e5 (many ties) | by Fenwick prefix minimum | 131 | 128 |
-| gridded 1e5 (many ties) | euclidean_mst | 67.2 | 67.3 |
-| staircase 1e5 (distinct x) | library | 128 | 125 |
-| staircase 1e5 (distinct x) | by Fenwick prefix minimum | 117 | 114 |
+| uniform 1e5 | library | 127 | 127 |
+| uniform 1e5 | by Fenwick prefix minimum | 136 | 141 |
+| uniform 1e5 | euclidean_mst | 108 | 121 |
+| uniform 4e5, 1e9 span | library | 627 | 669 |
+| uniform 4e5, 1e9 span | by Fenwick prefix minimum | 726 | 803 |
+| gridded 1e5 (many ties) | library | 85.3 | 90.5 |
+| gridded 1e5 (many ties) | by Fenwick prefix minimum | 92.2 | 97.6 |
+| gridded 1e5 (many ties) | euclidean_mst | 48.3 | 47.5 |
+| staircase 1e5 (distinct x) | library | 83.2 | 89.8 |
+| staircase 1e5 (distinct x) | by Fenwick prefix minimum | 83.9 | 87.9 |
 
-The Fenwick contender takes 5% longer on 1e5 uniform points at `-O2` (2%
-native) and 16% longer at 4e5 (15% native), ties the grid within 2%, and wins
-only the staircase, where the library takes 9% longer (10% native): its two
-extra sorts per sweep (the x ranks, then the arrival order) cost what the flat
-tree saves.
+Fenwick takes 7.09%/11.02% longer on 1e5 uniform points and
+15.79%/20.03% longer at 4e5 (plain/native). It also loses the grid
+(92.2/97.6 versus 85.3/90.5 ms). The staircase favors the library plain
+(83.2 versus 83.9 ms), but the library loses native (89.8 versus 87.9 ms).
+No speed comparison is established for the Euclidean edge-sort experiment.
 
-The Euclidean edge-sort comparison (2026-10-14, same CPU/compiler/build,
-assertions off, `-O2`) measured 25.9 ms with precomputed squared-length keys
-versus 73.4 ms recomputing both lengths in the comparator, uniform 1e5.
 
 ## Pitfalls and notes
 

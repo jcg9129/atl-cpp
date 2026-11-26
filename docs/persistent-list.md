@@ -58,14 +58,16 @@ an rvalue, while owning rvalues and yielded prvalues may move.
 by copying the shared pool handle with moving that handle. Both keep appended
 nodes in the shared arena and construct a fresh list for each sample.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off.
-Milliseconds, minimum of three run means; each pair is plain `-O2` /
-`-O2 -march=native`, both also with `-g -DNDEBUG -std=c++23`. Measured 2026-10-23.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | method | time |
 |---|---:|
-| by copied version handle (`v = v.push_front(x)`) | 32.4 / 33.4 |
-| by moved version handle (`v = std::move(v).push_front(x)`) | 10.2 / 10.5 |
+| by copied version handle (`v = v.push_front(x)`) | 5.1 / 6.8 |
+| by moved version handle (`v = std::move(v).push_front(x)`) | 4.1 / 4 |
 
 ## Pitfalls and notes
 

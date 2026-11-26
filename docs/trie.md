@@ -92,30 +92,35 @@ contenders are in `experimental/atl/experimental/strings/trie_variants.hpp`;
 tests certify both against a map-backed multiset oracle. The raw-symbol BST is
 excluded from sorted timing because sorted symbols form a linear sibling chain.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean over three runs of 25 samples; milliseconds.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape / operation | Contender | -O2 | native |
 |---|---|---:|---:|
-| random build | library | 38.6 | 35.2 |
-| random 1e5 queries | library | 35.8 | 37.2 |
-| random build | by global hash | 148 | 60.1 |
-| random 1e5 queries | by global hash | 77.8 | 80.8 |
-| random build | by symbol BST | 31.6 | 31.0 |
-| random 1e5 queries | by symbol BST | 24.1 | 24.2 |
-| sorted build | library | 46.9 | 43.1 |
-| sorted 1e5 queries | library | 55.3 | 52.4 |
-| sorted build | by global hash | 158 | 65.5 |
-| sorted 1e5 queries | by global hash | 89.7 | 84.8 |
-| binary 2e5x30 erase | library | 225 | 225 |
-| binary 2e5x30 erase | by two descents | 237 | 243 |
-| U=1e6 1e5x10 insert+erase | library | 76.9 | 74.0 |
-| U=1e6 1e5x10 insert+erase | by two descents | 93.7 | 91.1 |
+| random build | library | 26.2 | 27.4 |
+| random 1e5 queries | library | 28.7 | 25.6 |
+| random build | by global hash | 52.6 | 55.7 |
+| random 1e5 queries | by global hash | 55.9 | 61.2 |
+| random build | by symbol BST | 20.4 | 22 |
+| random 1e5 queries | by symbol BST | 16.3 | 16.2 |
+| sorted build | library | 28.8 | 30 |
+| sorted 1e5 queries | library | 34.4 | 37.3 |
+| sorted build | by global hash | 58.2 | 59.5 |
+| sorted 1e5 queries | by global hash | 61.2 | 61.8 |
+| binary 2e5x30 erase | library | 200 | 192 |
+| binary 2e5x30 erase | by two descents | 217 | 200 |
+| U=1e6 1e5x10 insert+erase | library | 56.2 | 52 |
+| U=1e6 1e5x10 insert+erase | by two descents | 68 | 62.9 |
 
-Random and sorted storage races use U=1e6, 1e5 words of length 10. Spreads range
-from 1.00x to 1.15x. The raw-symbol BST wins random queries, but hashing avoids
-its sorted-input chain; the global hash map loses on these query workloads.
+Random and sorted storage races use U=1e6, 1e5 words of length 10. Spreads range from 1.04x to 1.81x. The library loses random queries to
+the raw-symbol BST (28.7/25.6 versus 16.3/16.2 ms); those library rows
+vary between runs (1.25x spread in both modes), so minima alone do not
+establish a stable ratio. Hashing avoids the BST's sorted-input chain.
+The global hash map has larger query minima on both random and sorted
+inputs; those rows also vary between runs.
 The benchmark-local `trie_by_two_descents` lives in
 `benchmarks/strings/baseline/trie.hpp`; its projection must remain stable across
 both descents. It retains nodes just as the library does.

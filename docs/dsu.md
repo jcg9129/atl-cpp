@@ -104,27 +104,30 @@ histories, random/binomial unions, batched rollback and version-tree traversal
 measure throughput, including construction where it occurs in the timed body.
 
 Source: [`benchmarks/ds/dsu.cpp`](../benchmarks/ds/dsu.cpp).
-CPU: Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-15.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Cells are minimum milliseconds
-over three runs of 25 samples, plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | ms |
 |---|---|---|
-| 200000 unions, n=200000 | library dsu | 4.0 / 3.7 |
-| 200000 unions, n=200000 | library rollback_dsu | 4.7 / 5.1 |
-| 200000 unions, n=200000 | library persistent_dsu | 210 / 209 |
-| 1000000 same queries | library rollback_dsu | 23.3 / 24.6 |
-| 1000000 same queries | library persistent_dsu | 110 / 93.8 |
-| n=1e6, 1e6 random unions + 1e6 queries | library full compression | 40.4 / 39.8 |
-| n=1e6, 1e6 random unions + 1e6 queries | by path halving | 39.1 / 40.7 |
-| n=2^20, binomial unions + 1e6 queries | library full compression | 23.1 / 20.8 |
-| n=2^20, binomial unions + 1e6 queries | by path halving | 25.4 / 26.6 |
-| 1e7 unions, batches of 64 + rollback | library 12-byte log | 296 / 271 |
-| 1e7 unions, batches of 64 + rollback | by compact log | 298 / 301 |
-| version tree n=q=200000 | library rollback_dsu | 6.5 / 6.8 |
-| version tree n=q=200000 | by compact log | 6.3 / 6.3 |
-| version tree n=q=200000 | library persistent_dsu | 256 / 253 |
+| 200000 unions, n=200000 | library dsu | 2.9 / 2.7 |
+| 200000 unions, n=200000 | library rollback_dsu | 3.7 / 3.3 |
+| 200000 unions, n=200000 | library persistent_dsu | 167 / 144 |
+| 1000000 same queries | library rollback_dsu | 20.6 / 19.8 |
+| 1000000 same queries | library persistent_dsu | 87.9 / 74.3 |
+| n=1e6, 1e6 random unions + 1e6 queries | library full compression | 30.2 / 29.5 |
+| n=1e6, 1e6 random unions + 1e6 queries | by path halving | 31.4 / 30.1 |
+| n=2^20, binomial unions + 1e6 queries | library full compression | 15.6 / 14.9 |
+| n=2^20, binomial unions + 1e6 queries | by path halving | 19.4 / 18.3 |
+| 1e7 unions, batches of 64 + rollback | library 12-byte log | 235 / 224 |
+| 1e7 unions, batches of 64 + rollback | by compact log | 234 / 222 |
+| version tree n=q=200000 | library rollback_dsu | 5 / 4.6 |
+| version tree n=q=200000 | by compact log | 5.2 / 4.4 |
+| version tree n=q=200000 | library persistent_dsu | 195 / 171 |
 
 ## Pitfalls and notes
 

@@ -144,56 +144,85 @@ including construction. Contenders change rerooting, size storage, ancestor
 pushing or node layout; commutative folding is a public mode. Static contenders use [lca::path](lca.md) over a segment tree for point-add
 path sums and direction-aware affine composition, or a lazy segment tree for
 affine path updates. They share the dynamic contenders' operation loops and
-check answer agreement outside timing. The supplied 2026-10-25 Xeon Platinum
-8168 records cover churn and edge workloads; these static contenders are
-**not measured yet** for either plain `-O2` or `-O2 -march=native`.
+check answer agreement outside timing.
 
-Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-25,
-`-O2 -march=native`, N = Q = 5e5. Minimum milliseconds over three runs:
+N = Q = 5e5; native flags.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library | `commutative_fold` | by rerooting | by omitting size | by parity walk | by split layout | by columnar layout |
 |---|---|---|---|---|---|---|---|
-| random tree | **268** | 227 | 531 | 250 | 258 | 265 | 305 |
-| path | **433** | 409 | 511 | 424 | 473 | 404 | 389 |
-| star | **57.7** | 50.2 | 111 | 55.1 | 59.4 | 61.5 | 73.3 |
-| caterpillar | **708** | 611 | 845 | 697 | 748 | 709 | 711 |
-| random churn (cut / link / path sum) | **645** | 571 | 696 | 631 | 641 | 648 | 806 |
-| `make_root` + path sum | **789** | 664 | 1052 | 741 | 764 | 792 | 949 |
-| point set + affine path composite | **466** | | 790 | 438 | 460 | 447 | 570 |
-| lazy affine path update + path sum | **913** | 736 | 1823 | 875 | | 950 | 1172 |
-| structure-only churn | **463** | | | 434 | 458 | 469 | 515 |
-| edge tier MST by path max | **753** (default order 828) | | 783 | | 757 | 817 | 1157 |
+| random tree | **197** | 170 | 390 | 186 | 186 | 174 | 215 |
+| path | **287** | 259 | 355 | 278 | 321 | 266 | 299 |
+| star | **38.6** | 30.8 | 77.1 | 31.9 | 35.3 | 31.6 | 36.8 |
+| caterpillar | **437** | 401 | 556 | 435 | 488 | 409 | 475 |
+| random churn (cut / link / path sum) | **473** | 423 | 489 | 443 | 446 | 415 | 528 |
+| `make_root` + path sum | **559** | 505 | 731 | 549 | 530 | 507 | 632 |
+| point set + affine path composite | **385** | | 679 | 376 | 389 | 385 | 414 |
+| lazy affine path update + path sum | **724** | 604 | 1400 | 692 | | 680 | 756 |
+| structure-only churn | **332** | | | 286 | 315 | 323 | 398 |
+| edge tier MST by path max | **560** (default order 625) | | 588 | | 556 | 561 | 633 |
 
-The newer churn and edge records use Xeon Platinum 8168, the same compiler,
-build and date. Minimum milliseconds, `-O2 -march=native`, N = Q = 5e5:
+N = Q = 5e5; native flags.
 
-| workload | library | commutative fold | by rerooting | by omitting size | by parity walk | by split layout | by columnar layout |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| random churn | 701 | 606 | 734 | 696 | 674 | 682 | 908 |
-| structure-only churn | 510 | | | 448 | 491 | 490 | 540 |
-| edge-tier MST, commutative max | 838 | | 898 | | 843 | 910 | 1218 |
-| edge-tier MST, default fold order | 908 | | | | | | |
-
-The same native-flag record at N = Q = 2e5:
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | library | commutative fold | by rerooting | by omitting size | by parity walk | by split layout | by columnar layout |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| random churn | 211 | 182 | 232 | 216 | 208 | 209 | 233 |
-| structure-only churn | 165 | | | 148 | 158 | 160 | 177 |
-| edge-tier MST, commutative max | 254 | | 271 | | 257 | 254 | 316 |
-| edge-tier MST, default fold order | 273 | | | | | | |
+| random churn | 473 | 423 | 489 | 443 | 446 | 415 | 528 |
+| structure-only churn | 332 | | | 286 | 315 | 323 | 398 |
+| edge-tier MST, commutative max | 560 | | 588 | | 556 | 561 | 633 |
+| edge-tier MST, default fold order | 625 | | | | | | |
 
-Plain `-O2`, Xeon Platinum 8168, same compiler, build and date,
-N = Q = 2e5, minimum milliseconds:
+Native-flag measurements at N = Q = 2e5:
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | library | commutative fold | by rerooting | by omitting size | by parity walk | by split layout | by columnar layout |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| random churn | 205 | 183 | 223 | 196 | 204 | 195 | 233 |
+| random churn | 140 | 133 | 156 | 137 | 137 | 137 | 169 |
+| structure-only churn | 114 | | | 98.3 | 106 | 112 | 138 |
+| edge-tier MST, commutative max | 161 | | 171 | | 156 | 161 | 183 |
+| edge-tier MST, default fold order | 174 | | | | | | |
+
+N = Q = 2e5; plain flags.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
+| workload | library | commutative fold | by rerooting | by omitting size | by parity walk | by split layout | by columnar layout |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| random churn | 178 | 165 | 196 | 175 | 172 | 153 | 174 |
 
 Commutative folding reduces aggregate work. Rerooting requires extra accesses.
-The size field keeps depth and indexed path queries available. Split layout
-has no consistent advantage; columnar layout loses the mutation-heavy shapes.
-The ancestor stack remains the push strategy.
+The size field keeps depth and indexed path queries available. At n=q=5e5 native the library loses random churn to split layout
+(473 versus 415 ms), parity walk (446 ms) and omitted size (443 ms).
+Split layout wins every shown native shape except affine composition
+(a 385 ms tie) and edge-tier MST (561 versus the library's 560 ms).
+Parity walk loses the native path (321 versus 287 ms) and caterpillar
+(488 versus 437 ms). At n=q=2e5 plain, even columnar layout beats the
+library on random churn (174 versus 178 ms); it loses the shown native
+churn rows. The ancestor stack remains the library push strategy, with
+no uniform performance advantage established here.
+
+The native random-tree and star rows, and plain n=q=2e5 churn, include
+contenders that vary between runs (up to 1.86x). Those minima alone do not
+establish stable layout or push-strategy rankings.
 
 ## Pitfalls and choosing
 

@@ -117,19 +117,29 @@ and map tables are on their guide pages. Handle-splay measurements compare
 ancestor scratch with a store-owned buffer, parent-pointer reversal and a
 two-pass reversal-parity walk.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off,
-2026-10-24, `benchmarks/ds/splay_sequence.cpp`. Minimum of three run means, ms;
-both flag sets also use `-g -DNDEBUG -std=c++23`.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | flags | n | library | by store buffer | by pointer reversal | by parity walk |
 |---|---:|---:|---:|---:|---:|
-| `-O2` | 200,000 | 179 | 179 | 185 | 188 |
-| `-O2` | 1,000,000 | 1942 | 1940 | 1969 | 1890 |
-| `-O2 -march=native` | 200,000 | 173 | 174 | 179 | 178 |
-| `-O2 -march=native` | 1,000,000 | 1932 | 1930 | 1943 | 1833 |
+| `-O2` | 200,000 | 170 | 163 | 161 | 161 |
+| `-O2` | 1,000,000 | 1870 | 1820 | 1900 | 2060 |
+| `-O2 -march=native` | 200,000 | 137 | 136 | 137 | 143 |
+| `-O2 -march=native` | 1,000,000 | 1540 | 1550 | 1570 | 1620 |
 
 
-The [`link_cut_tree`](link-cut-tree.md) push-strategy race also keeps the ancestor stack: parity-walk pushing was within noise (`benchmarks/ds/link_cut_tree.cpp`).
+The [`link_cut_tree`](link-cut-tree.md) push-strategy race has no uniform
+winner: at n=q=5e5 native the library stack loses random churn to parity
+walk (473 versus 446 ms), but wins the path (287 versus 321 ms).
+In this handle race the library loses at n=2e5 plain to pointer reversal
+and parity walk (170 versus 161 ms), while n=1e6 native favors it
+(1540 versus 1570/1620 ms).
+
+The plain handle rows vary between runs (spreads up to 1.40x); their
+small differences alone do not establish stable push-strategy rankings.
 
 ## Pitfalls and notes
 

@@ -71,24 +71,30 @@ types deliberately compute in their ring. Increasing k can overflow even a
 The library builds factor records then fills values. The fused-sieve contender
 keeps four per-entry tables to avoid divisions, at the cost of scattered writes.
 
-Source: `benchmarks/nt/sieve.cpp`. Intel Xeon Platinum 8280, GCC 15.2,
-RelWithDebInfo, assertions disabled, 2026-10-15. Columns give milliseconds for
-`-O2 -g -DNDEBUG -std=c++23` and the same flags plus `-march=native`.
-Each cell is minimum milliseconds (spread = slowest run / fastest run), over
-three runs of 25 samples; each run contributes its mean.
-These records measure native 128-bit arithmetic; software-wide timings are not measured yet.
+Source: `benchmarks/nt/sieve.cpp`. These measurements use native 128-bit arithmetic; software-wide timings are not measured yet.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | table / n | library -O2 | by fused sieve -O2 | library native | by fused sieve native |
 | --- | --- | --- | --- | --- |
-| totient / 1e6 | 9.9 (1.04x) | 11.4 (1.07x) | 10.3 (1.02x) | 12.8 (1.00x) |
-| divisor count / 1e6 | 9.4 (1.04x) | 11.1 (1.08x) | 9.8 (1.02x) | 12.6 (1.02x) |
-| divisor sum / 1e6 | 10.4 (1.05x) | 13.8 (1.10x) | 10.5 (1.08x) | 15.6 (1.14x) |
-| totient / 1e7 | 259 (1.01x) | 427 (1.01x) | 258 (1.01x) | 440 (1.00x) |
-| divisor count / 1e7 | 256 (1.01x) | 427 (1.01x) | 253 (1.01x) | 441 (1.01x) |
-| divisor sum / 1e7 | 299 (1.00x) | 500 (1.00x) | 295 (1.02x) | 495 (1.00x) |
+| totient / 1e6 | 5.6 (1.03x) | 4.3 (1.14x) | 5 (1.16x) | 4 (1.63x) |
+| divisor count / 1e6 | 5.5 (1.04x) | 4.3 (1.15x) | 4.9 (1.15x) | 4 (1.61x) |
+| divisor sum / 1e6 | 5.8 (1.02x) | 5.6 (1.11x) | 5.2 (1.15x) | 4.6 (1.85x) |
+| totient / 1e7 | 159 (1.01x) | 218 (1.16x) | 140 (1.07x) | 156 (1.09x) |
+| divisor count / 1e7 | 158 (1.01x) | 219 (1.01x) | 139 (1.05x) | 160 (1.04x) |
+| divisor sum / 1e7 | 189 (1.01x) | 254 (1.02x) | 164 (1.07x) | 190 (1.06x) |
 
 
-The separate pass wins every recorded table shape. The fused implementation
+The separate pass loses all three n=1e6 shapes to the fused sieve:
+totient 5.6/5 versus 4.3/4 ms, divisor count 5.5/4.9 versus 4.3/4 ms,
+and divisor sum 5.8/5.2 versus 5.6/4.6 ms. Those native fused rows vary
+between runs (1.63x, 1.61x and 1.85x spread), so their minima alone do not
+establish stable rankings. The separate pass wins all three n=1e7 shapes
+in both modes. The fused implementation
 remains a tested contender in `experimental/atl/experimental/nt/sieve_variants.hpp`.
 Its callbacks have a narrower read contract: at a prime `p`, entries below `p`
 are complete; at `v=p^e` with `e>1`, only entries through `v/p` (inclusive) are

@@ -78,7 +78,7 @@ error bound near zero.
 
 ## Measured performance
 
-Not measured yet with a complete benchmark record for this family. The
+This family has no complete performance measurement yet. The
 [arrangement race](arrangement.md) exercises the same sweep with singleton
 endpoints enabled; those whole-call timings are not intersection-only timings.
 

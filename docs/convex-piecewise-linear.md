@@ -172,35 +172,50 @@ breakpoint (`std::ranges::max` over the heap, where the library scans only
 its leaves) on segments at the rightmost slope. n = 1e6 operations with a_i
 uniform in `[0, 1e9)`, weights in `[1, 1000]`; the segment shape builds each
 function from 20,000 random hinges (about 1e4 right entries) and then
-inserts 2000 segments. Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0,
-RelWithDebInfo (`-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`),
-assertions off, 2026-11-01; minimum per-run mean over 3 runs of 25 samples,
-ms, "plain `-O2` / `-march=native`".
+inserts 2000 segments.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-26.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library | by Floyd replace_top |
 |---|---|---|
-| prefix minimum + \|x - a\|, unit | 76.7 / 72.6 | 69.8 / 71.2 |
-| window [-1000, 1000] + \|x - a\|, unit | 124 / 121 | 117 / 119 |
-| random hinges, unit | 67.1 / 64.7 | 68.5 / 68.7 |
-| prefix minimum + w\|x - a\|, weighted | 116 / 117 | 115 / 115 |
-| random weighted hinges | 88.3 / 89.9 | 89.1 / 90.2 |
+| prefix minimum + \|x - a\|, unit | 53.7 / 53.6 | 54.1 / 56 |
+| window [-1000, 1000] + \|x - a\|, unit | 83 / 87 | 85.1 / 86.8 |
+| random hinges, unit | 46.7 / 46.4 | 56.4 / 58.8 |
+| prefix minimum + w\|x - a\|, weighted | 91.6 / 88.3 | 91.5 / 87.8 |
+| random weighted hinges | 70.4 / 67.1 | 70.8 / 67.4 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-26.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library (leaf scan) | by whole-heap scan |
 |---|---|---|
-| segments at the rightmost slope, unit | 7.3 / 9.5 | 12.2 / 17.7 |
-| segments at the rightmost slope, weighted | 10.0 / 9.9 | 12.5 / 17.9 |
+| segments at the rightmost slope, unit | 6.3 / 6.3 | 11.9 / 11.9 |
+| segments at the rightmost slope, weighted | 6.7 / 6.6 | 12.1 / 12.1 |
 
-The leaf scan is 1.67x / 1.86x faster on unit entries and 1.25x / 1.81x on
-weighted ones: it reads half the entries, with no allocation or copying, for
-every position and weight type and every heap size (both are O(m)). Floyd's
-replacement is 9% / 2% faster on the unit prefix-minimum shape and 6% / 2% on
-the window, but 2% / 6% slower on unit random hinges, so it stays
-experimental: a change that costs a shape is not taken.
+The library's leaf scan beats the whole-heap scan: 6.3/6.3 versus
+11.9/11.9 ms on unit entries, 1.89 times faster with both flag sets, and
+6.7/6.6 versus 12.1/12.1 ms on weighted entries, 1.81/1.83 times faster.
+Both are O(m); the leaf scan reads half the entries.
+Floyd replacement loses the unit prefix-minimum, unit random-hinge and
+weighted random-hinge shapes with both flag sets, and the plain unit window
+(85.1 versus 83 ms). It narrowly beats the library on the native unit window
+(86.8 versus 87 ms) and on weighted prefix minima (91.5/87.8 versus
+91.6/88.3 ms).
 
-The contender race in the same file (the library's two modes against the
-textbook `std::priority_queue` form, unit-only heaps and the forest's
-breakpoint pool) is not measured in the current record; its verdict is in
-the experimental header `atl/experimental/dp/convex_piecewise_linear_variants.hpp`.
+`benchmarks/dp/convex_piecewise_linear.cpp` also measures the library's two
+modes against the textbook `std::priority_queue` form, unit-only heaps and
+the forest's breakpoint pool. The contenders are defined in
+`atl/experimental/dp/convex_piecewise_linear_variants.hpp`.
+
+The native unit random-hinge library row varies between runs (1.27x
+spread); its lead over Floyd (46.4 versus 58.8 ms) is larger than that.
 
 ## Pitfalls and notes
 

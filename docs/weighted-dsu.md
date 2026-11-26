@@ -132,25 +132,27 @@ propagate; transactional recovery after throwing group operations is not promise
 Weighted DSU contenders vary compression (two-pass buffer, two-pass inverse,
 halving, splitting, recursion), node layout, and root-child exit. Rollback
 compares interleaved nodes with split links/potentials. The loops measure
-throughput of constraint/query streams. The supplied rollback record calls the
-interleaved contender the library and the split contender “split”; the current
-library selects split storage for wide potentials and interleaved storage for
-compact ones. The table identifies the measured methods, rather than attributing
+throughput of constraint/query streams. The current library selects split storage for wide potentials and
+interleaved storage for compact ones. The table identifies the measured methods, rather than attributing
 these timings to the current width dispatch.
 
 Source: [`benchmarks/ds/weighted_dsu.cpp`](../benchmarks/ds/weighted_dsu.cpp).
-CPU: Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-11-01.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Cells are minimum milliseconds
-over three runs of 25 samples, plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+— marks a variant that `benchmarks/ds/weighted_dsu.cpp` no longer measures.
 
 | Shape | by interleaved nodes | by split nodes |
 |---|---|---|
-| modular addition n=q=200000 | 3.9 / 3.9 | 3.6 / 3.7 |
-| random mix n=1e6, 2e6 ops, int64 addition | 103 / 103 | 84.1 / 86.2 |
-| binomial trees n=2^20 + 1e6 queries, int64 addition | 249 / 254 | 176 / 168 |
-| noncommutative SL2 n=q=200000 | 9.1 / 9.4 | 8.5 / 8.6 |
-| parity n=1e6, 2e6 ops | 79.9 / 80.7 | 83.0 / 79.8 |
+| modular addition n=q=200000 | 2.9 / 3 | — |
+| random mix n=1e6, 2e6 ops, int64 addition | 61.8 / 69.1 | 53.2 / 55.2 |
+| binomial trees n=2^20 + 1e6 queries, int64 addition | 150 / 158 | 139 / 175 |
+| noncommutative SL2 n=q=200000 | 6 / 5.8 | 6.4 / 5.8 |
+| parity n=1e6, 2e6 ops | 50.7 / 53.9 | — |
 
 The same source races all compression strategies and root-child exits on modular
 addition and noncommutative SL2, each with n=q=200000 and modulus 998244353.
@@ -160,37 +162,49 @@ halving and splitting shorten paths during descent; recursion composes weights
 on return. “No root-child exit” disables the one-edge fast path. Plain DSU
 measures connectivity on the same unions, without potentials.
 
-Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-24.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Minimum milliseconds over three
-runs of 25 samples, plain / native. Labels beginning “by compression and layout”
+Labels beginning “by compression and layout”
 refer to `weighted_dsu_by_compression_and_layout`.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Contender | modular addition | SL2 |
 |---|---:|---:|
-| by compression and layout (two-pass buffer), interleaved | 4.8 / 4.6 | 8.4 / 9.8 |
-| by compression and layout (two-pass buffer), split | 5.2 / 5.0 | 8.1 / 8.5 |
-| by compression and layout (two-pass inverse), interleaved | 4.4 / 4.3 | 9.7 / 9.7 |
-| by compression and layout (two-pass inverse), split | 4.6 / 4.5 | 8.8 / 8.8 |
-| by compression and layout (halving), interleaved | 4.4 / 4.4 | 9.2 / 9.4 |
-| by compression and layout (halving), split | 4.6 / 4.2 | 8.9 / 8.9 |
-| by compression and layout (recursive), interleaved | 3.7 / 3.5 | 7.9 / 7.9 |
-| by compression and layout (recursive), split | 4.1 / 4.0 | 7.4 / 7.3 |
-| by compression and layout (splitting), interleaved | 4.4 / 4.1 | 8.8 / 9.7 |
-| by compression and layout (splitting), split | 4.6 / 4.3 | 8.0 / 8.3 |
-| by compression and layout (two-pass buffer), interleaved, no root-child exit | 4.7 / 3.5 | not measured yet |
-| by compression and layout (two-pass inverse), interleaved, no root-child exit | 4.3 / 3.5 | not measured yet |
-| by compression and layout (halving), interleaved, no root-child exit | 4.2 / 4.1 | not measured yet |
-| by compression and layout (splitting), interleaved, no root-child exit | 3.3 / 3.6 | not measured yet |
-| by compression and layout (recursive), interleaved, no root-child exit | 3.6 / 3.5 | not measured yet |
-| weighted_dsu (library, layout by potential width) | 3.6 / 3.7 | 7.5 / 7.4 |
-| baseline: plain dsu, same unites | 2.9 / 2.8 | 3.0 / 3.0 |
+| by compression and layout (two-pass buffer), interleaved | 3.6 / 3.7 | 6.6 / 6.3 |
+| by compression and layout (two-pass buffer), split | 3.6 / 3.7 | 6.7 / 6.3 |
+| by compression and layout (two-pass inverse), interleaved | 3.3 / 3.6 | 6.8 / 6.4 |
+| by compression and layout (two-pass inverse), split | 3.4 / 3.5 | 6.7 / 6.2 |
+| by compression and layout (halving), interleaved | 3.3 / 3.6 | 6.4 / 6.3 |
+| by compression and layout (halving), split | 3.4 / 3.6 | 6.5 / 6.2 |
+| by compression and layout (recursive), interleaved | 2.7 / 2.8 | 5.6 / 5.1 |
+| by compression and layout (recursive), split | 2.9 / 3.1 | 5.4 / 5 |
+| by compression and layout (splitting), interleaved | 2.9 / 3 | 6.7 / 6.7 |
+| by compression and layout (splitting), split | 3.2 / 3.5 | 6.7 / 6.4 |
+| by compression and layout (two-pass buffer), interleaved, no root-child exit | 3 / 3.2 | 6.2 / 6.4 |
+| by compression and layout (two-pass inverse), interleaved, no root-child exit | 2.7 / 2.9 | 6.8 / 6.6 |
+| by compression and layout (halving), interleaved, no root-child exit | 2.8 / 3 | 6.5 / 6.3 |
+| by compression and layout (splitting), interleaved, no root-child exit | 2.7 / 3 | 6.8 / 6.6 |
+| by compression and layout (recursive), interleaved, no root-child exit | 2.7 / 3 | 5.5 / 4.9 |
+| weighted_dsu (library, layout by potential width) | 2.9 / 3.3 | 5.8 / 5.3 |
+| baseline: plain dsu, same unites | 2.2 / 2.4 | 2.3 / 2.4 |
 
 Recursive compression with the width-selected layout is competitive on both
-modular workloads. The supplied records have no SL2 root-child-exit tuning rows;
-those contenders remain in the benchmark. The rollback
+modular workloads. The benchmark also measures SL2 root-child-exit tuning.
+The library
+loses SL2 to recursive interleaved compression without that exit
+(5.8/5.3 versus 5.5/4.9 ms), while modular addition favors recursive
+interleaved compression with the exit (2.7/2.8 versus library 2.9/3.3 ms). The rollback
 width dispatch itself has no separate measurement: the rollback table reports
 explicit interleaved and split layouts.
+
+Several rollback and compression rows vary between runs (spreads up to
+1.35x), including the plain rollback random-add comparison. Their minima
+alone do not establish a stable layout advantage. The modular-add and parity
+split cells use a different machine and cannot establish a width-dispatch
+speedup on the machine above.
 
 ## Pitfalls and notes
 

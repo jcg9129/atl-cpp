@@ -1,7 +1,5 @@
 # `atl::direct_rmq`
 
-
-
 Constant-time range-minimum queries over a **static** array. After O(n) construction it
 answers, in O(1), the index (or value) of the smallest element in a half-open range,
 where "smallest" is defined by `Compare` (default `std::less<>`). The build is a true
@@ -71,17 +69,19 @@ The min race in `benchmarks/ds/sparse_table.cpp` compares block-mask RMQ
 with overlapping sparse windows, disjoint windows and mutable segment folds.
 See [the complete tables](sparse-table.md) for all contenders and shapes.
 
-Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-15;
-minimum of three runs, milliseconds, -O2 / -O2 -march=native
-(also -g -DNDEBUG -std=c++23).
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | direct_rmq workload | time |
 |---|---:|
-| n=1e6 build | 11.3 / 10.9 |
-| n=1e6, 1e7 uniform queries | 373 / 311 |
-| n=1e6, 1e7 queries len<=64 | 194 / 169 |
-| n=1e6, 1e7 queries len<=1000 | 318 / 275 |
-| n=1e7, 1e7 uniform queries | 1196 / 1065 |
+| n=1e6 build | 8.4 / 7.7 |
+| n=1e6, 1e7 uniform queries | 146 / 143 |
+| n=1e6, 1e7 queries len<=64 | 85 / 81.2 |
+| n=1e6, 1e7 queries len<=1000 | 135 / 137 |
+| n=1e7, 1e7 uniform queries | 701 / 687 |
 
 ## Pitfalls and notes
 

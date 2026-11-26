@@ -203,89 +203,119 @@ builds; no saturating behavior is promised. Allocation failures propagate.
 `benchmarks/ds/persistent_heap.cpp` races randomized, rank-leftist and
 weight-biased melds, class versus forest versions, lazy shifts and in-arena
 versus temporary-vector heapify. Loops measure whole scripts including allocation.
-The restored graph workloads compare heap construction separately and complete
-k-shortest-walk searches including Dijkstra and sidetrack staging. Complete
-class/forest walk/pop rows without a supplied record are not measured yet.
+The graph workloads compare heap construction separately and complete
+k-shortest-walk searches including Dijkstra and sidetrack staging.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off.
-Milliseconds, minimum of three run means; each pair is plain `-O2` /
-`-O2 -march=native`, both also with `-g -DNDEBUG -std=c++23`. Heapify measured 2026-11-01.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | by vector heapify | library in-arena heapify |
 |---|---:|---:|
-| range build, 1e6 | 11.3 / 11.2 | 10.0 / 9.2 |
-| 1e5 push_range(3), class | 32.5 / 32.4 | 30.8 / 30.1 |
-| 1e5 push_range(3), forest | 34.3 / 32.8 | 31.0 / 30.3 |
+| range build, 1e6 | 6.3 / 6.4 | 5.8 / 5.8 |
+| 1e5 push_range(3), class | 26 / 28.9 | 24.6 / 26.3 |
+| 1e5 push_range(3), forest | 26.3 / 28.8 | 24.8 / 26.5 |
 
-Generic shapes measured 2026-10-23 (plain) and 2026-10-24 (native), same CPU,
-compiler, build type and flags. All experimental rows use vector heapify.
+Generic shapes use the measurement setup below. All experimental rows use vector heapify. The library class loses the
+DAG workload to randomized meld (97.7/130 versus 78.8/104 ms), and
+keep-all to rank-leftist (967/1030 versus 679/716 ms). The forest DAG
+comparison favors the library plain (57.1 versus 57.8 ms), but randomized
+meld native (72.6 versus 75.8 ms).
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library class | library forest |
 |---|---:|---:|
-| DAG 5e5 | 135 / 134 | 88.4 / 86.5 |
-| linear 1e6 push/pop 2:1 | 100 / 98.3 | — |
-| keep-all 1e6 push + 2e5 pop | 1006 / 1009 | — |
-| linear, by mutable rank-leftist forest | 34.4 / 34.3 | — |
+| DAG 5e5 | 97.7 / 130 | 57.1 / 75.8 |
+| linear 1e6 push/pop 2:1 | 87 / 87.7 | — |
+| keep-all 1e6 push + 2e5 pop | 967 / 1030 | — |
+| linear, by mutable rank-leftist forest | 26.9 / 25.9 | — |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | by rank leftist | by weight biased | by randomized meld |
 |---|---:|---:|---:|
-| DAG class | 158 / 159 | 165 / 165 | 113 / 116 |
-| DAG forest | 125 / 125 | 132 / 133 | 87.7 / 87.2 |
-| DAG class, unused lazy tags | 161 / 165 | 168 / 168 | 171 / 172 |
-| DAG class, 10% shifts | 178 / 184 | 189 / 189 | 188 / 189 |
-| linear class | 124 / 125 | 122 / 126 | 101 / 98.2 |
-| linear forest | 123 / 124 | 127 / 127 | 101 / 98.3 |
-| linear class, unused lazy tags | 170 / 172 | 166 / 169 | 135 / 136 |
-| keep-all class | 748 / 748 | 802 / 808 | 1014 / 1015 |
-| keep-all forest | 710 / 714 | 773 / 773 | 959 / 951 |
-| range build class | 17.5 / 17.3 | 16.8 / 17.3 | 12.5 / 12.0 |
+| DAG class | 127 / 152 | 123 / 163 | 78.8 / 104 |
+| DAG forest | 98.4 / 116 | 103 / 122 | 57.8 / 72.6 |
+| DAG class, unused lazy tags | 121 / 144 | 131 / 156 | 145 / 173 |
+| DAG class, 10% shifts | 140 / 160 | 144 / 178 | 157 / 194 |
+| linear class | 108 / 113 | 108 / 113 | 86.9 / 92.3 |
+| linear forest | 107 / 115 | 108 / 115 | 86.9 / 94.1 |
+| linear class, unused lazy tags | 152 / 159 | 146 / 160 | 119 / 123 |
+| keep-all class | 679 / 716 | 752 / 790 | 959 / 1010 |
+| keep-all forest | 651 / 679 | 718 / 765 | 910 / 975 |
+| range build class | 7.2 / 7.6 | 7.3 / 7.7 | 6.3 / 6.5 |
 
 `benchmarks/ds/persistent_heap_tuning.cpp` varies root ordering and whether
-fresh nodes are reused. Measured 2026-10-23 with the same CPU, compiler,
-build type and flags, including complete forest-walk searches with n=1e5,
-m=3e5 and K=3e5, with Dijkstra and sidetrack staging included.
+fresh nodes are reused. The measurement setup below includes complete forest-walk searches with
+n=1e5, m=3e5 and K=3e5, with Dijkstra and sidetrack staging included.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | method / knob | DAG 5e5 | linear 1e6 | keep-all |
 |---|---:|---:|---:|
-| by rank leftist / branch, reuse fresh | 143 / 142 | 120 / 121 | 732 / 743 |
-| by rank leftist / select, reuse fresh | 168 / 170 | 122 / 125 | 755 / 764 |
-| by rank leftist / branch, copy fresh | 159 / 160 | 130 / 132 | 748 / 757 |
-| by weight biased / branch, reuse fresh | 162 / 163 | 123 / 125 | 793 / 798 |
-| by weight biased / select, reuse fresh | 178 / 177 | 120 / 123 | 807 / 820 |
-| by weight biased / branch, copy fresh | 164 / 165 | 126 / 130 | 789 / 793 |
-| by randomized meld / branch, reuse fresh | 113 / 115 | 95.9 / 100 | 960 / 958 |
-| by randomized meld / select, reuse fresh | 120 / 119 | 95.9 / 93.6 | 1058 / 1058 |
-| by randomized meld / branch, copy fresh | 116 / 111 | 100 / 98.4 | 962 / 959 |
+| by rank leftist / branch, reuse fresh | 119 / 120 | 109 / 105 | 703 / 676 |
+| by rank leftist / select, reuse fresh | 145 / 144 | 111 / 110 | 738 / 710 |
+| by rank leftist / branch, copy fresh | 127 / 130 | 116 / 112 | 721 / 685 |
+| by weight biased / branch, reuse fresh | 126 / 130 | 110 / 108 | 774 / 746 |
+| by weight biased / select, reuse fresh | 153 / 143 | 114 / 112 | 837 / 807 |
+| by weight biased / branch, copy fresh | 128 / 130 | 115 / 112 | 769 / 743 |
+| by randomized meld / branch, reuse fresh | 75.8 / 74 | 89.5 / 86.7 | 963 / 936 |
+| by randomized meld / select, reuse fresh | 89.6 / 85.6 | 91 / 86.2 | 1130 / 1100 |
+| by randomized meld / branch, copy fresh | 80 / 85.3 | 92.8 / 87.5 | 945 / 911 |
 
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | random n=1e5 m=3e5 K=3e5, vector-heapify forest walk | plain -O2 ms | -O2 -march=native ms |
 |---|---:|---:|
-| by rank leftist / branch, reuse fresh | 174 | 179 |
-| by rank leftist / select, reuse fresh | 184 | 181 |
-| by rank leftist / branch, copy fresh | 185 | 185 |
-| by weight biased / branch, reuse fresh | 184 | 183 |
-| by weight biased / select, reuse fresh | 184 | 182 |
-| by weight biased / branch, copy fresh | 186 | 186 |
-| by randomized meld / branch, reuse fresh | 170 | 168 |
-| by randomized meld / select, reuse fresh | 171 | 169 |
-| by randomized meld / branch, copy fresh | 179 | 180 |
+| by rank leftist / branch, reuse fresh | 97.8 | 98.1 |
+| by rank leftist / select, reuse fresh | 92.5 | 98.9 |
+| by rank leftist / branch, copy fresh | 92.1 | 103 |
+| by weight biased / branch, reuse fresh | 90.9 | 99.4 |
+| by weight biased / select, reuse fresh | 91.7 | 95 |
+| by weight biased / branch, copy fresh | 101 | 97.1 |
+| by randomized meld / branch, reuse fresh | 88.8 | 94.5 |
+| by randomized meld / select, reuse fresh | 90.6 | 98.4 |
+| by randomized meld / branch, copy fresh | 103 | 99.1 |
 
 ### Sidetrack-heap construction
 
 `benchmarks/ds/persistent_heap.cpp` isolates H-construction: Dijkstra and
-sidetrack lists are prepared outside these timed regions. Same CPU, compiler,
-build type and flags as the heapify table, measured 2026-11-01. Milliseconds,
+sidetrack lists are prepared outside these timed regions. Same measurement setup as the heapify table. Milliseconds,
 plain / native. The library uses in-arena heapify; the contender uses a
 temporary value vector. Both class and forest forms keep all target-tree heaps.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | class by vector heapify | library class | forest by vector heapify | library forest |
 |---|---:|---:|---:|---:|
-| random n=1e5 m=3e5 | 19.5 / 20.2 | 16.7 / 16.4 | 16.0 / 16.5 | 13.0 / 13.2 |
-| unit grid 387×387 | 80.7 / 84.8 | 76.4 / 79.7 | 54.1 / 55.5 | 49.2 / 49.6 |
+| random n=1e5 m=3e5 | 10 / 19.8 | 8.1 / 14.6 | 8.9 / 16.2 | 6.7 / 9.9 |
+| unit grid 387×387 | 66.6 / 77.2 | 62.1 / 72.3 | 36.8 / 41.6 | 33.8 / 38.7 |
 
-Complete class-walk, class-pop and forest-pop searches, the stage-only rows,
-the in-arena library forest walk and complete searches on the grid are not
-measured yet in these supplied records. The tuning table measures the
+The tuning table measures the
 experimental vector-heapify forest walk, with each meld/copy policy. It does
 not isolate the benefit of walking versus popping.
 

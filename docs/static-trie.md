@@ -105,32 +105,38 @@ benchmark-local `static_trie_by_slice_comparison` in
 `benchmarks/strings/baseline/static_trie.hpp` sorts word IDs by indirect symbol
 comparisons at each level. Dynamic hashed insertion supplies a third build.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean over three runs of 25 samples; milliseconds.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Operation / contender | -O2 | native |
 |---|---|---:|---:|
-| U=1e6 1e5x10 | build library | 28.5 | 28.9 |
-| U=1e6 1e5x10 | build by slice comparison | 53.5 | 54.2 |
-| U=1e6 1e5x10 | build dynamic trie | 41.0 | 40.8 |
-| U=1e6 1e5x10 | count all, library | 24.4 | 23.9 |
-| sigma=26 1e5x(5-15) | build library | 34.0 | 34.3 |
-| sigma=26 1e5x(5-15) | build by slice comparison | 44.7 | 45.4 |
-| sigma=26 1e5x(5-15) | build dynamic trie | 33.0 | 33.2 |
-| sigma=26 1e5x(5-15) | count all, library | 24.7 | 24.7 |
-| prefix500 2e4 | build library | 82.5 | 84.3 |
-| prefix500 2e4 | build by slice comparison | 598 | 602 |
-| prefix500 2e4 | build dynamic trie | 40.8 | 44.6 |
-| prefix500 2e4 | count all, library | 44.9 | 44.8 |
-| identical 1e5x10 | build library | 3.2 | 3.1 |
-| identical 1e5x10 | build by slice comparison | 26.3 | 26.4 |
-| identical 1e5x10 | build dynamic trie | 2.5 | 2.9 |
-| identical 1e5x10 | count all, library | 2.9 | 2.9 |
+| U=1e6 1e5x10 | build library | 13.6 | 13 |
+| U=1e6 1e5x10 | build by slice comparison | 25.9 | 25.7 |
+| U=1e6 1e5x10 | build dynamic trie | 27.9 | 26.4 |
+| U=1e6 1e5x10 | count all, library | 17.8 | 17 |
+| sigma=26 1e5x(5-15) | build library | 22.7 | 22.2 |
+| sigma=26 1e5x(5-15) | build by slice comparison | 27 | 26.9 |
+| sigma=26 1e5x(5-15) | build dynamic trie | 22.6 | 21.6 |
+| sigma=26 1e5x(5-15) | count all, library | 16 | 16 |
+| prefix500 2e4 | build library | 58.6 | 60.5 |
+| prefix500 2e4 | build by slice comparison | 201 | 200 |
+| prefix500 2e4 | build dynamic trie | 27.5 | 27 |
+| prefix500 2e4 | count all, library | 37 | 36.9 |
+| identical 1e5x10 | build library | 1.2 | 1.3 |
+| identical 1e5x10 | build by slice comparison | 12.3 | 12.3 |
+| identical 1e5x10 | build dynamic trie | 1.5 | 1.5 |
+| identical 1e5x10 | count all, library | 1.9 | 1.9 |
 
-Spreads range from 1.00x to 1.17x. Integer-key partitioning improves these builds
-relative to slice comparison. Dynamic insertion is faster on the shared-prefix
-and identical shapes; these records do not compare dynamic and static queries.
+Spreads range from 1.00x to 1.49x. Integer-key partitioning beats slice
+comparison on every shown build. The library loses the shared-prefix
+build to dynamic insertion (58.6/60.5 versus 27.5/27 ms), and sigma=26
+(22.7/22.2 versus 22.6/21.6 ms); it wins identical words (1.2/1.3 versus
+1.5/1.5 ms). The native count-all rows vary between runs (1.49x spread for U=1e6
+and 1.31x for sigma=26); no query comparison is inferred from them.
+These measurements do not compare dynamic and static queries.
 
 ## Pitfalls and notes
 

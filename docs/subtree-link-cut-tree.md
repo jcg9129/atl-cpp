@@ -74,24 +74,34 @@ intermediate fold.
 
 ## Measured performance
 
-Measurements using `benchmarks/ds/subtree_link_cut_tree.cpp`, 2026-10-25, Xeon
-Platinum 8280, GCC 15.2, RelWithDebInfo, assertions off, min ms over 3 runs, `-march=native -O2` / plain
-`-O2`, N = Q = 2e5.
+Source: `benchmarks/ds/subtree_link_cut_tree.cpp`; N = Q = 2e5; cells are native / plain.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library | by split layout | by columnar layout | reference |
 |---|---|---|---|---|
-| edge swap + vertex add + subtree sum | **167 / 166** | 173 / 169 | 237 / 228 | |
-| cut / link / `component_size` thirds | **165 / 166** | 174 / 171 | 239 / 233 | |
-| cut / link / path sum thirds | **207 / 206** | | | `link_cut_tree`, `commutative_fold`: 164 / 172 |
+| edge swap + vertex add + subtree sum | **176 / 205** | 176 / 195 | 181 / 203 | |
+| cut / link / `component_size` thirds | **175 / 203** | 184 / 191 | 182 / 200 | |
+| cut / link / path sum thirds | **218 / 247** | | | `link_cut_tree`, `commutative_fold`: 170 / 202 |
 
-Interleaved stays (split takes up to 5.5% longer, columnar takes 1.37-1.45x the time). The subtree
-bookkeeping (virtual totals and counts exchanged on every preferred-child
-change) costs 19.8-26.2% on path work against the plain link-cut tree, so use
-this class only when subtree folds or sizes are asked for. Against the
-Euler tour tree (the structure for subtree *updates*), the
-`benchmarks/ds/euler_tour_tree.cpp` record (2026-10-25, Xeon Platinum 8168) races both on
-the same vertex add + subtree sum shape: this class 290 / 283 ms, the
-library treap-store `euler_tour_tree` 337 / 329, 1.16x slower.
+Cells here are native/plain. Split layout ties edge-swap native (176 ms),
+but beats the library plain (195 versus 205 ms); structure-only churn favors
+the library native (175 versus 184 ms) and split plain (191 versus 203 ms).
+Columnar likewise loses native but wins plain on both rows. These tables
+do not establish a uniform layout winner. On path work subtree link-cut
+loses to ordinary commutative link-cut (218/247 versus 170/202 ms),
+28.24%/22.28% longer. Use this class when subtree folds or sizes are needed.
+
+`benchmarks/ds/euler_tour_tree.cpp` races both on vertex add + subtree sum
+with the same measurement setup: subtree link-cut takes 206/205 ms versus
+Euler-tour 230/244 ms (native/plain), so Euler-tour takes 1.12/1.19 times as long.
+The two benchmarks exercise different operation streams; do not substitute
+those times for this table's edge-swap row.
+
 
 ## Pitfalls and notes
 

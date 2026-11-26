@@ -221,36 +221,46 @@ factor, 256-column tiles and conditional subtraction. Each sample measures one
 operation including result allocation. Shapes and agreement checks live in
 `benchmarks/nt/matrix.cpp`.
 
-Intel Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions disabled,
-2026-10-14. Minimum milliseconds of three per-run means, 25 samples per row.
-Plain flags: `-O2 -g -DNDEBUG -std=c++23`; native adds `-march=native`.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | contender | n=200 -O2 | n=300 -O2 | n=500 -O2 | n=200 native | n=300 native | n=500 native |
 |---|---|---|---|---|---|---|
-| library | 5.3 | 17.4 | 80.4 | 2.1 | 7.1 | 32.1 |
-| by montgomery ikj | 12.1 | 40.9 | 190 | 12.2 | 41.0 | 189 |
-| by montgomery transpose | 12.0 | 40.4 | 188 | 12.1 | 41.0 | 189 |
-| by lazy transpose | 5.3 | 17.5 | 80.3 | 3.5 | 11.6 | 55.4 |
-| by lazy tiles 256 | 5.2 | 18.2 | 81.5 | 1.9 | 7.0 | 32.1 |
-| by lazy subtract | 7.2 | 24.0 | 110 | 2.5 | 9.5 | 42.7 |
+| library | 3.6 | 11.7 | 53.2 | 1.1 | 3.4 | 14.9 |
+| by montgomery ikj | 9.9 | 33.5 | 153 | 9.7 | 31.8 | 146 |
+| by montgomery transpose | 10.4 | 34.8 | 159 | 9.8 | 34 | 155 |
+| by lazy transpose | 3.9 | 12.6 | 55.8 | 1.8 | 6 | 27.7 |
+| by lazy tiles 256 | 3.7 | 12.6 | 57.3 | 0.91 | 3.3 | 15.2 |
+| by lazy subtract | 5.4 | 17.9 | 81.6 | 1.3 | 4.4 | 20.4 |
 
-The library loop keeps the simplest implementation: tiles give 81.5 versus
-80.4 ms at n=500 with plain flags and tie at 32.1 ms with native flags.
+Tiles lose n=500 in both modes (57.3/15.2 versus 53.2/14.9 ms), but
+beat the library native at n=200 (0.91 versus 1.1 ms) and n=300
+(3.3 versus 3.4 ms). Plain the library wins all three sizes; these
+measurements do not establish a uniform winner.
 The readable certifying oracle uses Montgomery arithmetic in i-k-j order.
 The experimental implementations live in
 `experimental/atl/experimental/nt/matrix_variants.hpp`.
 
 Other operations (plain -O2 / -march=native):
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | operation | -O2 | native |
 |---|---|---|
-| `power`, n=100, exp=1e18 | 58.6 | 23.4 |
-| min-plus product, n=200 (`int64`) | 11.0 | 9.2 |
-| `determinant` n=200 / n=500 | 4.1 / 62.5 | 4.1 / 62.5 |
-| `determinant_any_modulus` n=200 / n=500 | 10.5 / 151 | 9.0 / 129 |
-| `inverse` n=200 / n=500 | 18.8 / 297 | 18.9 / 295 |
-| `bit_matrix` `solve_linear_system`, n=2000 | 33.3 | 35.2 |
-| `count_spanning_trees`, n=500, m=10000 | 54.7 | 55.0 |
+| `power`, n=100, exp=1e18 | 40.4 | 10.4 |
+| min-plus product, n=200 (`int64`) | 7.1 | 7 |
+| `determinant` n=200 / n=500 | 3.2 / 49 | 3.2 / 47.4 |
+| `determinant_any_modulus` n=200 / n=500 | 6.2 / 87.9 | 6 / 87.4 |
+| `inverse` n=200 / n=500 | 13.5 / 220 | 13.9 / 216 |
+| `bit_matrix` `solve_linear_system`, n=2000 | 24.7 | 24 |
+| `count_spanning_trees`, n=500, m=10000 | 42.2 | 40.6 |
 
 The matrix-tree row measures reduced-Laplacian construction and its modular
 determinant on 10000 generated undirected edges at n=500. It uses the same

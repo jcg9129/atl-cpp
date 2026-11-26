@@ -107,8 +107,9 @@ Documented only: the coefficient type obeys the modular-integer laws.
 
 ## Measured performance
 
-Not measured yet. Every library choice is a provisional default and every contender is an
-`atl::experimental` function named `<function>_by_<method>`; the races are pending.
+Both flag sets are measured; adoption decisions remain open. Every library choice is a
+provisional default and every contender is an `atl::experimental`
+function named `<function>_by_<method>`.
 The provisional cutoffs are 8 for tiny schoolbook composition, 16 for the outer length
 below which fast-product Horner replaces the transposed projection, and 8 for the count
 up to which the projection runs repeated products; they are starting choices, not
@@ -134,8 +135,18 @@ before timing, at `n` = 32, 64, 2^10, 2^12, 2^13, 2^14, 2^16 and 250000 modulo 9
 2^13 modulo 1000000007. Brent-Kung and the baby-step/giant-step Lagrange stop at 2^14, the
 quadratic contenders (fast Horner, repeated products) at 2^12, and the cubic ones
 (schoolbook Horner, the recurrence) at 64; a sweep times the cutoff contenders at sizes
-`c - 1`, `c` and `c + 1` for `c` = 4 to 64. A winner needs x86-64 records under both plain
+`c - 1`, `c` and `c + 1` for `c` = 4 to 64. A winner needs x86-64 measurements under both plain
 `-O2` and `-march=native`.
+
+Measurements (2026-11-25, AMD EPYC-Milan ccx23, GCC 15.2.0,
+RelWithDebInfo, assertions off; plain `-O2` / `-O2 -march=native`, minimum
+of five run means, 25 samples per row), in plain/native milliseconds:
+At p=998244353, n=32, the library composition loses to Brent-Kung
+(0.059/0.047 versus 0.018/0.015 ms); the native Brent-Kung row varies
+between runs (1.29x spread). Reversion loses to coefficient recurrence
+(0.059/0.048 versus 0.016/0.013 ms), whose native row also varies
+(1.25x spread). These minima alone do not determine stable rankings or
+cutoffs across sizes.
 
 ## Pitfalls and notes
 

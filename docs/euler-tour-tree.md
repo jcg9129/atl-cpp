@@ -106,28 +106,38 @@ Documented only:
 
 ## Measured performance
 
-Measurements using `benchmarks/ds/euler_tour_tree.cpp`, 2026-10-25, Xeon Platinum
-8168, GCC 15.2, RelWithDebInfo, assertions off, minimum ms over 3 runs,
-`-O2 -march=native` / plain `-O2`, N = Q = 2e5. The contenders
+N = Q = 2e5. The contenders
 use a parent-linked treap (library) or a splay tree (by splay). The static `subtree_sum_by_preorder_fenwick` contender uses [lca preorder](lca.md)
 with a Fenwick tree instead of a dynamic tour. It uses the same operation loop
 and untimed checksum agreement checks.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | library | by splay | reference |
 |---|---|---|---|
-| subtree add + subtree sum under edge replacement | 744 / 724 | 759 / 749 | |
-| vertex add + subtree sum under edge replacement | 337 / 329 | 375 / 355 | `subtree_link_cut_tree` 290 / 283 |
-| static vertex add + subtree sum | 165 / 158 | 246 / 238 | by preorder Fenwick 27.7 / 27.7 |
-| build: `assign_parents` (random tree) | 42.1 / 42.8 | 41.0 / 39.9 | |
-| build: N - 1 `link` calls | 91.4 / 91.7 | 116 / 115 | `link_cut_tree<>` 1.7 / 1.5 |
-| `assign_parents` + churn (cut / link / connected thirds) | 173 / 180 | 208 / 208 | `link_cut_tree<>` 137 / 134 |
+| subtree add + subtree sum under edge replacement | 564 / 538 | 656 / 620 | |
+| vertex add + subtree sum under edge replacement | 244 / 230 | 272 / 255 | `subtree_link_cut_tree` 205 / 206 |
+| static vertex add + subtree sum | 119 / 117 | 188 / 176 | by preorder Fenwick 17.7 / 18.5 |
+| build: `assign_parents` (random tree) | 27.6 / 26.2 | 22 / 22.3 | |
+| build: N - 1 `link` calls | 62.7 / 63.8 | 92.4 / 94 | `link_cut_tree<>` 0.632 / 0.628 |
+| `assign_parents` + churn (cut / link / connected thirds) | 122 / 121 | 150 / 151 | `link_cut_tree<>` 104 / 107 |
 
-The treap store improves churn; bulk construction is slightly slower: `assign_parents` is within the spreads (1.03-1.07x). The read-only
-queries walk up the parent links instead of splaying, and a subtree segment
-is folded or tagged in place, which is where the static shape gains most
-(1.5x). The link-cut tree's churn is still 1.3x faster: a tour holds three
-nodes per vertex in one tree per component, the link-cut tree's splay trees
-are short preferred paths.
+The treap beats splay on churn (122/121 versus 150/151 ms), but loses bulk
+`assign_parents` construction (27.6/26.2 versus 22/22.3 ms). Its static
+subtree workload is 188/119 = 1.58 times faster plain and 176/117 = 1.50
+native than splay, but loses to preorder Fenwick (119/117 versus
+17.7/18.5 ms). Under edge replacement, vertex-add/subtree-sum loses to
+subtree link-cut (244/230 versus 205/206 ms). Link-cut also wins churn
+(104/107 versus 122/121 ms). These comparisons measure different stores;
+the tables do not isolate the cause of each difference.
+
+The `assign_parents`, subtree and churn comparisons include rows that vary
+between runs (up to 1.60x). Their ratios describe minima and do not by
+themselves establish stable rankings.
 
 ## Pitfalls and choosing
 
@@ -137,18 +147,19 @@ are short preferred paths.
   and updates, lca, depth, distance), for non-commutative folds, for rooted
   problems, and for pure connectivity: an ETT tour has three nodes per
   vertex in one tree per component, while the link-cut tree's splay trees
-  are short preferred paths, and its cut / link / connected churn runs 1.3x
-  faster (180 vs 134 ms above, plain `-O2`). For vertex add + subtree sum (an
+  are short preferred paths, and its cut / link / connected churn takes 104/107 ms versus
+  122/121 ms for the tour above, or 1.17/1.13 times as fast
+  (plain/native). For vertex add + subtree sum (an
   invertible fold, no subtree update) take
-  [`subtree_link_cut_tree`](subtree-link-cut-tree.md), 1.16x faster (329 vs
-  283); the ETT is the one for subtree and component *updates*. For mixed
+  [`subtree_link_cut_tree`](subtree-link-cut-tree.md), 1.19/1.12 times as
+  fast (244/230 versus 205/206 ms, plain/native); the ETT is the one for subtree and component *updates*. For mixed
   path and subtree work, see [`top_tree`](top-tree.md).
 - **Static tree: Euler order + Fenwick or segment tree.** Without links and
   cuts, a preorder turns
   every subtree into an interval; that avoids restructuring a dynamic forest.
 - **Initial trees: `assign_parents`, not n - 1 `link` calls.** Each `link`
   splits and inserts in tours that grow to 3n nodes; the bulk build is one
-  DFS and one linear treap build per tree, 2.14-2.17x faster (42.1 / 42.8 vs 91.4 / 91.7 ms).
+  DFS and one linear treap build per tree, 62.7/27.6 = 2.27 times as fast plain and 63.8/26.2 = 2.44 native.
 - `subtree_fold(v, parent)` names a side, not a root: `subtree_fold(p, v)`
   is the other side, and the two fold to `component_fold(v)`.
 - `at` (untagged tiers) returns a reference into the node pool, which never

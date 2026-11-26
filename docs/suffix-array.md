@@ -61,61 +61,69 @@ by phi builds permuted LCPs in text order. The experimental certifying oracle is
 `suffix_sort_by_prefix_doubling` in
 `experimental/atl/experimental/strings/suffix_array_variants.hpp`.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean milliseconds over three runs of 25 samples.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape / operation | Contender | -O2 ms | native ms |
 |---|---|---|---|
-| 1e6 random2 | library build | 87.0 | 85.8 |
-| 1e6 random2 | by index compression, build | 88.6 | 86.9 |
-| 1e6 random2 | by prefix doubling, sort only | 89.8 | 88.8 |
-| 1e6 random2 | by Kasai, LCP only | 22.7 | 21.3 |
-| 1e6 random2 | by phi, LCP only | 18.8 | 18.5 |
-| 1e6 random26 | library build | 88.0 | 84.4 |
-| 1e6 random26 | by index compression, build | 89.2 | 86.5 |
-| 1e6 random26 | by prefix doubling, sort only | 85.7 | 84.7 |
-| 1e6 random26 | by Kasai, LCP only | 21.2 | 19.9 |
-| 1e6 random26 | by phi, LCP only | 16.7 | 16.5 |
-| 1e6 unary | library build | 27.0 | 21.9 |
-| 1e6 unary | by index compression, build | 26.6 | 21.8 |
-| 1e6 unary | by prefix doubling, sort only | 140 | 141 |
-| 1e6 unary | by Kasai, LCP only | 1.8 | 1.8 |
-| 1e6 unary | by phi, LCP only | 2.9 | 2.9 |
-| 1e6 alternating | library build | 33.7 | 29.9 |
-| 1e6 alternating | by index compression, build | 33.5 | 30.4 |
-| 1e6 alternating | by prefix doubling, sort only | 142 | 144 |
-| 1e6 alternating | by Kasai, LCP only | 1.8 | 1.9 |
-| 1e6 alternating | by phi, LCP only | 3.1 | 3.1 |
-| 1e6 Fibonacci | library build | 45.0 | 42.2 |
-| 1e6 Fibonacci | by index compression, build | 45.0 | 43.7 |
-| 1e6 Fibonacci | by prefix doubling, sort only | 273 | 277 |
-| 1e6 Fibonacci | by Kasai, LCP only | 5.3 | 5.3 |
-| 1e6 Fibonacci | by phi, LCP only | 8.1 | 8.0 |
-| 5e6 random26 | library build | 841 | 816 |
-| 5e6 random26 | by index compression, build | 864 | 852 |
-| 5e6 random26 | by Kasai, LCP only | 226 | 230 |
-| 5e6 random26 | by phi, LCP only | 154 | 152 |
-| 5e6 Fibonacci | library build | 480 | 462 |
-| 5e6 Fibonacci | by index compression, build | 473 | 464 |
-| 5e6 Fibonacci | by Kasai, LCP only | 91.0 | 89.4 |
-| 5e6 Fibonacci | by phi, LCP only | 118 | 116 |
-| 1e5 int64 range 32n | library build | 13.0 | 12.9 |
-| 1e5 int64 range 32n | by index compression, build | 13.3 | 13.4 |
-| 1e5 int64 range 2^40 | library build | 13.0 | 13.0 |
-| 1e5 int64 range 2^40 | by index compression, build | 13.4 | 13.5 |
-| 1e6 int64 range 32n | library build | 187 | 185 |
-| 1e6 int64 range 32n | by index compression, build | 206 | 206 |
-| 1e6 int64 range 2^40 | library build | 187 | 183 |
-| 1e6 int64 range 2^40 | by index compression, build | 206 | 204 |
-| 1e5 string tokens | library build | 24.1 | 24.2 |
-| 1e5 string tokens | by index compression, build | 23.9 | 23.9 |
+| 1e6 random2 | library build | 63.8 | 63.1 |
+| 1e6 random2 | by index compression, build | 63.4 | 63.2 |
+| 1e6 random2 | by prefix doubling, sort only | 36.4 | 40.6 |
+| 1e6 random2 | by Kasai, LCP only | 11.2 | 12.7 |
+| 1e6 random2 | by phi, LCP only | 10.7 | 11.6 |
+| 1e6 random26 | library build | 58.7 | 61.1 |
+| 1e6 random26 | by index compression, build | 58.8 | 61.6 |
+| 1e6 random26 | by prefix doubling, sort only | 36.2 | 39.7 |
+| 1e6 random26 | by Kasai, LCP only | 10.1 | 11.9 |
+| 1e6 random26 | by phi, LCP only | 9.4 | 10.3 |
+| 1e6 unary | library build | 9.6 | 11.7 |
+| 1e6 unary | by index compression, build | 9.5 | 11.9 |
+| 1e6 unary | by prefix doubling, sort only | 53.6 | 59.5 |
+| 1e6 unary | by Kasai, LCP only | 0.943 | 1.4 |
+| 1e6 unary | by phi, LCP only | 1.5 | 2.1 |
+| 1e6 alternating | library build | 15.5 | 19.2 |
+| 1e6 alternating | by index compression, build | 16 | 19.3 |
+| 1e6 alternating | by prefix doubling, sort only | 55.7 | 62.1 |
+| 1e6 alternating | by Kasai, LCP only | 0.94 | 1.6 |
+| 1e6 alternating | by phi, LCP only | 1.6 | 2.1 |
+| 1e6 Fibonacci | library build | 23.9 | 28.9 |
+| 1e6 Fibonacci | by index compression, build | 24.8 | 28.9 |
+| 1e6 Fibonacci | by prefix doubling, sort only | 117 | 130 |
+| 1e6 Fibonacci | by Kasai, LCP only | 2.9 | 2.7 |
+| 1e6 Fibonacci | by phi, LCP only | 3 | 3.8 |
+| 5e6 random26 | library build | 604 | 606 |
+| 5e6 random26 | by index compression, build | 589 | 607 |
+| 5e6 random26 | by Kasai, LCP only | 137 | 144 |
+| 5e6 random26 | by phi, LCP only | 55.6 | 73.1 |
+| 5e6 Fibonacci | library build | 257 | 294 |
+| 5e6 Fibonacci | by index compression, build | 259 | 287 |
+| 5e6 Fibonacci | by Kasai, LCP only | 34.4 | 41.9 |
+| 5e6 Fibonacci | by phi, LCP only | 24.8 | 37.8 |
+| 1e5 int64 range 32n | library build | 10.3 | 10.2 |
+| 1e5 int64 range 32n | by index compression, build | 10.9 | 10.9 |
+| 1e5 int64 range 2^40 | library build | 10.3 | 10 |
+| 1e5 int64 range 2^40 | by index compression, build | 11.1 | 11 |
+| 1e6 int64 range 32n | library build | 124 | 125 |
+| 1e6 int64 range 32n | by index compression, build | 137 | 143 |
+| 1e6 int64 range 2^40 | library build | 120 | 121 |
+| 1e6 int64 range 2^40 | by index compression, build | 134 | 141 |
+| 1e5 string tokens | library build | 18.3 | 19.5 |
+| 1e5 string tokens | by index compression, build | 18.4 | 19.4 |
 
 
-Phi favors random texts but loses unary and Fibonacci shapes. For example, plain
--O2 random26 LCP is 16.7 versus 21.2 ms, while unary is 2.9 versus 1.8 ms;
-Kasai remains the library LCP pass. The native alternating phi row has 1.88x
-spread and is unstable.
+Phi beats Kasai on random texts but loses unary and alternating texts at
+1e6. For random26 at 1e6, the library Kasai pass loses (10.1/11.9 versus
+9.4/10.3 ms); unary favors Kasai (0.943/1.4 versus 1.5/2.1 ms).
+Fibonacci favors Kasai at 1e6 (2.9/2.7 versus 3/3.8 ms), but Phi at 5e6
+(24.8/37.8 versus 34.4/41.9 ms). Kasai remains the library LCP pass,
+with no uniform performance win. The native alternating Phi row has a
+1.01x spread.
+
+The plain 5e6 Fibonacci Kasai row varies between runs (1.29x spread);
+its comparison with Phi alone does not establish a stable ranking.
 
 ## Pitfalls and notes
 

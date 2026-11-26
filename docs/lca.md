@@ -99,62 +99,82 @@ and a four-million-vertex tree. Contenders change ancestor jumping, RMQ input,
 RMQ method, graph-build passes or label layout. Binary lifting is the certifying
 benchmark reference; tests also use a parent-walk oracle.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, assertions off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`,
-also with `-march=native`. Cells are minimum milliseconds over three runs,
-plain / native, each run using 25 samples.
-
 LCA query throughput:
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | contender | random recursive | path | star | caterpillar | binary tree |
 |---|---|---|---|---|---|
-| library | 13.3 / 8.9 | 12 / 10.7 | 20.9 / 17.9 | 21.6 / 18.3 | 13.2 / 8.8 |
-| by binary lifting | 37 / 37 | 108 / 98.4 | 4.2 / 4.2 | 434 / 403 | 29.4 / 29.7 |
-| by head jumping | 67.8 / 68.6 | 4 / 4 | 7.7 / 7.6 | 10.8 / 10.7 | 109 / 110 |
-| by Euler sparse table | 16.4 / 15.5 | 17 / 14.6 | 23 / 20.7 | 19.5 / 17.9 | 17.9 / 16.2 |
-| by preorder sparse table | 10.1 / 9.2 | 13.9 / 12.2 | 10 / 9.1 | 13.8 / 12.4 | 10.6 / 9.9 |
-| by Farach-Colton-Bender | 24.9 / 24.2 | 24.8 / 23.9 | 32.8 / 31.1 | 28.8 / 27.9 | 25 / 24.4 |
-| by Euler direct RMQ | 27 / 25.4 | 28.3 / 25.9 | 36.5 / 34.2 | 32.5 / 30.6 | 27.2 / 25.6 |
-| by preorder direct RMQ | 21.8 / 20 | 28.5 / 27 | 22.4 / 20.7 | 27.8 / 26.9 | 22.2 / 21 |
-| by adjacency preorder | 13.2 / 9.3 | 12.6 / 10.9 | 22.7 / 19.9 | 24.2 / 20.8 | 12.9 / 9.2 |
+| library | 6.4 / 4.8 | 7.3 / 7.3 | 8.7 / 6.7 | 9.6 / 8.4 | 6.4 / 4.8 |
+| by binary lifting | 21.5 / 17.2 | 71.2 / 58 | 2.1 / 1.6 | 260 / 236 | 17.7 / 14 |
+| by head jumping | 41.7 / 39.2 | 1.5 / 1.1 | 4.8 / 3.7 | 7.4 / 7 | 81.7 / 80.2 |
+| by Euler sparse table | 9.3 / 7.9 | 7.6 / 5.2 | 10.8 / 10.2 | 9.7 / 7.6 | 9.2 / 8.2 |
+| by preorder sparse table | 5.7 / 4.3 | 6.3 / 4.8 | 5.5 / 4.5 | 6.3 / 4.8 | 5.7 / 4.5 |
+| by Farach-Colton-Bender | 11 / 9.2 | 10.3 / 8.9 | 12.5 / 9.7 | 11 / 9.2 | 10.8 / 8.8 |
+| by Euler direct RMQ | 14 / 9 | 11.9 / 9.5 | 18.6 / 10.3 | 15.6 / 9.5 | 13.8 / 9 |
+| by preorder direct RMQ | 12 / 8.9 | 12.9 / 10.6 | 12.6 / 9 | 13.1 / 10.5 | 12.3 / 8.9 |
+| by adjacency preorder | 6.7 / 4.8 | 7.4 / 7 | 8.9 / 6.9 | 10 / 8.5 | 6.7 / 4.7 |
 
 Build latency:
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | contender | random recursive | path | star | caterpillar | binary tree |
 |---|---|---|---|---|---|
-| library graph | 136 / 133 | 10.3 / 9.3 | 10.3 / 9.8 | 9.6 / 8.9 | 12.2 / 11.5 |
-| by binary lifting | 62.8 / 60.5 | 34.5 / 34.1 | 7.9 / 7.5 | 32.6 / 32.3 | 9.5 / 9.1 |
-| by Euler sparse table | 206 / 204 | 131 / 132 | 127 / 128 | 130 / 131 | 132 / 132 |
-| by preorder sparse table | 104 / 101 | 37.1 / 36.6 | 33.3 / 32.2 | 36.2 / 35.7 | 38.2 / 36 |
-| by Farach-Colton-Bender | 90.8 / 90.1 | 14.5 / 13.3 | 12.6 / 11.9 | 14.2 / 13.2 | 16.3 / 14.9 |
-| by Euler direct RMQ | 89.3 / 90 | 13.4 / 13 | 12.2 / 11.3 | 13.3 / 12.6 | 16.1 / 15 |
-| by preorder direct RMQ | 73.5 / 72.1 | 9.4 / 9.3 | 7.2 / 6.8 | 8.4 / 8.5 | 10.1 / 10 |
-| by adjacency preorder | 86.9 / 81.8 | 10.9 / 10.4 | 8.1 / 7.2 | 9.6 / 8.9 | 19.1 / 17.6 |
+| library graph | 37.9 / 35.5 | 5 / 4.6 | 4.9 / 3.6 | 5.5 / 5.2 | 5.7 / 4.8 |
+| by binary lifting | 30.4 / 28.9 | 29.1 / 25.6 | 3.8 / 3 | 27.1 / 23.6 | 5 / 4 |
+| by Euler sparse table | 166 / 153 | 115 / 99 | 114 / 99.1 | 115 / 98.8 | 117 / 100 |
+| by preorder sparse table | 74.8 / 73.5 | 30 / 25.5 | 28.6 / 24.6 | 29.6 / 25.4 | 31.4 / 26.7 |
+| by Farach-Colton-Bender | 68 / 61.6 | 8.5 / 6.9 | 7.6 / 6.1 | 8.2 / 6.7 | 9.7 / 7.9 |
+| by Euler direct RMQ | 66.2 / 54.6 | 7.6 / 6.5 | 7.2 / 5.6 | 7.4 / 6.2 | 9.6 / 7.7 |
+| by preorder direct RMQ | 47.4 / 44 | 5.3 / 4.7 | 4.2 / 3.5 | 4.8 / 4.2 | 6.1 / 4.9 |
+| by adjacency preorder | 59.4 / 55.7 | 5.6 / 4.9 | 4.6 / 3.6 | 5.4 / 4.7 | 7.1 / 5.4 |
 
 The library uses interleaved label/ascendant pairs and keeps chains for
 ancestor and path operations. The preorder sparse table exchanges more memory
 for fast queries; head jumping is strong on paths but costly on binary trees.
-Build plus query totals depend on shape; the random-tree graph build has a
-substantial cost beyond the minimal adjacency-preorder contender.
+The library loses all five query shapes to preorder sparse tables; on
+random trees the times are 6.4/4.8 versus 5.7/4.3 ms. Its random-tree
+graph build is faster than adjacency preorder (37.9/35.5 versus
+59.4/55.7 ms). Build plus query totals depend on shape and query count.
 
 Additional measured rows (same source, machine, compiler, flags and date):
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | operation / shape | library plain / native ms | contender plain / native ms |
 |---|---|---|
-| graph build, random recursive | 136 / 133 | by children DFS 123 / 123 |
-| graph build, singletons | 7.3 / 6.9 | by children DFS 32.2 / 32.2 |
-| graph build, 1000 trees | 118 / 121 | by children DFS 120 / 124 |
-| graph build, n=4e6 | 3264 / 3255 | by children DFS 3311 / 3372 |
-| label layout queries, random recursive | 13.3 / 8.9 | by separate labels 12.6 / 9.3; by label pairs 10.2 / 8.6; by label depth triples 15.4 / 10.4 |
-| label layout queries, n=4e6 | 30.0 / 20.1 | by separate labels 33.3 / 27.4; by label pairs 24.7 / 19.2; by label depth triples 42.7 / 25.3 |
-| child CSR, random recursive | by counting cursors 4.3 / 4.2 | by bucket gather 3.9 / 3.9 |
-| child CSR, n=4e6 | by counting cursors 245 / 230 | by bucket gather 207 / 204 |
-| offline batch, random recursive | 199 / 199 | by query buckets 199 / 198 |
-| offline batch, star | 71.2 / 70.3 | by query buckets 71.5 / 70.9 |
-| offline batch, binary | 89.7 / 90.6 | by query buckets 89.8 / 90.6 |
-| offline batch, singletons | 50.6 / 51.9 | by query buckets 50.1 / 51.1 |
-| offline batch, 1000 trees | 130 / 128 | by query buckets 128 / 129 |
-| offline batch, n=4e6 | 1429 / 1423 | by query buckets 1437 / 1429 |
+| graph build, random recursive | 37.9 / 35.5 | by children DFS 63 / 59.9 |
+| graph build, singletons | 3.5 / 2.4 | by children DFS 23.2 / 18.3 |
+| graph build, 1000 trees | 36.1 / 33 | by children DFS 61.9 / 56.8 |
+| graph build, n=4e6 | 714 / 681 | by children DFS 1330 / 1290 |
+| label layout queries, random recursive | 6.4 / 4.8 | by separate labels 7.3 / 4.8; by label pairs 6.8 / 4.3; by label depth triples 7.9 / 5.3 |
+| label layout queries, n=4e6 | 18.6 / 10.5 | by separate labels 20.6 / 14.1; by label pairs 17.4 / 10.7; by label depth triples 28.5 / 19.5 |
+| child CSR, random recursive | by counting cursors 1.4 / 1.1 | by bucket gather 1.3 / 1.1 |
+| child CSR, n=4e6 | by counting cursors 38.9 / 33.1 | by bucket gather 24.9 / 24.1 |
+| offline batch, random recursive | 88.2 / 82.7 | by query buckets 90.2 / 80.6 |
+| offline batch, star | 20.9 / 19.1 | by query buckets 21 / 19.1 |
+| offline batch, binary | 43.8 / 40.5 | by query buckets 43.8 / 40.1 |
+| offline batch, singletons | 15.8 / 13 | by query buckets 16 / 12.9 |
+| offline batch, 1000 trees | 67 / 62.8 | by query buckets 66.5 / 61.1 |
+| offline batch, n=4e6 | 750 / 779 | by query buckets 763 / 779 |
+
+The Euler sparse-table and preorder direct-RMQ query contenders include
+rows that vary between runs (spreads up to 1.53x), as does the large
+label-pair query row (1.43x). Those minima alone do not establish stable
+rankings.
 
 ## Pitfalls and notes
 
