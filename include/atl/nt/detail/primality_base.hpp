@@ -3,6 +3,7 @@
 #include <atl/types/alias.hpp>
 #include <bit>
 #include <span>
+#include <type_traits>
 
 namespace atl::detail {
 	/** @brief Strong probable-prime test on reduced Montgomery or ordinary residues, for odd n > 37. */
@@ -10,11 +11,12 @@ namespace atl::detail {
 	constexpr bool miller_rabin_impl(uint64 n, std::span<uint64 const> bases, Arithmetic const &mg) {
 		int const s = std::countr_zero(n - 1);
 		uint64 const d = (n - 1) >> s;
+		using word = std::remove_cvref_t<decltype(mg.one())>; // the engine's residue type, at most 64 bits
 		uint64 const one = mg.one(), minus_one = n - one; // Montgomery forms of 1 and n - 1
 		for (uint64 a : bases) {
 			uint64 const base = a % n;
 			if (base == 0) continue;
-			auto x = mg.power(mg.to_form(base), d);
+			auto x = mg.power(mg.to_form(word(base)), d); // base < n fits the engine's word
 			if (x == one || x == minus_one) continue;
 			bool is_composite = true;
 			for (int i = 1; i < s && is_composite; ++i) {

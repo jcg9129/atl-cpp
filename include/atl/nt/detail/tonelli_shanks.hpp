@@ -5,13 +5,16 @@
 #include <algorithm>
 #include <bit>
 #include <optional>
+#include <type_traits>
 
 namespace atl::detail {
 	/** @brief Canonical square root for a nonzero reduced residue modulo an odd prime. */
 	template<typename Arithmetic>
 	constexpr std::optional<uint64> tonelli_shanks(uint64 value, uint64 prime, Arithmetic const &arithmetic) {
+		// value, non_residue < prime fit the engine's word
+		using word = std::remove_cvref_t<decltype(arithmetic.one())>;
 		auto const one = arithmetic.one();
-		auto const value_form = arithmetic.to_form(value);
+		auto const value_form = arithmetic.to_form(word(value));
 		if (arithmetic.power(value_form, (prime - 1) / 2) != one) return std::nullopt;
 		if (prime % 4 == 3) {
 			auto const root = arithmetic.from_form(arithmetic.power(value_form, prime / 4 + 1));
@@ -20,11 +23,11 @@ namespace atl::detail {
 		int order = std::countr_zero(prime - 1);
 		auto const odd_part = (prime - 1) >> order;
 		uint64 non_residue = 2;
-		while (arithmetic.power(arithmetic.to_form(non_residue), (prime - 1) / 2) == one) {
+		while (arithmetic.power(arithmetic.to_form(word(non_residue)), (prime - 1) / 2) == one) {
 			atl_assert(non_residue < prime - 1);
 			++non_residue;
 		}
-		auto generator = arithmetic.power(arithmetic.to_form(non_residue), odd_part);
+		auto generator = arithmetic.power(arithmetic.to_form(word(non_residue)), odd_part);
 		auto remainder = arithmetic.power(value_form, odd_part);
 		auto root = arithmetic.power(value_form, odd_part / 2 + 1);
 		while (remainder != one) {
