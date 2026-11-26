@@ -159,20 +159,6 @@ namespace atl {
 			struct interleaved_storage {
 				std::vector<compress_node> compress;
 				std::vector<rake_node> rake;
-
-				constexpr void prepare(std::size_t nodes) {
-					compress.clear();
-					rake.clear();
-					compress.reserve(nodes + 1);
-				}
-
-				constexpr void append_compress(compress_link const &link, compress_payload &&payload) {
-					compress.push_back(compress_node{link, std::move(payload)});
-				}
-
-				constexpr void append_rake(rake_link const &link, rake_payload &&payload) {
-					rake.push_back(rake_node{link, std::move(payload)});
-				}
 			};
 
 			/** @brief Split layout: links apart from payloads. */
@@ -181,25 +167,6 @@ namespace atl {
 				std::vector<compress_payload> compress_payloads;
 				std::vector<rake_link> rake_links;
 				std::vector<rake_payload> rake_payloads;
-
-				constexpr void prepare(std::size_t nodes) {
-					compress_links.clear();
-					compress_payloads.clear();
-					rake_links.clear();
-					rake_payloads.clear();
-					compress_links.reserve(nodes + 1);
-					compress_payloads.reserve(nodes + 1);
-				}
-
-				constexpr void append_compress(compress_link const &link, compress_payload &&payload) {
-					compress_links.push_back(link);
-					compress_payloads.push_back(std::move(payload));
-				}
-
-				constexpr void append_rake(rake_link const &link, rake_payload &&payload) {
-					rake_links.push_back(link);
-					rake_payloads.push_back(std::move(payload));
-				}
 			};
 
 			std::conditional_t<is_interleaved, interleaved_storage, split_storage> store;
@@ -294,53 +261,64 @@ namespace atl {
 			}
 
 			/** @brief The light-tag field's identity (a placeholder below the lazy tier). */
-			[[nodiscard]] constexpr light_tag_field light_tag_identity() const
-				requires has_tags
-			{ return tag_identity; }
-
-			[[nodiscard]] constexpr light_tag_field light_tag_identity() const
-				requires(!has_tags)
-			{ return {}; }
+			[[nodiscard]] constexpr light_tag_field light_tag_identity() const {
+				if constexpr (has_tags)
+					return tag_identity;
+				else
+					return {};
+			}
 
 			/** @brief The rake-tag field's identity (a placeholder below the lazy tier). */
-			[[nodiscard]] constexpr rake_tag_field rake_tag_identity() const
-				requires has_tags
-			{ return tag_identity; }
-
-			[[nodiscard]] constexpr rake_tag_field rake_tag_identity() const
-				requires(!has_tags)
-			{ return {}; }
-
-			template<typename Field>
-				requires std::same_as<Field, Path>
-			static constexpr void init_path_field(Field &field, Path const &path) { field = path; }
-
-			template<typename Field>
-				requires(!std::same_as<Field, Path>)
-			static constexpr void init_path_field(Field &, Path const &) {}
+			[[nodiscard]] constexpr rake_tag_field rake_tag_identity() const {
+				if constexpr (has_tags)
+					return tag_identity;
+				else
+					return {};
+			}
 
 			/** @brief A payload holding @p value with cluster @p path (both orientations), no mark, identity tags. */
 			[[nodiscard]] constexpr compress_payload make_payload(Value value, Path const &path) const {
 				reversed_field reversed{};
-				init_path_field(reversed, path);
+				if constexpr (has_reversed_path) reversed = path;
 				own_field own{};
-				init_path_field(own, path);
+				if constexpr (IsOwnCached) own = path;
 				return {std::move(value), path, std::move(reversed), std::move(own), tag_identity, light_tag_identity(), false};
 			}
 
 			/** @brief Append a compress record (links @p link, payload @p payload). */
 			constexpr void push_compress(compress_link const &link, compress_payload payload) {
-				store.append_compress(link, std::move(payload));
+				if constexpr (is_interleaved) {
+					store.compress.push_back(compress_node{link, std::move(payload)});
+				} else {
+					store.compress_links.push_back(link);
+					store.compress_payloads.push_back(std::move(payload));
+				}
 			}
 
 			/** @brief Append a rake record. */
 			constexpr void push_rake(rake_link const &link, rake_payload payload) {
-				store.append_rake(link, std::move(payload));
+				if constexpr (is_interleaved) {
+					store.rake.push_back(rake_node{link, std::move(payload)});
+				} else {
+					store.rake_links.push_back(link);
+					store.rake_payloads.push_back(std::move(payload));
+				}
 			}
 
 			/** @brief Empty both pools (no sentinels) and reserve room for @p compress_nodes nodes and their sentinel. */
 			constexpr void clear(std::size_t compress_nodes) {
-				store.prepare(compress_nodes);
+				if constexpr (is_interleaved) {
+					store.compress.clear();
+					store.rake.clear();
+					store.compress.reserve(compress_nodes + 1);
+				} else {
+					store.compress_links.clear();
+					store.compress_payloads.clear();
+					store.rake_links.clear();
+					store.rake_payloads.clear();
+					store.compress_links.reserve(compress_nodes + 1);
+					store.compress_payloads.reserve(compress_nodes + 1);
+				}
 				free_rakes.clear();
 			}
 
@@ -1164,30 +1142,6 @@ namespace atl {
 				return true;
 			}
 
-			constexpr void init_spare_edges(std::size_t slots, Value const &first, Path const &path_identity)
-				requires has_edge_values
-			{
-				typename pool_type::compress_link const lone{{0, 0}, 0, 0, 1};
-				for (std::size_t e = 0; e < slots; ++e) pool_.push_compress(lone, pool_.make_payload(first, path_identity));
-			}
-
-			constexpr void init_spare_edges(std::size_t, Value const &, Path const &)
-				requires(!has_edge_values)
-			{}
-
-			static constexpr std::size_t edge_slot_count(std::size_t n) { return has_edge_values && n > 0 ? n - 1 : 0; }
-
-			constexpr void init_edge_slots(std::size_t n)
-				requires has_edge_values
-			{
-				std::size_t const slots = n > 0 ? n - 1 : 0;
-				edges_.reset(slots);
-			}
-
-			constexpr void init_edge_slots(std::size_t)
-				requires(!has_edge_values)
-			{}
-
 			/**
 			 * @brief n isolated vertices, the k-th holding `next()` (called n times in
 			 *        order), and the identities in the sentinels; the edge tier adds
@@ -1199,9 +1153,9 @@ namespace atl {
 				// compress ids stay below the rake bit; the edge tier holds up to 2n - 1 nodes
 				atl_assert(n < (has_edge_values ? std::size_t(1) << 30 : std::size_t(top_rake_bit)));
 				n_ = uint32(n);
-				std::size_t const edge_slots = edge_slot_count(n);
+				std::size_t const edge_slots = has_edge_values && n > 0 ? n - 1 : 0;
 				pool_.clear(n + edge_slots);
-				init_edge_slots(n);
+				if constexpr (has_edge_values) edges_.reset(edge_slots);
 				if (n == 0) return;
 				Value first = std::invoke(next);
 				pool_.push_compress({}, pool_.make_payload(first, path_identity));
@@ -1212,7 +1166,7 @@ namespace atl {
 					Path const path = pool_.add_vertex(point_identity, value);
 					pool_.push_compress(lone, pool_.make_payload(std::move(value), path));
 				}
-				init_spare_edges(edge_slots, first, path_identity);
+				for (std::size_t e = 0; e < edge_slots; ++e) pool_.push_compress(lone, pool_.make_payload(first, path_identity));
 			}
 
 			/** @brief The pool over the given algebra (no nodes yet). */
@@ -1236,13 +1190,12 @@ namespace atl {
 			}
 
 			/** @brief The starting value of vertex @p v for a ready-made set: `Value::of_vertex(v)`, else `Value{}`. */
-			static constexpr Value ready_made_value(uint32 v)
-				requires top_clusters::detail::per_vertex_value<Value>
-			{ return Value::of_vertex(v); }
-
-			static constexpr Value ready_made_value(uint32)
-				requires(!top_clusters::detail::per_vertex_value<Value>)
-			{ return Value{}; }
+			static constexpr Value ready_made_value(uint32 v) {
+				if constexpr (top_clusters::detail::per_vertex_value<Value>)
+					return Value::of_vertex(v);
+				else
+					return Value{};
+			}
 
 			/**
 			 * @brief Link the light children listed per parent, children first:
@@ -1323,39 +1276,6 @@ namespace atl {
 				build_rake_trees(order, start, children, above);
 			}
 
-			static constexpr pool_type default_pool() { return make_pool({}, {}, {}, {}, {}, {}, {}, {}, {}, {}); }
-
-			/** @brief Select the algebra setup without configuration branches in the constructors. */
-			static constexpr pool_type configured_pool(Compress &compress,
-													   Rake &rake, AddVertex &add_vertex, AddEdge &add_edge)
-				requires(!has_tags && !has_reverse_callable)
-			{ return make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), {}, {}, {}, {}, {},
-							   {}); }
-
-			static constexpr pool_type configured_pool(Compress &compress,
-													   Rake &rake, AddVertex &add_vertex, AddEdge &add_edge, reverse_slot &reverse)
-				requires(!has_tags && has_reverse_callable)
-			{ return make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), detail::move_or_copy(reverse),
-							   {}, {}, {}, {}, {}); }
-
-			static constexpr pool_type configured_pool(Compress &compress,
-													   Rake &rake, AddVertex &add_vertex, AddEdge &add_edge, tag_type &tag_identity,
-													   mapping_slot &mapping, map_path_slot &map_path, map_point_slot &map_point,
-													   compose_slot &compose)
-				requires(has_tags && !has_reverse_callable)
-			{ return make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), {},
-							   std::move(tag_identity), detail::move_or_copy(mapping), detail::move_or_copy(map_path), detail::move_or_copy(map_point),
-							   detail::move_or_copy(compose)); }
-
-			static constexpr pool_type configured_pool(Compress &compress,
-													   Rake &rake, AddVertex &add_vertex, AddEdge &add_edge, reverse_slot &reverse, tag_type &tag_identity,
-													   mapping_slot &mapping, map_path_slot &map_path, map_point_slot &map_point,
-													   compose_slot &compose)
-				requires(has_tags && has_reverse_callable)
-			{ return make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), detail::move_or_copy(reverse),
-							   std::move(tag_identity), detail::move_or_copy(mapping), detail::move_or_copy(map_path), detail::move_or_copy(map_point),
-							   detail::move_or_copy(compose)); }
-
 		public:
 			/** @brief An empty forest (no vertices). @complexity O(1) */
 			constexpr top_tree_impl()
@@ -1364,7 +1284,7 @@ namespace atl {
 					  && std::default_initializable<reverse_slot> && std::default_initializable<tag_type>
 					  && std::default_initializable<mapping_slot> && std::default_initializable<map_path_slot>
 					  && std::default_initializable<map_point_slot> && std::default_initializable<compose_slot>
-				: pool_(default_pool()) {}
+				: pool_(make_pool({}, {}, {}, {}, {}, {}, {}, {}, {}, {})) {}
 
 			/**
 			 * @brief @p n isolated vertices, each holding @p value: a one-vertex
@@ -1374,7 +1294,8 @@ namespace atl {
 			constexpr top_tree_impl(std::size_t n, Value value, Path path_identity, Point point_identity, Compress compress = {},
 									Rake rake = {}, AddVertex add_vertex = {}, AddEdge add_edge = {})
 				requires(!has_tags && !has_reverse_callable)
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), {}, {}, {}, {}, {},
+								  {})) {
 				init(n, [&value] { return value; }, path_identity, point_identity);
 			}
 
@@ -1382,7 +1303,8 @@ namespace atl {
 			constexpr top_tree_impl(std::size_t n, Value value, Path path_identity, Point point_identity, Compress compress,
 									Rake rake, AddVertex add_vertex, AddEdge add_edge, reverse_slot reverse)
 				requires(!has_tags && has_reverse_callable)
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge, reverse)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), detail::move_or_copy(reverse),
+								  {}, {}, {}, {}, {})) {
 				init(n, [&value] { return value; }, path_identity, point_identity);
 			}
 
@@ -1397,7 +1319,9 @@ namespace atl {
 									mapping_slot mapping = {}, map_path_slot map_path = {}, map_point_slot map_point = {},
 									compose_slot compose = {})
 				requires(has_tags && !has_reverse_callable)
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge, tag_identity, mapping, map_path, map_point, compose)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), {},
+								  std::move(tag_identity), detail::move_or_copy(mapping), detail::move_or_copy(map_path), detail::move_or_copy(map_point),
+								  detail::move_or_copy(compose))) {
 				init(n, [&value] { return value; }, path_identity, point_identity);
 			}
 
@@ -1407,7 +1331,9 @@ namespace atl {
 									mapping_slot mapping = {}, map_path_slot map_path = {}, map_point_slot map_point = {},
 									compose_slot compose = {})
 				requires(has_tags && has_reverse_callable)
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge, reverse, tag_identity, mapping, map_path, map_point, compose)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), detail::move_or_copy(reverse),
+								  std::move(tag_identity), detail::move_or_copy(mapping), detail::move_or_copy(map_path), detail::move_or_copy(map_point),
+								  detail::move_or_copy(compose))) {
 				init(n, [&value] { return value; }, path_identity, point_identity);
 			}
 
@@ -1422,7 +1348,8 @@ namespace atl {
 			constexpr top_tree_impl(R &&values, std::type_identity_t<Path> path_identity, std::type_identity_t<Point> point_identity,
 									std::type_identity_t<Compress> compress = {}, std::type_identity_t<Rake> rake = {},
 									std::type_identity_t<AddVertex> add_vertex = {}, std::type_identity_t<AddEdge> add_edge = {})
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), {}, {}, {}, {}, {},
+								  {})) {
 				init(std::ranges::size(values), values_source<R>(values), path_identity, point_identity);
 			}
 
@@ -1433,7 +1360,8 @@ namespace atl {
 									std::type_identity_t<Compress> compress, std::type_identity_t<Rake> rake,
 									std::type_identity_t<AddVertex> add_vertex, std::type_identity_t<AddEdge> add_edge,
 									std::type_identity_t<reverse_slot> reverse)
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge, reverse)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), detail::move_or_copy(reverse),
+								  {}, {}, {}, {}, {})) {
 				init(std::ranges::size(values), values_source<R>(values), path_identity, point_identity);
 			}
 
@@ -1447,7 +1375,9 @@ namespace atl {
 									std::type_identity_t<map_path_slot> map_path = {},
 									std::type_identity_t<map_point_slot> map_point = {},
 									std::type_identity_t<compose_slot> compose = {})
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge, tag_identity, mapping, map_path, map_point, compose)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), {},
+								  std::move(tag_identity), detail::move_or_copy(mapping), detail::move_or_copy(map_path), detail::move_or_copy(map_point),
+								  detail::move_or_copy(compose))) {
 				init(std::ranges::size(values), values_source<R>(values), path_identity, point_identity);
 			}
 
@@ -1462,7 +1392,9 @@ namespace atl {
 									std::type_identity_t<map_path_slot> map_path = {},
 									std::type_identity_t<map_point_slot> map_point = {},
 									std::type_identity_t<compose_slot> compose = {})
-				: pool_(configured_pool(compress, rake, add_vertex, add_edge, reverse, tag_identity, mapping, map_path, map_point, compose)) {
+				: pool_(make_pool(detail::move_or_copy(compress), detail::move_or_copy(rake), detail::move_or_copy(add_vertex), detail::move_or_copy(add_edge), detail::move_or_copy(reverse),
+								  std::move(tag_identity), detail::move_or_copy(mapping), detail::move_or_copy(map_path), detail::move_or_copy(map_point),
+								  detail::move_or_copy(compose))) {
 				init(std::ranges::size(values), values_source<R>(values), path_identity, point_identity);
 			}
 
@@ -1479,7 +1411,7 @@ namespace atl {
 					  && std::default_initializable<reverse_slot> && std::default_initializable<tag_type>
 					  && std::default_initializable<mapping_slot> && std::default_initializable<map_path_slot>
 					  && std::default_initializable<map_point_slot> && std::default_initializable<compose_slot>
-				: pool_(default_pool()) {
+				: pool_(make_pool({}, {}, {}, {}, {}, {}, {}, {}, {}, {})) {
 				init(n, [v = uint32(0)]() mutable { return ready_made_value(v++); }, Path{}, Point{});
 			}
 
@@ -1492,7 +1424,7 @@ namespace atl {
 					  && std::default_initializable<tag_type> && std::default_initializable<mapping_slot>
 					  && std::default_initializable<map_path_slot> && std::default_initializable<map_point_slot>
 					  && std::default_initializable<compose_slot>
-			constexpr explicit top_tree_impl(R &&values) : pool_(default_pool()) {
+			constexpr explicit top_tree_impl(R &&values) : pool_(make_pool({}, {}, {}, {}, {}, {}, {}, {}, {}, {})) {
 				init(std::ranges::size(values), values_source<R>(values), Path{}, Point{});
 			}
 
