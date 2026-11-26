@@ -2,6 +2,7 @@
 """Fixtures for the include/name guard; also run with python -O."""
 import importlib.util
 import unittest
+from unittest.mock import patch
 import sys
 
 sys.dont_write_bytecode = True
@@ -50,6 +51,23 @@ class SplitCheckerTests(unittest.TestCase):
     def test_comments_are_ignored(self):
         checker.check('comments.cpp', forbidden_headers=('atl/forbidden.hpp',),
                       forbidden_names=('unused_path',))
+
+    def test_example_boundaries(self):
+        with patch.object(checker, 'check') as check, patch('builtins.print'):
+            checker.main()
+        calls = check.call_args_list
+        for name in ('quick', 'partitions'):
+            root = f'docs/examples/online-convolution/{name}.cpp'
+            self.assertTrue(any(call.args[0] == root and 'montgomery64' in call.args[2]
+                                and 'convolution' in call.args[2] for call in calls))
+            self.assertTrue(any(call.args[0] == root and 'convolution_ntt' in call.args[3]
+                                for call in calls))
+        self.assertTrue(any(call.args[0] == 'docs/examples/linear-recurrence/quick.cpp'
+                            and 'atl/nt/convolution_ntt.hpp' in call.args[1]
+                            and 'convolution' in call.args[3] for call in calls))
+        self.assertTrue(any(call.args[0] == 'docs/examples/power-series/prime-field-helpers.cpp'
+                            and 'fft_split_convolution' in call.args[2] and 'atl/nt/convolution_ntt.hpp' in call.args[1]
+                            for call in calls))
 
     def test_compatibility_comparison(self):
         spec = importlib.util.spec_from_file_location('compat', Path(__file__).with_name('check-header-compat.py'))

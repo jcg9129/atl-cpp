@@ -189,3 +189,14 @@ TEST_CASE("linear recurrence: order-64 periodic transform route", "[linear_recur
 	for (int i = 0; i < 64; ++i) a[std::size_t(i)] = mint(i);
 	CHECK(atl::linear_recurrence_term(c, a, 1000u) == mint(1000 % 64));
 }
+
+TEST_CASE("rational extraction retains products beyond a small field's NTT order", "[linear_recurrence]") {
+	using C = atl::mod_int32<17>;
+	// 1 / (1 - x^9): the padded Bostan-Mori products need 32 points,
+	// beyond this field's order 16, but the full driver's schoolbook path is valid.
+	std::vector<C> denominator(10);
+	denominator[0] = C(1);
+	denominator[9] = C(-1);
+	for (uint64 k : {0, 1, 9, 26, 27, 81})
+		CHECK(atl::rational_series_coefficient(std::vector<C>{1}, denominator, k) == C(k % 9 == 0 ? 1 : 0));
+}

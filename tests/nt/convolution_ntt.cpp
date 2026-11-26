@@ -1,5 +1,7 @@
 #include <atl/nt/convolution_ntt.hpp>
+#include <atl/nt/online_convolution_ntt.hpp>
 #include <atl/nt/polynomial_gcd_ntt.hpp>
+#include <atl/nt/prime_field_helpers.hpp>
 #include <atl/nt/series_composition_ntt.hpp>
 #include <catch2/catch.hpp>
 #include <cstddef>
@@ -45,4 +47,45 @@ TEST_CASE("NTT-only series and polynomial layers run without full extensions", "
 	V identity(129);
 	identity[1] = C(1);
 	CHECK((atl::series_composition(f, inverse, 129) == identity));
+}
+
+TEST_CASE("NTT-only online streams match defining sums without full extensions", "[online_convolution]") {
+	using C = atl::mod_int32<998244353>;
+	std::vector<C> left(257), right(193);
+	for (std::size_t i = 0; i < left.size(); ++i) left[i] = C(i * i + 3);
+	for (std::size_t i = 0; i < right.size(); ++i) right[i] = C(7 * i - 2);
+	atl::online_convolution<C> product;
+	atl::online_fixed_convolution<C> fixed(right);
+	product.reserve(left.size());
+	fixed.reserve(left.size());
+	for (std::size_t k = 0; k < left.size(); ++k) {
+		C expected(0);
+		for (std::size_t j = 0; j <= k && j < right.size(); ++j) expected += left[k - j] * right[j];
+		CHECK((product.push(left[k], k < right.size() ? right[k] : C(0)) == expected));
+		CHECK((fixed.push(left[k]) == expected));
+	}
+}
+
+TEST_CASE("static prime helpers work without runtime arithmetic", "[power_series]") {
+	using C = atl::mod_int32<17>;
+	atl::factorial_table<C> const table(16);
+	CHECK((table.binomial(10, 3) == C(120)));
+	CHECK(((atl::batch_inverse(std::vector<C>{2, 3}) == std::vector<C>{9, 6})));
+	for (int value = 0; value < 17; ++value) {
+		auto const root = atl::square_root_mod(C(value));
+		bool found = false;
+		for (int candidate = 0; candidate <= 8; ++candidate) {
+			if (candidate * candidate % 17 != value) continue;
+			CHECK((root == C(candidate)));
+			found = true;
+			break;
+		}
+		CHECK((root.has_value() == found));
+	}
+	CHECK((atl::square_root_mod(atl::mod_int32<2>(1)) == atl::mod_int32<2>(1)));
+	using Wide = atl::mod_int64<18446744073709551557ull>;
+	CHECK((atl::square_root_mod(Wide(4)) == Wide(2)));
+	std::vector<C> const polynomial{3, 4, 5};
+	CHECK(((atl::series_derivative(polynomial) == std::vector<C>{4, 10})));
+	CHECK(((atl::series_integral(polynomial) == std::vector<C>{0, 3, 2, 13})));
 }

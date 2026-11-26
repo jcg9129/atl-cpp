@@ -1,4 +1,5 @@
 #include <atl/ds/flat_hash_map.hpp>
+#include <atl/nt/online_convolution.hpp>
 #include <atl/nt/power_series.hpp>
 #include <concepts>
 #include "split_probe.hpp"

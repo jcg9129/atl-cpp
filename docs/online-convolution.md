@@ -22,9 +22,18 @@ Expected stdout:
 \include online-convolution/quick.out
 
 `<atl/nt/online_convolution.hpp>` is the normal entry point, including the
-wide-residue product policy. The examples use the reduced alternative
+wide-residue product policy. The reduced alternative
 `<atl/nt/online_convolution_native.hpp>` for the native series coefficient domain
 described in the power-series guide.
+
+The examples use `<atl/nt/online_convolution_ntt.hpp>` with
+`<atl/nt/mod_int_static.hpp>`. This reduced surface shares the native definitions
+and requires direct NTT order at least 2^23, including 998244353. The asserted
+push count and normalized kernel length are at most `maximum_series_length`
+(2^22); dyadic block operands are at most half that cap. Their padded products
+fit within 2^22, and every shared series product fits within 2^23. No length
+precondition is added. Other primes need `<atl/nt/online_convolution_native.hpp>`
+or the umbrella before instantiation; those headers keep the full fallbacks.
 
 ## Conventions and concepts
 

@@ -1,5 +1,5 @@
-#include <atl/nt/mod_int_core.hpp>
-#include <atl/nt/online_convolution_native.hpp>
+#include <atl/nt/mod_int_static.hpp>
+#include <atl/nt/online_convolution_ntt.hpp>
 #include <cstddef>
 #include <iostream>
 #include <vector>

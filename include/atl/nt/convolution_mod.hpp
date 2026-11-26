@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-#include <atl/nt/convolution_ntt.hpp>
+#include <atl/nt/detail/convolution_base.hpp>
 
 namespace atl {
 	namespace detail {

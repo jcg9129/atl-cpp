@@ -72,6 +72,7 @@ def main():
         "composition_brent_kung", "composition_block_size",
     )
     ntt_examples = {
+        "online-convolution": ("quick", "partitions"),
         "polynomial-points": ("quick", "sampling"),
         "polynomial-gcd": ("quick", "pade"),
         "power-series": ("quick", "powers-and-roots"),
@@ -90,7 +91,7 @@ def main():
         "linear-recurrence": ("quick",),
         "polynomial-points": ("quick", "sampling"),
         "polynomial-gcd": ("quick", "pade"),
-        "power-series": ("quick", "powers-and-roots", "prime-field-helpers"),
+        "power-series": ("quick", "powers-and-roots"),
         "online-convolution": ("quick", "partitions"),
         "series-composition": ("quick",),
     }.items():
@@ -98,10 +99,22 @@ def main():
             root = f"docs/examples/{folder}/{file}.cpp"
             narrow = file in ntt_examples.get(folder, ())
             check(root, arithmetic_headers, arithmetic_names,
-                  ("batch_inverse", "square_root_mod") if file == "prime-field-helpers"
-                  else ("convolution_ntt",) if narrow else ("fft_split_convolution",))
+                  ("convolution_ntt",) if narrow else ("fft_split_convolution",))
             if narrow:
                 check(root, ntt_headers, ntt_names)
+    # It also shows the integer square_root_mod overload, which needs the runtime
+    # Montgomery reducer: only the convolution code is kept out of it.
+    check("docs/examples/power-series/prime-field-helpers.cpp",
+          ("atl/nt/convolution_mod.hpp", "atl/nt/fft.hpp", "atl/nt/convolution_ntt.hpp"),
+          ("convolution", "fft_split_convolution", "garner_fits", "crt_primes", "cplx", "fft_roots", "fft"),
+          ("batch_inverse", "square_root_mod", "factorial_table", "series_derivative", "series_integral"))
+    check("docs/examples/modular-arithmetic/residues.cpp", ntt_headers, ntt_names)
+    # Orders are not series-capped: retain the full driver, without the unused
+    # direct-only entry that lexical distillation would otherwise keep too.
+    for folder in ("linear-recurrence", "convolution"):
+        check(f"docs/examples/{folder}/quick.cpp",
+              ("atl/nt/convolution_ntt.hpp",), ("convolution_ntt",),
+              ("convolution", "fft_split_convolution"))
     check("docs/examples/series-composition/quick.cpp",
           required_names=("composition_kinoshita_li",))
     check("docs/examples/linear-recurrence/quick.cpp",
