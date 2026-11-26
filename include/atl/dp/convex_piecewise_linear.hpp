@@ -445,11 +445,13 @@ namespace atl {
 			if (slope == total(right_)) {
 				// nothing is steeper, so the graph is unchanged and `p` is the
 				// farthest breakpoint: a min-heap's maximum is a leaf, and the
-				// leaves start at size / 2
-				std::size_t farthest = right_.heap.size() / 2;
-				for (std::size_t i = farthest + 1; i < right_.heap.size(); ++i)
-					if (position_of(right_.heap[farthest]) < position_of(right_.heap[i])) farthest = i;
-				return Value(position_of(right_.heap[farthest]) + right_.offset);
+				// leaves start at size / 2; keeping the farthest position rather
+				// than its index avoids a dependent reload on every comparison
+				std::size_t const first = right_.heap.size() / 2;
+				Value farthest = position_of(right_.heap[first]);
+				for (std::size_t i = first + 1; i < right_.heap.size(); ++i)
+					if (farthest < position_of(right_.heap[i])) farthest = position_of(right_.heap[i]);
+				return Value(farthest + right_.offset);
 			}
 			moved_.clear();
 			if (slope > 0) {
