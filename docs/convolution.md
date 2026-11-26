@@ -16,6 +16,14 @@ ordinary products without wraparound.
 Expected stdout:
 \include convolution/quick.out
 
+`<atl/nt/convolution.hpp>` is the normal entry point for modular and exact
+nonnegative integer products. The reduced alternative
+`<atl/nt/convolution_mod.hpp>` provides modular convolution with all existing
+FFT and CRT fallback paths. `<atl/nt/convolution_uint64.hpp>` adds the exact
+integer product; it is an extension, rather than a smaller modular entry point.
+`<atl/nt/ntt_engine_core.hpp>` provides the transform engine without the
+factorization and modular stream dependencies of `<atl/nt/ntt_engine.hpp>`.
+
 ## API
 
 ```cpp

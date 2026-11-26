@@ -14,6 +14,12 @@ sequences and integral types with truncating division are excluded.
 Expected stdout:
 \include linear-recurrence/quick.out
 
+`<atl/nt/linear_recurrence.hpp>` is the normal entry point, including matrix
+storage and Gaussian elimination as before. The example uses the reduced
+alternative `<atl/nt/linear_recurrence_native.hpp>`, which omits those dependencies
+and optional convolution implementations. The field contract is also available
+independently in `<atl/nt/exact_field.hpp>`.
+
 ## API
 
 `field_range<R>` requires a sized random-access range of `exact_field` values,

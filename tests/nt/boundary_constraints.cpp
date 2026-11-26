@@ -292,8 +292,8 @@ namespace {
 }
 
 #include <atl/experimental/nt/matrix_variants.hpp>
+#include <atl/nt/gaussian_elimination.hpp>
 #include <atl/nt/linear_recurrence.hpp>
-#include <atl/nt/matrix.hpp>
 
 namespace {
 	struct incomplete_semiring {

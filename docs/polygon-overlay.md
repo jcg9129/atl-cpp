@@ -15,6 +15,11 @@ Expected stdout:
 
 \verbinclude polygon-overlay/quick.out
 
+`<atl/geometry/polygon_overlay.hpp>` is the normal entry point for all coordinate
+types. The example uses the reduced alternative
+`<atl/geometry/polygon_overlay_integral.hpp>` for integral overlays, omitting
+adaptive floating kernels.
+
 ## API
 
 All names are in `atl::geometry`. `R1`, `R2` model `vertex_range` and require

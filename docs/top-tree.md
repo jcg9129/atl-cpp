@@ -29,6 +29,8 @@ The ready-made algebras are declared in:
 #include <atl/ds/top_clusters.hpp>
 ```
 
+The header `<atl/ds/top_tree_core.hpp>` provides the tree implementation with narrow dependencies.
+
 ## API
 
 ### The cluster algebra

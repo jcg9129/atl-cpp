@@ -21,6 +21,11 @@ operations of [Power series](power-series.md) instead.
 Expected stdout:
 \include online-convolution/quick.out
 
+`<atl/nt/online_convolution.hpp>` is the normal entry point, including the
+wide-residue product policy. The examples use the reduced alternative
+`<atl/nt/online_convolution_native.hpp>` for the native series coefficient domain
+described in the power-series guide.
+
 ## Conventions and concepts
 
 - Both classes are templates over `static_prime_mod_int Coefficient` and

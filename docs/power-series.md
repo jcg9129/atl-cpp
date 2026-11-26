@@ -24,6 +24,22 @@ that are not prime; the concepts reject them.
 Expected stdout:
 \include power-series/quick.out
 
+`<atl/nt/power_series.hpp>` is the normal entry point for the full generic API
+and its complexity contracts. The examples use the reduced alternative
+`<atl/nt/power_series_native.hpp>` for prime moduli fitting in 32 bits, with
+coefficient storage supporting double-width multiplication. Here “native” names
+the modulus/widening policy; widened storage can use portable arithmetic. This
+path retains direct NTT, FFT split and CRT products.
+`<atl/nt/power_series_wide.hpp>` installs the wider-residue product policy:
+16-bit limbs at runtime, schoolbook products in constant evaluation. Include it
+before using wider coefficient types.
+
+The helper example similarly uses `<atl/nt/factorial_table_core.hpp>`,
+`<atl/nt/batch_inverse_core.hpp>`, `<atl/nt/series_calculus_core.hpp>` and
+`<atl/nt/square_root_mod_core.hpp>` as reduced alternatives to the general
+headers listed above. `<atl/nt/prime_mod_int_core.hpp>` provides the shared
+prime-field concepts without factorization storage.
+
 ## Conventions and concepts
 
 ```cpp

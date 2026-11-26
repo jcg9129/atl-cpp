@@ -20,6 +20,11 @@ remainder and series inverses are on the [Power series](power-series.md) page.
 Expected stdout:
 \include polynomial-gcd/quick.out
 
+`<atl/nt/polynomial_gcd.hpp>` is the normal entry point, including the
+wide-residue product policy. The examples use the reduced alternative
+`<atl/nt/polynomial_gcd_native.hpp>` for the native series coefficient domain
+described in the power-series guide.
+
 ## Conventions and concepts
 
 - Inputs are any `prime_mod_int_range` (vectors, arrays, spans, lists, views, even

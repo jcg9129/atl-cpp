@@ -5,4 +5,7 @@ int odr_probe_tu1();
 
 int odr_probe_tu2() { return 0; }
 
-int main() { return odr_probe_tu1() + odr_probe_tu2(); }
+bool split_narrow();
+bool split_full();
+
+int main() { return odr_probe_tu1() + odr_probe_tu2() + (split_narrow() && split_full() ? 0 : 1); }

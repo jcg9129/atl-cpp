@@ -21,6 +21,11 @@ interpolation: the concepts reject every coefficient type except a prime modulus
 Expected stdout:
 \include polynomial-points/quick.out
 
+`<atl/nt/polynomial_points.hpp>` is the normal entry point, including the
+wide-residue product policy. The examples use the reduced alternative
+`<atl/nt/polynomial_points_native.hpp>` for the native series coefficient domain
+described in the power-series guide.
+
 ## Conventions and concepts
 
 - Coefficients are ordered by increasing degree. Inputs are any

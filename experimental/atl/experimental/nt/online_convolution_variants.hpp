@@ -1,4 +1,5 @@
 #pragma once
+#include <atl/nt/online_convolution.hpp>
 
 #include <atl/nt/detail/online_convolution.hpp>
 #include <atl/nt/detail/power_series.hpp>

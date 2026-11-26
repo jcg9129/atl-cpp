@@ -1,5 +1,6 @@
 #include <atl/ds/coordinate_compression.hpp>
 #include <atl/ds/detail/algebra.hpp>
+#include <atl/ds/detail/edge_id_table.hpp>
 #include <atl/ds/detail/forward_element.hpp>
 #include <atl/ds/detail/hash_table.hpp>
 #include <atl/ds/detail/hashed_child_pool.hpp>
@@ -1758,4 +1759,26 @@ namespace aggregate_queue_deque_checks {
 		queue.push_back(8);
 		return values.fold() == 200 && queue.fold() == 15;
 	}());
+}
+
+namespace {
+	constexpr bool edge_id_table_constant_evaluation() {
+		atl::detail::edge_id_table table;
+		table.reserve_entries(4);
+		for (atl::uint32 i = 0; i < 64; ++i) table.insert_entry((atl::uint64(i) << 32) | 7, i);
+		for (atl::uint32 i = 0; i < 64; i += 2) table.erase_entry((atl::uint64(i) << 32) | 7);
+		for (atl::uint32 i = 0; i < 64; ++i)
+			if (table.lookup_id((atl::uint64(i) << 32) | 7, 99) != (i % 2 ? i : 99)) return false;
+		table.insert_entry(7, 42);
+		table.insert_entry(7, 43);
+		if (table.entry_count() != 33 || table.lookup_id(7, 99) != 42) return false;
+		table.reset_entries();
+		table.erase_entry(7);
+		if (table.lookup_id(7, 99) != 99) return false;
+		table.insert_entry(~atl::uint64(0), ~atl::uint32(0));
+		return table.lookup_id(~atl::uint64(0), 0) == ~atl::uint32(0)
+			&& atl::detail::edge_id_hash(17) == std::size_t(atl::detail::splitmix64(17));
+	}
+
+	static_assert(edge_id_table_constant_evaluation());
 }

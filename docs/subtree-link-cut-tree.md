@@ -21,6 +21,8 @@ Output:
 
 \include subtree-link-cut-tree/basic.out
 
+The header `<atl/ds/subtree_link_cut_tree_core.hpp>` provides the tree implementation with narrow dependencies.
+
 ## API
 
 ```cpp

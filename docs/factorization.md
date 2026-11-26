@@ -13,6 +13,10 @@ across the queries.
 Expected stdout:
 \include factorization/quick.out
 
+`<atl/nt/basic.hpp>` is the normal entry point for primality and factorization.
+The reduced alternative `<atl/nt/primality.hpp>` provides `is_prime` and its
+Miller–Rabin kernel without sieve or factorization storage.
+
 ## API
 
 ```cpp
