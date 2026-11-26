@@ -69,8 +69,13 @@ rule: lvalues/views copy; owning rvalues and yielded prvalues may move.
 
 ## Measured performance
 
-Vector workloads in `benchmarks/ds/persistent_vector.cpp` are **not measured yet**.
-The recorded list handle-copy comparison is on the [list page](persistent-list.md).
+Vector workloads are measured by `benchmarks/ds/persistent_vector.cpp`
+(2026-11-22, AMD
+EPYC-Milan ccx23, GCC 15.2.0, RelWithDebInfo, assertions off; plain
+`-O2` / `-O2 -march=native`, five runs of 25 samples). One million
+keep-all pushes take 175/186 ms for full persistence versus 5.9/9.6 ms
+for semi-persistence; these offer different version-access contracts.
+The list handle-copy comparison is on the [list page](persistent-list.md).
 
 ## Pitfalls and notes
 

@@ -110,9 +110,8 @@ interface and the prime modulus, not the arithmetic.
 
 ## Measured performance
 
-Not measured yet. Every library choice is a provisional default and every contender is an
-`atl::experimental` class named `<function>_by_<method>`; the races are pending. The
-provisional direct block size is 32 (blocks up to that size are multiplied by the defining
+Each contender is an `atl::experimental` class named `<function>_by_<method>`.
+The library's direct block size is 32 (blocks up to that size are multiplied by the defining
 sums); the `_by_block_cutoff` contenders sweep it over 16, 24, 32, 48, 64, 96 and 128.
 
 | Class | Library default | Contenders (`<atl/experimental/nt/online_convolution_variants.hpp>`) |
@@ -130,8 +129,79 @@ amortized and `O(n^(log2 3))` worst case; by direct sums takes `O(n)` per push.
 The source is `benchmarks/nt/online_convolution.cpp`. It checks every contender against the
 offline product before timing and measures a whole stream of `n` pushes (including
 construction), at `n` = 2^10, 2^12, 2^16, 2^19 and 500000 modulo 998244353 and 2^16 modulo
-1000000007; the quadratic direct sums run only up to 2^12. A winner needs x86-64 records
-under both plain `-O2` and `-march=native`.
+1000000007; the quadratic direct sums run only up to 2^12.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25 (plain) and 2026-11-26 (native).
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds, plain / native;
+plain: 3 runs of 10 samples per row; native: 2 runs of 10 samples per row.
+
+The family comparisons use cutoff 32 for all block contenders. An empty cell means the
+quadratic contender does not run at that length.
+
+`online_convolution`:
+
+| modulus | n | library | by block cutoff (32) | by uncached blocks (32) | by Karatsuba blocks (32) | by direct sums |
+|---|---:|---:|---:|---:|---:|---:|
+| 998244353 | 1024 | 0.368 / 0.413 | 0.367 / 0.397 | 0.454 / 0.481 | 0.664 / 0.727 | 0.651 / 0.720 |
+| 998244353 | 4096 | 2.1 / 2.3 | 2.1 / 2.2 | 2.8 / 2.9 | 6.4 / 6.9 | 10.3 / 11.4 |
+| 998244353 | 65536 | 55.8 / 60.0 | 55.8 / 59.6 | 82.0 / 87.0 | 543 / 594 |  |
+| 998244353 | 524288 | 609 / 638 | 609 / 647 | 920 / 968 | 14853 / 16021 |  |
+| 998244353 | 500000 | 536 / 569 | 534 / 565 | 815 / 859 | 10691 / 11488 |  |
+| 1000000007 | 65536 | 118 / 103 | 118 / 104 | 118 / 102 | 525 / 590 |  |
+
+`online_fixed_convolution`:
+
+| modulus | n | library | by block cutoff (32) | by uncached blocks (32) | by Karatsuba blocks (32) | by direct sums |
+|---|---:|---:|---:|---:|---:|---:|
+| 998244353 | 1024 | 0.367 / 0.396 | 0.367 / 0.411 | 0.452 / 0.483 | 0.661 / 0.727 | 0.650 / 0.698 |
+| 998244353 | 4096 | 2.1 / 2.2 | 2.1 / 2.2 | 2.8 / 3.0 | 6.3 / 7.0 | 10.3 / 11.1 |
+| 998244353 | 65536 | 55.6 / 58.9 | 55.5 / 60.2 | 81.0 / 86.7 | 542 / 594 |  |
+| 998244353 | 524288 | 608 / 641 | 608 / 646 | 916 / 981 | 14853 / 15978 |  |
+| 998244353 | 500000 | 533 / 579 | 537 / 569 | 813 / 869 | 10696 / 11947 |  |
+| 1000000007 | 65536 | 119 / 105 | 119 / 106 | 119 / 104 | 523 / 596 |  |
+
+At p = 998244353 and n = 524288, keeping stationary spectra beats recomputing them:
+609 / 638 versus 920 / 968 ms for two streams, and 608 / 641 versus 916 / 981 ms for a
+fixed kernel. Karatsuba blocks take 14853 / 16021 and 14853 / 15978 ms respectively.
+At n = 4096, direct sums take 10.3 / 11.4 ms for two streams and 10.3 / 11.1 ms for a
+fixed kernel, versus the library's 2.1 / 2.3 and 2.1 / 2.2 ms.
+
+Direct block size sweep (`full` = `online_convolution`, `fixed` = `online_fixed_convolution`):
+
+| class | modulus | n | cutoff 16 | cutoff 24 | cutoff 32 | cutoff 48 | cutoff 64 | cutoff 96 | cutoff 128 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| full | 998244353 | 1024 | 0.350 / 0.376 | 0.350 / 0.368 | 0.367 / 0.397 | 0.367 / 0.393 | 0.448 / 0.499 | 0.451 / 0.507 | 0.636 / 0.732 |
+| fixed | 998244353 | 1024 | 0.350 / 0.372 | 0.351 / 0.384 | 0.367 / 0.411 | 0.365 / 0.399 | 0.446 / 0.499 | 0.446 / 0.506 | 0.639 / 0.746 |
+| full | 998244353 | 4096 | 2.0 / 2.1 | 2.0 / 2.1 | 2.1 / 2.2 | 2.1 / 2.2 | 2.4 / 2.7 | 2.4 / 2.7 | 3.3 / 3.7 |
+| fixed | 998244353 | 4096 | 2.0 / 2.1 | 2.0 / 2.1 | 2.1 / 2.2 | 2.1 / 2.2 | 2.4 / 2.7 | 2.4 / 2.7 | 3.3 / 3.8 |
+| full | 998244353 | 65536 | 55.5 / 58.4 | 54.7 / 59.0 | 55.8 / 59.6 | 55.9 / 59.2 | 62.4 / 67.1 | 61.5 / 67.1 | 76.5 / 84.2 |
+| fixed | 998244353 | 65536 | 54.6 / 57.6 | 54.6 / 57.8 | 55.5 / 60.2 | 55.8 / 59.3 | 61.4 / 66.8 | 61.5 / 68.2 | 76.9 / 84.6 |
+| full | 998244353 | 524288 | 601 / 628 | 600 / 643 | 609 / 647 | 610 / 648 | 656 / 703 | 653 / 700 | 777 / 849 |
+| fixed | 998244353 | 524288 | 599 / 628 | 600 / 626 | 608 / 646 | 608 / 655 | 656 / 711 | 656 / 728 | 778 / 852 |
+| full | 998244353 | 500000 | 525 / 557 | 528 / 547 | 534 / 565 | 535 / 566 | 579 / 616 | 578 / 620 | 694 / 777 |
+| fixed | 998244353 | 500000 | 525 / 561 | 529 / 585 | 537 / 569 | 536 / 581 | 578 / 624 | 578 / 619 | 696 / 765 |
+| full | 1000000007 | 65536 | 118 / 104 | 119 / 103 | 118 / 104 | 118 / 104 | 118 / 108 | 118 / 107 | 127 / 120 |
+| fixed | 1000000007 | 65536 | 119 / 105 | 119 / 105 | 119 / 106 | 118 / 104 | 118 / 110 | 118 / 113 | 127 / 127 |
+
+Both library classes lose to smaller direct cutoffs at every shown length modulo
+998244353. For example, at n = 65536, cutoff 16 takes 55.5 / 58.4 ms versus the library's
+55.8 / 60.0 ms for two streams, and 54.6 / 57.6 versus 55.6 / 58.9 ms for a fixed kernel.
+The best cutoff varies with the length, class and flags; these timings do not establish
+one uniform replacement for 32.
+
+Modulo 1000000007 at n = 65536, the library loses to uncached blocks with cutoff 32 under
+native flags (103 versus 102 ms for two streams, 105 versus 104 ms for a fixed kernel);
+plain ties at 118 and 119 ms respectively. The fixed-kernel library also loses to cutoff
+48 under both flags (119 / 105 versus 118 / 104 ms), and to cutoffs 64 and 96 under plain
+flags (119 versus 118 ms).
+
+The plain fixed-kernel block-cutoff-32 row at n = 4096 varies by 1.50x between runs;
+its minimum alone does not establish a stable cutoff ranking. The plain fixed-kernel
+uncached-blocks row at n = 1024 and cutoff 24 varies by 1.48x; the comparisons above use
+cutoff 32 for uncached blocks.
 
 ## Pitfalls and notes
 

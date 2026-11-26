@@ -51,22 +51,30 @@ disjoint suffix/prefix windows (disjoint_sparse_table), block masks
 timed separately from independent range-query throughput; min and gcd,
 uniform and bounded-length ranges exercise different costs.
 
-Xeon Platinum 8280, GCC 15.2, RelWithDebInfo, assertions off, 2026-10-15.
-Minimum of three runs, milliseconds, plain -O2 / -O2 -march=native;
-both also use -g -DNDEBUG -std=c++23.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | sparse_table min | disjoint_sparse_table min | direct_rmq | segment_tree min |
 |---|---:|---:|---:|---:|
-| n=1e6 build | 58.7 / 57.7 | 64.7 / 60.2 | 11.3 / 10.9 | 2.0 / 1.9 |
-| n=1e6, 1e7 uniform queries | 173 / 149 | 156 / 146 | 373 / 311 | 1200 / 1168 |
-| n=1e6, 1e7 queries len<=64 | 142 / 129 | 143 / 143 | 194 / 169 | — |
-| n=1e6, 1e7 queries len<=1000 | 152 / 123 | 164 / 147 | 318 / 275 | — |
-| n=1e7, 1e7 uniform queries | 377 / 357 | 358 / 354 | 1196 / 1065 | 2034 / 1643 |
+| n=1e6 build | 52.8 / 51.2 | 55 / 51.7 | 8.4 / 7.7 | 0.652 / 0.514 |
+| n=1e6, 1e7 uniform queries | 83 / 69.1 | 83.1 / 63.6 | 146 / 143 | 1030 / 1070 |
+| n=1e6, 1e7 queries len<=64 | 71.1 / 59.5 | 87.7 / 70.2 | 85 / 81.2 | — |
+| n=1e6, 1e7 queries len<=1000 | 75.8 / 65.1 | 88.9 / 72.5 | 135 / 137 | — |
+| n=1e7, 1e7 uniform queries | 168 / 146 | 155 / 140 | 701 / 687 | 1510 / 1450 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | gcd workload, n=1e6 | disjoint_sparse_table | segment_tree |
 |---|---:|---:|
-| build | 467 / 433 | 29.8 / 30.8 |
-| 1e7 uniform queries | 515 / 173 | 2062 / 2152 |
+| build | 309 / 310 | 21.5 / 21.7 |
+| 1e7 uniform queries | 358 / 106 | 1600 / 1610 |
 
 ## Pitfalls and notes
 

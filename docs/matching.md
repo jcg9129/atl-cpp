@@ -74,55 +74,68 @@ The library Z loop skips a comparison known to fail inside the active box;
 by box expansion still performs it. Both border loops use repeated projection.
 The lowercase projection uses `std::tolower` on an unsigned-char value.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Values are minimum per-run mean milliseconds over three runs of 25 samples;
-parentheses give slowest/fastest run spread. Both flag sets are shown.
-
 ### Z, identity projection
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library -O2 | by box expansion -O2 | library native | by box expansion native |
 |---|---:|---:|---:|---:|
-| all-a 10^6 | 2.2 (1.02x) | 2.0 (1.01x) | 2.4 (1.01x) | 2.7 (1.02x) |
-| abab 10^6 | 1.9 (1.02x) | 2.8 (1.02x) | 2.3 (1.01x) | 3.2 (1.02x) |
-| fib 10^6 | 1.7 (1.02x) | 3.5 (1.03x) | 2.2 (1.05x) | 3.6 (1.02x) |
-| random2 10^6 | 5.5 (1.02x) | 6.0 (1.03x) | 6.9 (1.01x) | 7.3 (1.00x) |
-| random26 10^6 | 2.1 (1.02x) | 2.4 (1.02x) | 2.6 (1.02x) | 2.8 (1.00x) |
-| all-a 10^7 | 41.1 (1.01x) | 40.1 (1.02x) | 44.4 (1.00x) | 47.6 (1.01x) |
-| abab 10^7 | 38.6 (1.02x) | 47.8 (1.01x) | 43.1 (1.04x) | 52.4 (1.01x) |
-| fib 10^7 | 38.3 (1.02x) | 58.7 (1.01x) | 42.7 (1.01x) | 59.1 (1.01x) |
-| random2 10^7 | 78.1 (1.01x) | 85.3 (1.00x) | 92.1 (1.01x) | 98.3 (1.01x) |
-| random26 10^7 | 41.7 (1.03x) | 44.1 (1.02x) | 46.1 (1.05x) | 49.2 (1.02x) |
+| all-a 10^6 | 1.1 (1.02x) | 1.2 (1.03x) | 1.2 (1.08x) | 1.2 (1.09x) |
+| abab 10^6 | 1.3 (1.07x) | 2.7 (1.02x) | 1.4 (1.04x) | 2.8 (1.03x) |
+| fib 10^6 | 0.966 (1.21x) | 2.8 (1.02x) | 0.911 (1.13x) | 2.9 (1.04x) |
+| random2 10^6 | 4.7 (1.03x) | 4.7 (1.02x) | 4.9 (1.03x) | 5 (1.06x) |
+| random26 10^6 | 1 (1.21x) | 1.1 (1.13x) | 1.1 (1.26x) | 1.2 (1.07x) |
+| all-a 10^7 | 30.1 (1.06x) | 30.7 (1.05x) | 33.3 (1.01x) | 33.2 (1.02x) |
+| abab 10^7 | 32.7 (1.03x) | 46.6 (1.02x) | 33.4 (1.09x) | 48.1 (1.04x) |
+| fib 10^7 | 29.6 (1.07x) | 48.7 (1.01x) | 30.5 (1.02x) | 50.5 (1.05x) |
+| random2 10^7 | 69 (1.02x) | 72.2 (1.01x) | 72.1 (1.00x) | 76.4 (1.03x) |
+| random26 10^7 | 30.5 (1.03x) | 31.4 (1.03x) | 32.3 (1.10x) | 32.6 (1.08x) |
 
 ### Z, lowercase projection
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | Shape | library -O2 | by box expansion -O2 | library native | by box expansion native |
 |---|---:|---:|---:|---:|
-| all-a 10^6 | 6.4 (1.01x) | 6.2 (1.01x) | 5.7 (1.02x) | 6.2 (1.02x) |
-| abab 10^6 | 6.1 (1.01x) | 8.8 (1.01x) | 6.0 (1.04x) | 8.3 (1.00x) |
-| fib 10^6 | 5.9 (1.01x) | 10.5 (1.01x) | 6.2 (1.01x) | 10.4 (1.01x) |
-| random2 10^6 | 14.6 (1.01x) | 15.2 (1.02x) | 14.7 (1.04x) | 15.5 (1.01x) |
-| random26 10^6 | 6.6 (1.01x) | 6.6 (1.02x) | 6.3 (1.03x) | 6.9 (1.01x) |
-| all-a 10^7 | 85.4 (1.01x) | 82.9 (1.02x) | 79.3 (1.00x) | 82.8 (1.03x) |
-| abab 10^7 | 82.2 (1.01x) | 110 (1.01x) | 81.8 (1.01x) | 105 (1.00x) |
-| fib 10^7 | 82.2 (1.01x) | 131 (1.01x) | 84.1 (1.01x) | 128 (1.01x) |
-| random2 10^7 | 169 (1.01x) | 187 (1.01x) | 167 (1.02x) | 191 (1.01x) |
-| random26 10^7 | 88.7 (1.01x) | 89.6 (1.00x) | 87.3 (1.02x) | 91.3 (1.02x) |
+| all-a 10^6 | 3.5 (1.02x) | 3.9 (1.02x) | 3.8 (1.04x) | 3.9 (1.01x) |
+| abab 10^6 | 4 (1.01x) | 5.5 (1.02x) | 4.2 (1.07x) | 5.6 (1.06x) |
+| fib 10^6 | 3.8 (1.12x) | 6.9 (1.01x) | 4 (1.10x) | 7.1 (1.02x) |
+| random2 10^6 | 11.3 (1.01x) | 11.5 (1.03x) | 11.9 (1.05x) | 12 (1.05x) |
+| random26 10^6 | 4.3 (1.08x) | 4.3 (1.01x) | 4.6 (1.09x) | 4.5 (1.05x) |
+| all-a 10^7 | 54.8 (1.07x) | 56.9 (1.03x) | 59.6 (1.02x) | 59.5 (1.02x) |
+| abab 10^7 | 60 (1.03x) | 72.5 (1.06x) | 63.8 (1.02x) | 78.8 (1.02x) |
+| fib 10^7 | 60 (1.04x) | 86.5 (1.03x) | 60.1 (1.11x) | 89.9 (1.05x) |
+| random2 10^7 | 132 (1.01x) | 144 (1.01x) | 140 (1.03x) | 151 (1.02x) |
+| random26 10^7 | 63.2 (1.01x) | 62.7 (1.02x) | 64.8 (1.08x) | 65.5 (1.04x) |
 
 ### Borders, lowercase projection
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | Shape | library -O2 | by repeated projection -O2 | library native | by repeated projection native |
 |---|---:|---:|---:|---:|
-| all-a 10^6 | 4.5 (1.00x) | 4.7 (1.01x) | 4.9 (1.00x) | 4.9 (1.00x) |
-| abab 10^6 | 4.5 (1.06x) | 4.7 (1.01x) | 4.9 (1.01x) | 4.9 (1.01x) |
-| fib 10^6 | 4.4 (1.00x) | 4.7 (1.02x) | 4.9 (1.03x) | 4.9 (1.03x) |
-| random2 10^6 | 13.9 (1.01x) | 13.9 (1.02x) | 13.8 (1.01x) | 13.9 (1.04x) |
-| random26 10^6 | 7.5 (1.00x) | 6.5 (1.01x) | 7.4 (1.01x) | 7.4 (1.01x) |
-| all-a 10^7 | 65.1 (1.01x) | 67.9 (1.01x) | 69.9 (1.02x) | 70.1 (1.01x) |
-| abab 10^7 | 65.5 (1.00x) | 68.2 (1.01x) | 69.1 (1.01x) | 69.0 (1.01x) |
-| fib 10^7 | 65.3 (1.01x) | 68.7 (1.01x) | 70.0 (1.01x) | 70.5 (1.01x) |
-| random2 10^7 | 156 (1.00x) | 156 (1.02x) | 159 (1.00x) | 158 (1.01x) |
-| random26 10^7 | 95.7 (1.03x) | 85.2 (1.05x) | 95.2 (1.01x) | 95.5 (1.00x) |
+| all-a 10^6 | 3.1 (1.04x) | 2.8 (1.14x) | 3 (1.05x) | 3.4 (1.07x) |
+| abab 10^6 | 3.1 (1.05x) | 2.8 (1.09x) | 3 (1.07x) | 3.2 (1.14x) |
+| fib 10^6 | 3.4 (1.01x) | 3.1 (1.10x) | 3.2 (1.14x) | 3.5 (1.07x) |
+| random2 10^6 | 10.5 (1.01x) | 10.5 (1.05x) | 11 (1.06x) | 11.3 (1.01x) |
+| random26 10^6 | 4 (1.04x) | 4 (1.05x) | 4.5 (1.06x) | 4.3 (1.07x) |
+| all-a 10^7 | 50.1 (1.03x) | 47.9 (1.03x) | 50.9 (1.05x) | 53.2 (1.04x) |
+| abab 10^7 | 50.8 (1.03x) | 48.1 (1.02x) | 51.2 (1.04x) | 53.8 (1.07x) |
+| fib 10^7 | 53.9 (1.03x) | 50.9 (1.01x) | 51.8 (1.08x) | 56.7 (1.03x) |
+| random2 10^7 | 125 (1.01x) | 124 (1.01x) | 131 (1.03x) | 131 (1.03x) |
+| random26 10^7 | 59.8 (1.03x) | 59.4 (1.05x) | 63.6 (1.06x) | 63.5 (1.03x) |
 
 
 ## Pitfalls and notes

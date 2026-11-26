@@ -74,78 +74,97 @@ handles, iterative rank-leftist, skew and vector-backed binary heaps. The tree
 loop pushes three values, pops two and melds upward; slope loops use min-heaps
 and lazy shifts. Mixes replay one million operations. Times include allocation.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off,
-2026-10-16. Milliseconds, minimum of three run means, plain `-O2` /
-`-O2 -march=native`; both also use `-g -DNDEBUG -std=c++23`.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | library pairing | pairing + handles (addressable) | by skew | by rank leftist | by binary |
 |---|---|---|---|---|---|
-| tree path 2e5 | 12.9 / 13.3 | 16.7 / 17.5 | 17.4 / 16.9 | 19.4 / 19.7 | 37.9 / 38.0 |
-| tree star 2e5 | 7.1 / 7.1 | 9.0 / 10.1 | 21.5 / 21.1 | 18.3 / 17.6 | 27.3 / 27.6 |
-| tree caterpillar 2e5 | 11.1 / 11.1 | 14.0 / 14.4 | 14.9 / 14.5 | 17.0 / 17.2 | 33.1 / 33.0 |
-| tree random 2e5 | 12.7 / 13.1 | 16.8 / 17.4 | 13.7 / 13.4 | 19.1 / 19.4 | 45.8 / 44.5 |
-| slope path 2e5 | 13.5 / 13.8 | - / - | 17.5 / 18.7 | 21.6 / 21.5 | 20.9 / 21.7 |
-| slope caterpillar 2e5 | 13.2 / 13.3 | - / - | 16.3 / 16.9 | 21.6 / 20.9 | 28.5 / 28.5 |
-| slope random 2e5 | 20.9 / 21.2 | - / - | 23.0 / 23.8 | 31.0 / 31.3 | 46.1 / 48.1 |
-| tree path 1e6 | 69.3 / 70.3 | 114 / 118 | 93.1 / 91.9 | 127 / 128 | 220 / 221 |
-| tree star 1e6 | 35.8 / 36.2 | 70.2 / 75.7 | 152 / 151 | 125 / 121 | 147 / 148 |
-| tree caterpillar 1e6 | 58.9 / 59.9 | 75.4 / 78.1 | 82.9 / 81.1 | 91.3 / 92.3 | 185 / 185 |
-| tree random 1e6 | 117 / 119 | 167 / 175 | 131 / 134 | 154 / 157 | 408 / 406 |
-| slope path 1e6 | 73.1 / 75.2 | - / - | 97.6 / 103 | 131 / 132 | 127 / 128 |
-| slope caterpillar 1e6 | 72.3 / 72.9 | - / - | 92.5 / 94.5 | 131 / 128 | 164 / 163 |
-| slope random 1e6 | 256 / 255 | - / - | 259 / 262 | 380 / 379 | 431 / 435 |
-| mix 1 heap, push 50 / pop 50 | 17.2 / 17.5 | 21.2 / 20.1 | 14.5 / 15.2 | 21.6 / 23.3 | 25.6 / 25.4 |
-| mix 1000 heaps, push 50 / pop 30 / meld 20 | 21.0 / 21.6 | 28.0 / 28.3 | 25.7 / 26.2 | 37.5 / 38.3 | 38.2 / 36.6 |
-| mix 1e5 heaps, push 40 / pop 20 / meld 40 | 25.0 / 25.6 | 35.3 / 35.6 | 26.2 / 26.3 | 39.3 / 39.8 | 53.8 / 52.6 |
+| tree path 2e5 | 10.7 / 11.6 | 13.7 / 16.1 | 13.2 / 14.1 | 14.4 / 15 | 30.6 / 29.5 |
+| tree star 2e5 | 5.4 / 5.6 | 7.1 / 7.7 | 17.2 / 16.9 | 12.5 / 12.6 | 19.9 / 19.6 |
+| tree caterpillar 2e5 | 9.1 / 9.4 | 11.9 / 12.7 | 11.3 / 11.6 | 12.1 / 12.2 | 24.8 / 24.2 |
+| tree random 2e5 | 9.5 / 9.8 | 12.4 / 13 | 10.2 / 10.2 | 13.8 / 14 | 31.5 / 31.3 |
+| slope path 2e5 | 11 / 11.7 | - / - | 14.5 / 15.2 | 16.4 / 17 | 17.1 / 16.6 |
+| slope caterpillar 2e5 | 10.3 / 10.8 | - / - | 13.1 / 13.5 | 15.9 / 15.9 | 21.2 / 20.8 |
+| slope random 2e5 | 14.7 / 15.6 | - / - | 16.7 / 17.5 | 21.7 / 21.9 | 31.3 / 31.8 |
+| tree path 1e6 | 54.2 / 59.1 | 98.3 / 110 | 68 / 72.9 | 102 / 104 | 172 / 166 |
+| tree star 1e6 | 25.7 / 26.8 | 34.2 / 37.2 | 116 / 117 | 67.2 / 68 | 102 / 101 |
+| tree caterpillar 1e6 | 46.6 / 48.5 | 60.5 / 65 | 59.9 / 61.8 | 62.3 / 63.1 | 135 / 132 |
+| tree random 1e6 | 62.7 / 64.9 | 93.6 / 97.7 | 67.3 / 69 | 96.2 / 99.2 | 270 / 275 |
+| slope path 1e6 | 55.6 / 59.6 | - / - | 75.3 / 79 | 101 / 105 | 96.1 / 93.4 |
+| slope caterpillar 1e6 | 52.6 / 55.7 | - / - | 68.7 / 70.6 | 98.7 / 98.7 | 117 / 115 |
+| slope random 1e6 | 165 / 184 | - / - | 175 / 179 | 280 / 275 | 291 / 299 |
+| mix 1 heap, push 50 / pop 50 | 11.7 / 13.1 | 15.6 / 15.4 | 11.6 / 12 | 15.9 / 16.2 | 19.9 / 19.8 |
+| mix 1000 heaps, push 50 / pop 30 / meld 20 | 15.1 / 15.9 | 20.5 / 20.7 | 20.2 / 20.6 | 27.5 / 27.6 | 28.7 / 28.9 |
+| mix 1e5 heaps, push 40 / pop 20 / meld 40 | 16.1 / 16.9 | 20.7 / 22.3 | 18.3 / 18.4 | 25.3 / 26.4 | 35.7 / 35.6 |
 
-Pairing has the lowest time in 16 of 17 shapes in both flag sets; skew wins the
-single-heap push/pop mix (14.5 / 15.2 versus 17.2 / 17.5). Rank-leftist pays for
+Pairing has the lowest minimum in 16 of 17 plain shapes and 15 of 17
+native shapes. It loses the single-heap push/pop mix to skew
+(11.7/13.1 versus 11.6/12 ms), and slope random 1e6 native
+(184 versus 179 ms), while winning that row plain (165 versus 175 ms). Rank-leftist pays for
 rank maintenance; binary meld reinserts elements. Handles add a predecessor
 link and update it on every link, which explains their extra traffic.
 
 `benchmarks/ds/meldable_heap_tuning.cpp` isolates each knob on a 2e5-vertex random
-tree and one million mixed operations over 1000 heaps. Same CPU/compiler/build
-and flags, measured 2026-10-15; plain/native milliseconds:
+tree and one million mixed operations over 1000 heaps. Plain/native milliseconds, with measurement setup below:
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | method / knob | tree | mix |
 |---|---:|---:|
-| by rank leftist / recursive, uint8 rank | 21.7 / 22.2 | 38.3 / 38.2 |
-| by rank leftist / iterative, uint8 rank | 18.9 / 19.8 | 38.8 / 37.1 |
-| by rank leftist / iterative, uint32 rank | 19.5 / 20.4 | 39.3 / 38.9 |
-| by skew / branch | 14.2 / 14.2 | 28.2 / 29.1 |
-| by skew / select | 13.2 / 13.3 | 27.4 / 27.3 |
-| by pairing / branch, free list | 12.6 / 13.2 | 22.1 / 21.6 |
-| by pairing / select, free list | 12.9 / 13.8 | 22.4 / 21.8 |
-| by pairing / branch, no free list | 15.9 / 17.4 | 22.8 / 22.5 |
-| by split pairing / split arrays | 15.9 / 15.1 | 22.1 / 22.5 |
-| by pairing / unused lazy tags | 18.4 / 18.0 | 26.9 / 26.6 |
-| by pairing / unused lazy tags, no identity skip | 23.6 / 23.6 | 33.1 / 32.8 |
-| by rank leftist / unused lazy tags | 24.2 / 22.7 | 41.0 / 40.9 |
-| by binary / push each | 44.0 / 47.1 | 37.7 / 39.7 |
-| by binary / bulk rebuild | 54.1 / 54.5 | 43.0 / 43.1 |
-| by pairing / branch, free list, reserved | 12.2 / 12.6 | — |
-| by rank leftist / iterative, uint8 rank, reserved | 17.9 / 18.8 | — |
+| by rank leftist / recursive, uint8 rank | 14.9 / 15.7 | 30.3 / 28.9 |
+| by rank leftist / iterative, uint8 rank | 14 / 13.6 | 29.8 / 28.1 |
+| by rank leftist / iterative, uint32 rank | 14.7 / 13.9 | 30.5 / 28.6 |
+| by skew / branch | 11 / 10.5 | 23.6 / 21.3 |
+| by skew / select | 10.8 / 10.1 | 22.4 / 20.5 |
+| by pairing / branch, free list | 9.1 / 9.6 | 17.5 / 15.7 |
+| by pairing / select, free list | 9.3 / 9.8 | 17.7 / 17 |
+| by pairing / branch, no free list | 10.4 / 11.2 | 16.7 / 16.2 |
+| by split pairing / split arrays | 11.2 / 12 | 17.5 / 17.4 |
+| by pairing / unused lazy tags | 12.1 / 13.8 | 19.7 / 19.1 |
+| by pairing / unused lazy tags, no identity skip | 17.4 / 16.9 | 25.4 / 23.9 |
+| by rank leftist / unused lazy tags | 17.8 / 16.5 | 33.1 / 30.7 |
+| by binary / push each | 33.3 / 29.4 | 33.1 / 28.6 |
+| by binary / bulk rebuild | 37.1 / 34.7 | 34.7 / 31.5 |
+| by pairing / branch, free list, reserved | 8.7 / 9.6 | — |
+| by rank leftist / iterative, uint8 rank, reserved | 14.1 / 13.5 | — |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | slope method, 2e5 random tree | time |
 |---|---:|
-| by pairing | 22.5 / 22.6 |
-| by pairing / no identity skip | 23.6 / 23.1 |
-| by skew / select | 23.5 / 24.3 |
-| by rank leftist | 33.7 / 31.8 |
-| by binary | 46.6 / 47.4 |
+| by pairing | 15.3 / 16.2 |
+| by pairing / no identity skip | 15.6 / 16.7 |
+| by skew / select | 17.3 / 17 |
+| by rank leftist | 22.6 / 21.2 |
+| by binary | 34 / 31.2 |
 
 `release` empties a heap in one walk over its links, with no pairing. The
 breakpoint pool of
 [`convex_piecewise_linear_forest`](convex-piecewise-linear-forest.md) uses it
 for `clear` and for the discarded right heap of `take_all`;
 [the forest benchmark](../benchmarks/dp/convex_piecewise_linear_forest.cpp)
-races that pool against the same pool emptying by repeated pops. Same CPU,
-compiler and build, measured 2026-11-01, plain/native milliseconds: clearing
-one set of 1e6 takes 1357 / 1348 with repeated pops and 74.1 / 75.3 with
-release; clearing and refilling 1000 sets of 1000 over three rounds takes
-1724 / 1693 and 632 / 631. The
+races that pool against the same pool emptying by repeated pops. On the same CPU, compiler, build and flags, measured 2026-11-22:
+clearing one set of 1e6 takes 1820/1830 ms with repeated pops and
+83.3/71.2 ms with release; clearing and refilling 1000 sets of 1000 over
+three rounds takes 1330/1400 and 170/157 ms (plain/native). The
 [forest page](convex-piecewise-linear-forest.md#measured-performance) has
 every shape.
+
+Random-tree, slope-random and many-heap mix rows include timings that vary
+between runs (spreads up to 2.49x). In particular, the native slope-random
+1e6 comparison varies, so its minimum alone does not establish a stable
+skew win.
 
 ## Pitfalls and notes
 

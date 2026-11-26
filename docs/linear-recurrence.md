@@ -91,33 +91,46 @@ including allocation; quadratic contenders run through d=1000 and matrix power
 at d=10. Every contender is checked against the library result on every raced
 shape. The certifying test oracle steps the recurrence definition.
 
-Source: `benchmarks/nt/linear_recurrence.cpp`. Intel Xeon Platinum 8280,
-GCC 15.2, RelWithDebInfo, assertions disabled, 2026-10-15. Minimum milliseconds
-of three per-run means, 10 samples per row. Each cell is plain / native:
-`-O2 -g -DNDEBUG -std=c++23`, with native adding `-march=native`.
+Source: `benchmarks/nt/linear_recurrence.cpp`.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | d | by transform bostan mori | by convolution bostan mori | by convolution kitamasa | by schoolbook bostan mori | by schoolbook kitamasa | by matrix power |
 |---|---:|---:|---:|---:|---:|---:|
-| 10 | 0.079 / 0.073 | 0.026 / 0.026 | 0.035 / 0.032 | 0.025 / 0.024 | 0.018 / 0.018 | 0.082 / 0.065 |
-| 32 | 0.325 / 0.290 | 0.197 / 0.203 | 0.268 / 0.262 | 0.212 / 0.197 | 0.192 / 0.169 | — |
-| 64 | 0.692 / 0.634 | 0.941 / 0.922 | 0.817 / 0.800 | 0.768 / 0.771 | 0.678 / 0.683 | — |
-| 100 | 0.688 / 0.643 | 1.3 / 1.3 | 1.7 / 1.7 | 1.9 / 1.9 | 1.7 / 1.7 | — |
-| 1000 | 6.4 / 6.1 | 12.4 / 12.2 | 15.7 / 15.5 | 182 / 182 | 153 / 153 | — |
-| 100000 | 1204 / 1162 | 2270 / 2243 | 2549 / 2513 | — | — | — |
+| 10 | 0.058 / 0.064 | 0.018 / 0.023 | 0.022 / 0.028 | 0.017 / 0.022 | 0.014 / 0.017 | 0.049 / 0.051 |
+| 32 | 0.225 / 0.253 | 0.151 / 0.189 | 0.195 / 0.242 | 0.15 / 0.186 | 0.127 / 0.158 | — |
+| 64 | 0.472 / 0.536 | 0.646 / 0.767 | 0.508 / 0.602 | 0.574 / 0.72 | 0.495 / 0.612 | — |
+| 100 | 0.476 / 0.54 | 0.893 / 1.1 | 1.1 / 1.3 | 1.4 / 1.7 | 1.2 / 1.5 | — |
+| 1000 | 4.6 / 5.3 | 8.9 / 10.7 | 10.1 / 12.1 | 137 / 167 | 113 / 138 | — |
+| 100000 | 853 / 1000 | 1630 / 1980 | 1630 / 1980 | — | — | — |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Berlekamp-Massey, 2d terms | plain ms | native ms |
 |---|---:|---:|
-| d=1000 | 4.0 | 3.6 |
-| d=5000 | 91.9 | 80.1 |
+| d=1000 | 2.6 | 3.1 |
+| d=5000 | 59.7 | 75.3 |
 
-Schoolbook Kitamasa wins at d=10 (0.018 / 0.018 ms); transform Bostan-Mori
-and schoolbook Kitamasa are close at d=64 (0.692 / 0.634 versus 0.678 / 0.683).
-At d=100000, transforms take 1204 / 1162 ms versus 2270 / 2243 for convolution
-Bostan-Mori and 2549 / 2513 for convolution Kitamasa. The library uses cutoff
+Schoolbook Kitamasa wins at d=10 (0.014/0.017 ms) and d=32
+(0.127/0.158 ms). At d=64 transform Bostan-Mori takes 0.472/0.536 ms
+versus schoolbook Kitamasa's 0.495/0.612 ms. At d=100000 transforms take
+853/1000 ms versus 1630/1980 ms for both convolution contenders. The library uses cutoff
 64 when a transform of the planned size is supported; otherwise it uses
 convolution Bostan-Mori for static moduli at that order, schoolbook Kitamasa
 for smaller orders and other fields. Experimental contenders are in
 `experimental/atl/experimental/nt/linear_recurrence_variants.hpp`.
+
+The d=10 through d=1000 comparisons include contenders that vary between
+runs (spreads up to 1.53x). Their quoted minima alone do not establish
+stable rankings at those orders.
 
 ## Pitfalls and notes
 

@@ -76,38 +76,52 @@ The alternative separator engines are defined in
 [benchmarks/graph/centroid_decomposition.cpp](../benchmarks/graph/centroid_decomposition.cpp)
 measures full event sweeps, parent-only construction and ranking order.
 Contenders change the component sweep, label bucketing, size recomputation or
-BFS queue representation. Classic size-based decompositions can select
-different separators; correctness tests certify the pair partition rather
-than requiring equal depth sums.
+BFS queue representation. Classic size-based decompositions can select different separators; correctness
+tests certify the pair partition rather than requiring equal depth sums.
+The library loses the random event sweep to queue sweep (41.9/36.9 versus
+36.6/32.3 ms), and the binary tree likewise (16.3/14 versus 11.8/11.2 ms).
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, assertions off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`,
-also with `-march=native`. Minimum milliseconds over three runs of 25 samples,
-plain / native.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | n=200000 shape | library ranking | by queue sweep | by bucket labels | by subtree sizes | by reused sizes |
 |---|---|---|---|---|---|
-| random | 47.8 / 47.2 | 41.1 / 40.3 | 48.0 / 46.8 | 67.8 / 66.6 | 51.3 / 50.3 |
-| path | 26.9 / 25.0 | 28.6 / 26.4 | 26.8 / 24.9 | 58.5 / 56.1 | 44.8 / 42.6 |
-| caterpillar | 20.8 / 19.5 | 20.6 / 17.8 | 20.8 / 19.4 | 41.3 / 39.4 | 32.3 / 30.2 |
-| binary | 23.1 / 22.5 | 16.1 / 15.7 | 23.1 / 21.1 | 34.3 / 32.5 | 26.3 / 24.0 |
-| broom | 21.5 / 20.5 | 21.8 / 20.9 | 21.5 / 20.2 | 33.1 / 31.9 | 26.2 / 25.1 |
+| random | 41.9 / 36.9 | 36.6 / 32.3 | 41.9 / 37.2 | 53.9 / 51.9 | 38.6 / 35.6 |
+| path | 29.6 / 23.3 | 33.2 / 25.2 | 29.6 / 23.3 | 49 / 41.7 | 38.8 / 32 |
+| caterpillar | 19.2 / 15.7 | 19.7 / 15.7 | 19.2 / 15.8 | 36.9 / 32.5 | 28.2 / 24.5 |
+| binary | 16.3 / 14 | 11.8 / 11.2 | 16.5 / 14.1 | 26.1 / 24 | 19.3 / 17.3 |
+| broom | 20.5 / 16.7 | 21.8 / 18 | 20.8 / 17.3 | 26.7 / 22.8 | 21.5 / 18 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | separator parent construction | library direct ranking | by component sweep |
 |---|---|---|
-| random 200000 | 9.9 / 9.5 | 46.5 / 46.3 |
-| path 200000 | 2.9 / 2.8 | 25.4 / 23.7 |
-| caterpillar 200000 | 2.5 / 2.3 | 19.5 / 18.5 |
-| binary 200000 | 2.2 / 2.1 | 22.0 / 20.2 |
-| broom 200000 | 2.6 / 2.5 | 20.3 / 19.3 |
-| random 1000000 | 106 / 103 | 495 / 492 |
-| path 1000000 | 15.4 / 14.8 | 146 / 135 |
+| random 200000 | 8.5 / 8 | 41.5 / 35.8 |
+| path 200000 | 2 / 2 | 28.7 / 22.2 |
+| caterpillar 200000 | 2 / 2 | 18.1 / 15 |
+| binary 200000 | 1.6 / 1.6 | 15.3 / 13.2 |
+| broom 200000 | 1.7 / 1.8 | 18.4 / 16 |
+| random 1000000 | 72.9 / 129 | 308 / 770 |
+| path 1000000 | 10.3 / 10.7 | 163 / 131 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | ranking order, n=1000000 | library direct queue | by view per vertex |
 |---|---|---|
-| random tree | 58.5 / 56.4 | 72.3 / 69.2 |
-| singletons | 4.5 / 4.2 | 24.7 / 25.8 |
-| pairs | 7.8 / 7.4 | 26.9 / 27.1 |
+| random tree | 36.6 / 72.6 | 45.1 / 100 |
+| singletons | 2.7 / 2.7 | 14.1 / 18.8 |
+| pairs | 4.7 / 5.1 | 17.3 / 20.1 |
 
 ### Pitfalls and notes
 
@@ -161,26 +175,35 @@ only a centroid-to-root path, balances by thirds and writes child frames in
 one layout sweep. The CSR/BFS contender builds children lists and uses
 first-fit coloring; its bucket variant changes only CSR construction. They
 need not emit the same mass, but must partition exactly the same path pairs.
-Machine, compiler, build, date and plain/native flags are the ranking record
-above: Xeon Platinum 8358, GCC 15.2.0, RelWithDebInfo, 2026-10-15.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | hop shape | library | by CSR BFS | by bucket CSR BFS |
 |---|---|---|---|
-| random 200000 | 47.8 / 48.3 | 110 / 112 | 112 / 109 |
-| star 200000 | 49.8 / 49.1 | 80.7 / 80.3 | 80.4 / 80.0 |
-| caterpillar 200000 | 40.9 / 40.3 | 77.2 / 78.4 | 77.1 / 76.3 |
-| path 200000 | 43.2 / 43.0 | 71.0 / 72.2 | 70.4 / 69.8 |
-| broom 200000 | 46.6 / 46.5 | 75.8 / 76.8 | 75.7 / 75.0 |
-| spider 1,h,h 200000 | 42.6 / 42.4 | 73.7 / 75.0 | 72.7 / 72.2 |
-| random 1000000 | 266 / 264 | 644 / 650 | not measured yet |
-| star 1000000 | 301 / 298 | 472 / 473 | not measured yet |
+| random 200000 | 41.4 / 45.7 | 118 / 136 | 119 / 136 |
+| star 200000 | 38.4 / 45.7 | 88.8 / 114 | 86.2 / 114 |
+| caterpillar 200000 | 35.8 / 39.1 | 99.1 / 124 | 98 / 128 |
+| path 200000 | 36.9 / 39.7 | 88.5 / 113 | 90.2 / 114 |
+| broom 200000 | 38.2 / 42.4 | 89.7 / 113 | 89.3 / 115 |
+| spider 1,h,h 200000 | 37.1 / 39.5 | 96.9 / 121 | 95.3 / 122 |
+| random 1000000 | 238 / 269 | 692 / 810 | not measured yet |
+| star 1000000 | 205 / 265 | 494 / 646 | not measured yet |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | edge-span shape | library | by CSR BFS |
 |---|---|---|
-| random 200000 | 58.5 / 58.9 | 125 / 124 |
-| caterpillar 200000 | 50.4 / 49.9 | 93.2 / 93.9 |
-
-Single-span callback shape: not measured yet in the supplied records.
+| random 200000 | 53.8 / 63.9 | 128 / 151 |
+| caterpillar 200000 | 46.6 / 55 | 107 / 132 |
 
 ### Pitfalls and notes
 
@@ -242,20 +265,20 @@ spans follow [CSR ownership rules](graph.md). Allocation failures propagate.
 [benchmarks/graph/ternarization.cpp](../benchmarks/graph/ternarization.cpp)
 measures complete construction at n=1000000; unit-hop and int64 rows differ
 in edge payload. No competing builder is timed here.
-Intel Xeon Platinum 8280 @ 2.70 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, assertions off, 2026-10-23. Flags `-O2 -g -DNDEBUG -std=c++23`,
-also with `-march=native`. Minimum milliseconds over three runs of 25 samples,
-plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | unit hops | int64 weights |
 |---|---|---|
-| star | 39.4 / 39.8 | 74.9 / 74.7 |
-| path | 21.8 / 21.9 | 29.4 / 28.8 |
-| caterpillar | 25.1 / 26.3 | 32.4 / 31.7 |
-| random parent | 229 / 230 | 317 / 319 |
-
-Explicit-frame fan-out requires remeasurement; the table retains the supplied
-construction record.
+| star | 24 / 28.1 | 58.4 / 61.5 |
+| path | 11.2 / 13.7 | 13.2 / 15.9 |
+| caterpillar | 17.9 / 20.6 | 19.3 / 22.2 |
+| random parent | 75.8 / 161 | 128 / 199 |
 
 ### Pitfalls and notes
 

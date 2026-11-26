@@ -126,40 +126,46 @@ clips already constructed values, so its numerical decisions are best effort.
 the library incircle filter against `incircle_sign_by_int256`, which always
 uses integer products. Exactly representable integer inputs use the adaptive
 double filter, with int256 for larger integers and constant evaluation.
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15; `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run means over three runs of 25 samples; ms, spreads 1.00–1.06x.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Operation / shape | -O2 | native |
 |---|---:|---:|
-| incircle int64 library, 1e6 | 26.2 | 23.2 |
-| incircle int64 by int256, 1e6 | 64.6 | 61.5 |
-| incircle int32 library, 1e6 | 24.1 | 20.9 |
-| incircle int32 by int256, 1e6 | 59.8 | 59.3 |
-| Delaunay int64 uniform 2e5, 2e9 span | 346 | 360 |
-| Delaunay double, same cloud | 331 | 322 |
-| Delaunay int64 grid 450 by 450 | 160 | 159 |
-| Voronoi extraction, uniform 2e5 | 50.8 | 49.5 |
-| Largest empty circle, uniform 2e4 | 32.4 | 33.3 |
-| Largest empty circle, uniform 2e5 | 432 | 445 |
+| incircle int64 library, 1e6 | 17.5 | 22.4 |
+| incircle int64 by int256, 1e6 | 35 | 40.5 |
+| incircle int32 library, 1e6 | 18.3 | 17.7 |
+| incircle int32 by int256, 1e6 | 36.3 | 41.6 |
+| Delaunay int64 uniform 2e5, 2e9 span | 244 | 254 |
+| Delaunay double, same cloud | 256 | 284 |
+| Delaunay int64 grid 450 by 450 | 122 | 102 |
+| Voronoi extraction, uniform 2e5 | 39.9 | 39.5 |
+| Largest empty circle, uniform 2e4 | 21.2 | 21.6 |
+| Largest empty circle, uniform 2e5 | 288 | 300 |
 
 `benchmarks/geometry/manhattan_mst.cpp`, same CPU, compiler, build and date,
 runs `euclidean_mst` beside the L1 race on identical clouds. These compute
 different trees; the Euclidean agreement check is only n - 1 edges.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | Euclidean MST shape | -O2 ms | native ms |
 |---|---:|---:|
-| uniform 100k, 1e6 span | 172 | 172 |
-| gridded 100k, 300 by 300 | 67.2 | 67.3 |
+| uniform 100k, 1e6 span | 108 | 121 |
+| gridded 100k, 300 by 300 | 48.3 | 47.5 |
 
-The edge-sort comparison (2026-10-14, same CPU, GCC 15.2, RelWithDebInfo,
-assertions off, `-O2`) measured 25.9 ms for precomputed squared-length keys
-versus 73.4 ms for a comparator recomputing both lengths on uniform 1e5.
-Precomputation also gives stable comparisons on x87. Bichromatic pair
-selection is not measured yet. An all-sites nearest-site scan per empty-circle
-candidate measured 3751 ms at 2e4 points (same CPU/compiler/build, assertions
-off, `-O2`, 2026-10-14); using the candidate's known nearest site avoids that
-quadratic scan.
+Precomputed squared-length keys give stable comparisons on x87.
+Bichromatic pair selection is not measured yet. No speedup is established
+for edge sorting or all-sites scanning.
+
 
 ## Pitfalls and notes
 

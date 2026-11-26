@@ -70,28 +70,26 @@ random-access ranges. Ties between equal rotations need no caller tie rule.
 `benchmarks/strings/lyndon.cpp` races full runs construction on four
 10^6-symbol texts. The library builds only inverted-order suffix ranks;
 by full suffix arrays also computes and retains inverted-order LCP values.
-These supplied rows use uint32 counting positions; size_t positions and
-sparse-alphabet dispatch require remeasurement.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean ms over three runs of 25 samples; parentheses are
-slowest/fastest spread.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library -O2 | by full suffix arrays -O2 | library native | by full suffix arrays native |
 |---|---:|---:|---:|---:|
-| fib 10^6 | 394 (1.03x) | 407 (1.06x) | 385 (1.02x) | 398 (1.02x) |
-| all-a 10^6 | 138 (1.01x) | 142 (1.00x) | 124 (1.01x) | 127 (1.00x) |
-| random2 10^6 | 491 (1.05x) | 527 (1.02x) | 486 (1.05x) | 513 (1.01x) |
-| random26 10^6 | 477 (1.02x) | 495 (1.04x) | 460 (1.02x) | 482 (1.03x) |
+| fib 10^6 | 234 (1.07x) | 247 (1.04x) | 252 (1.03x) | 259 (1.04x) |
+| all-a 10^6 | 51.7 (1.02x) | 53 (1.02x) | 49.6 (1.06x) | 50.3 (1.06x) |
+| random2 10^6 | 324 (1.05x) | 339 (1.04x) | 335 (1.07x) | 350 (1.06x) |
+| random26 10^6 | 285 (1.04x) | 293 (1.07x) | 294 (1.05x) | 306 (1.04x) |
 
 ## Pitfalls and notes
 
 A run's period is its smallest period, not an arbitrary repetition length.
 Its two endpoints are half-open. Factor boundaries include both zero and n;
-empty text therefore has one boundary and zero factors. The performance
-records do not isolate factorization or minimal rotation; those operations
-are not measured yet.
+empty text therefore has one boundary and zero factors. Factorization and
+minimal rotation are not measured yet.
 
 ## How it works
 

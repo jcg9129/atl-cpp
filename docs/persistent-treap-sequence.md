@@ -77,7 +77,12 @@ shared pool while traversal holds node references.
 
 `benchmarks/ds/persistent_treap_sequence.cpp` compares a chain of persistent
 versions with an in-place treap on the same insert/fold stream, including
-construction. **Not measured yet.**
+construction. Measurements
+(2026-11-22, AMD EPYC-Milan ccx23, GCC 15.2.0, RelWithDebInfo,
+assertions off; plain `-O2` / `-O2 -march=native`, five runs of 25 samples)
+give 247/259 ms for the library versus 104/106 ms for the mutable
+treap on 2e5 mixed operations. The persistent library loses this comparison;
+the mutable contender does not retain versions.
 
 ## Pitfalls and notes
 

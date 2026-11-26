@@ -96,10 +96,9 @@ Documented only:
 
 ## Measured performance
 
-The comparison is **not measured yet**. The source is
-[benchmarks/ds/aggregate_queue_deque.cpp](../benchmarks/ds/aggregate_queue_deque.cpp). No
-benchmark records, timings or measured rankings are available, and the public defaults are not
-claimed to be the fastest engines.
+Measurements: 2026-11-23. The source is
+[benchmarks/ds/aggregate_queue_deque.cpp](../benchmarks/ds/aggregate_queue_deque.cpp).
+Both flag sets are measured; the public defaults do not win every workload.
 
 The benchmark races the library deque on every shape and, on the FIFO shapes, the library
 queue and the three experimental queue contenders below. Shapes are a fixed-width sliding
@@ -112,6 +111,12 @@ replay throughput with the fold read after every update, the same with `reserve(
 reserved replay; separate untimed passes report p99, p999 and maximum update latency (clock
 overhead included), operation calls per update and per fold, allocation calls and peak
 requested heap bytes (allocator overhead excluded).
+
+On AMD EPYC-Milan ccx23, GCC 15.2.0, RelWithDebInfo, assertions off,
+plain `-O2` / `-O2 -march=native`, five runs of 25 samples, the fixed FIFO
+width=16 xor end-to-end queue loses to DABA-lite ring (0.35/0.336 versus
+0.234/0.268 ms). Reserved replay favors the queue (0.109/0.095 versus
+0.22/0.235 ms). These are distinct timed phases, not a uniform engine win.
 
 ## Pitfalls and notes
 
@@ -126,8 +131,7 @@ requested heap bytes (allocator overhead excluded).
 
 Experimental contenders live in
 [`<atl/experimental/ds/aggregate_queue_variants.hpp>`](../experimental/atl/experimental/ds/aggregate_queue_variants.hpp)
-under `atl::experimental` (add `-Iexperimental`). All three mirror the queue's interface and
-are **not measured yet**:
+under `atl::experimental` (add `-Iexperimental`). All three mirror the queue's interface:
 
 - `aggregate_queue_by_daba_lite_ring<Value, Operation>`: the DABA Lite schedule on a growable
   ring. At most three operation calls per push, two per pop and one per fold, whatever the

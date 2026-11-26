@@ -149,31 +149,43 @@ Documented only:
 
 ## Measured performance
 
-x86-64, Intel Xeon Platinum 8280, g++ 15.2.0, asserts off,
-Measured using `benchmarks/ds/segment_tree.cpp` on 2026-10-15, minimum over
-3 runs of 25 samples, flags `-O2` (and `-march=native` where stated).
+Against a textbook recursive segment tree on 10⁶ elements, the library
+is 145/135 = 1.07 times faster on point sets plain (147/109 = 1.35
+native), and 274/110 = 2.49 times faster on range queries
+(282/126 = 2.24 native), for 10⁶ operations each. Native changes library
+sets from 135 to 109 ms and queries from 110 to 126 ms:
 
-Against a textbook recursive segment tree on 10⁶ elements it is **~1.4× faster on point
-set and ~3× faster on range query** (10⁶ operations each; `-march=native` is within 3%):
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | 10⁶ ops, n = 10⁶ | iterative (library) | recursive |
 |---|---|---|
-| set | 124 / 121 ms | 175 / 170 ms |
-| range query | 119 / 121 ms | 352 / 359 ms |
+| set | 135 / 109 ms | 145 / 147 ms |
+| range query | 110 / 126 ms | 274 / 282 ms |
 
 `max_right`, 10⁶ calls reaching about 5·10⁴ elements each: for non-scalar `T` the ascent
 keeps the fold it tested instead of recomputing it (`reuse_ascent_fold`); scalars keep
 the recomputing form. The comparison uses full-capacity build and two op calls per accepted search node (`by full build and recomputed search` rows):
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | `max_right`, 10⁶ calls | library, `-O2` / `-march=native` | by full build and recomputed search, `-O2` / `-march=native` |
 |---|---|---|
-| sum + 2x2 matrix (aggregate `T`) | 371 / 365 ms | 592 / 594 ms |
-| gcd (scalar `T`) | 246 / 226 ms | 244 / 209 ms |
+| sum + 2x2 matrix (aggregate `T`) | 347 / 332 ms | 629 / 525 ms |
+| gcd (scalar `T`) | 183 / 205 ms | 183 / 206 ms |
 
-Construction touches only the ancestors of the first `n` leaves, so the padding past `n`
-is free (`ll` sum, `-O2` / `-march=native`: at `n = 2^20` the library build takes 4.0 / 3.8 ms
-against 4.2 / 4.0 for the comparison one, which combined every internal node; at
-`n = 2^20 + 1` 19.5 / 19.3 against 20.9 / 20.8).
+Construction combines only ancestors of the first `n` leaves, while
+storage allocation still includes padding. `benchmarks/ds/segment_tree.cpp` also measures `ll` sum builds at `n=2^20`:
+the library loses plain (0.885 versus 0.835 ms) and wins native
+(0.684 versus 0.698 ms).
+At `n=2^20+1` it wins both modes (1.4/1.3 versus 2.1/1.9 ms).
 
 ## Pitfalls and notes
 

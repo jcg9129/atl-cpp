@@ -88,29 +88,40 @@ The loop-order race copies an input then transforms it using blocked radix-2
 isolates copying. The product race compares restricted mask-major ranks with
 full rank-major arrays. By-definition experimental sums certify correctness.
 
-Source: `benchmarks/nt/bitwise_convolution.cpp`. Intel Xeon Platinum 8358,
-GCC 15.2, RelWithDebInfo, assertions disabled, 2026-10-15. Minimum milliseconds
-of three per-run means, 25 samples each. Flags `-O2 -g -DNDEBUG -std=c++23`,
-with/without `-march=native`. Each cell is plain / native milliseconds.
+Source: `benchmarks/nt/bitwise_convolution.cpp`.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | transform and shape | library | by bit outer radix2 | by radix4 | by blocked radix4 | copy only |
 |---|---:|---:|---:|---:|---:|
-| subset zeta, mod_int 998244353, d=20 | 10.1 / 10.0 | 9.4 / 9.4 | 9.2 / 9.0 | 9.8 / 9.9 | 0.231 / 0.231 |
-| subset zeta, uint64, d=20 | 7.6 / 7.6 | 8.2 / 8.0 | 8.7 / 8.7 | 8.6 / 8.7 | 0.479 / 0.479 |
-| Walsh, mod_int 998244353, d=20 | 15.5 / 16.6 | 15.9 / 15.7 | 17.5 / 17.5 | 18.5 / 17.9 | 0.231 / 0.231 |
-| Walsh, uint64, d=20 | 9.3 / 9.5 | 10.4 / 10.8 | 10.0 / 10.6 | 10.1 / 10.4 | 0.478 / 0.478 |
-| subset zeta, mod_int 998244353, d=16 | 0.485 / 0.485 | 0.444 / 0.444 | 0.409 / 0.409 | 0.465 / 0.465 | 0.006 / 0.006 |
+| subset zeta, mod_int 998244353, d=20 | 6.5 / 6.2 | 6.5 / 6.3 | 6.3 / 6.2 | 7 / 6.8 | 0.086 / 0.089 |
+| subset zeta, uint64, d=20 | 3.4 / 3.4 | 4 / 3.5 | 3.2 / 3.4 | 3.6 / 3.6 | 0.174 / 0.176 |
+| Walsh, mod_int 998244353, d=20 | 11.5 / 12.2 | 11.2 / 12.2 | 10.6 / 11.9 | 11.9 / 12.8 | 0.085 / 0.087 |
+| Walsh, uint64, d=20 | 5.6 / 5.3 | 5.8 / 5.6 | 5.8 / 5.6 | 6 / 5.9 | 0.179 / 0.179 |
+| subset zeta, mod_int 998244353, d=16 | 0.327 / 0.32 | 0.323 / 0.306 | 0.296 / 0.28 | 0.33 / 0.313 | 0.002 / 0.003 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | product, mod_int 998244353, d=20 | -O2 ms | -O2 -march=native ms |
 |---|---:|---:|
-| library or_convolution | 31.5 | 31.0 |
-| library xor_convolution | 56.5 | 56.3 |
-| library subset_convolution | 770 | 733 |
-| subset_convolution by rank major | 1110 | 1111 |
+| library or_convolution | 20.5 | 20.2 |
+| library xor_convolution | 38 | 37 |
+| library subset_convolution | 576 | 505 |
+| subset_convolution by rank major | 856 | 826 |
 
 Mask-major restricted ranks improve the subset product in both configurations.
-The library loop order wins the sum of the four d=20 transform shapes in both
-flag sets; individual winners vary. At d=20 the two ranked arrays hold
+Radix-4 has the smallest plain sum of the four d=20 transforms (25.9 versus
+the library's 27 ms); native they tie at 27.1 ms at table precision.
+The library loses the modular Walsh transform to radix-4 (11.5/12.2 versus
+10.6/11.9 ms), but wins the uint64 Walsh row (5.6/5.3 versus 5.8/5.6 ms). At d=20 the two ranked arrays hold
 `2*(d+1)*2^d` values, or 168 MiB for a four-byte modular integer.
 
 ## Pitfalls and notes

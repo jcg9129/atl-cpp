@@ -285,43 +285,55 @@ engine stores clamp-add tags; the library uses extrema to imply clamps and
 stores only an add. The other contenders change recursion, layout, mapping
 protocol, or a fast path, as their names indicate.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2, RelWithDebInfo, assertions off.
-2026-11-02, `-O2 -g -DNDEBUG -std=c++23`; 2026-11-03, the same flags plus
-`-march=native`. Times are milliseconds, minima of three run means with
-25 samples per row. Each sample includes construction and the entire stream.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | contender | balanced mix, n=q=2e5, plain / native |
 |---|---:|
-| generic engine | 341 / 356 |
-| by compact recursion | 403 / 421 |
-| by explicit stack | 345 / 348 |
-| by fixed clamp-add | 317 / 335 |
-| library | 190 / 194 |
-| by aligned nodes | 202 / 203 |
-| by separate arrays | 314 / 317 |
-| by three adds | 319 / 322 |
-| by optional mapping | 429 / 454 |
-| by unconditional push | 359 / 387 |
-| by no collapse | 423 / 432 |
+| generic engine | 281 / 281 |
+| by compact recursion | 297 / 315 |
+| by explicit stack | 278 / 285 |
+| by fixed clamp-add | 264 / 250 |
+| library | 151 / 142 |
+| by aligned nodes | 166 / 148 |
+| by separate arrays | 187 / 172 |
+| by three adds | 259 / 240 |
+| by optional mapping | 341 / 349 |
+| by unconditional push | 291 / 294 |
+| by no collapse | 345 / 341 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | contender | chmin-only | add-recharge | collapse | short sums |
 |---|---:|---:|---:|---:|
-| generic engine | 239 | 125 | 99.8 | 180 |
-| by compact recursion | 302 | 121 | 78.3 | 202 |
-| by explicit stack | 237 | 113 | 81.3 | 185 |
-| by fixed clamp-add | 134 | 121 | 71.2 | 174 |
-| library | 122 | 91.7 | 53.2 | 101 |
-| by aligned nodes | 128 | 91.6 | 54.9 | 111 |
-| by separate arrays | 171 | 117 | 66.3 | 169 |
-| by three adds | 161 | 131 | 92.4 | 160 |
-| by optional mapping | 337 | 151 | 166 | 230 |
-| by unconditional push | 260 | 176 | 133 | 220 |
-| by no collapse | 240 | 115 | 101 | 184 |
+| generic engine | 184 | 99.1 | 73.5 | 134 |
+| by compact recursion | 228 | 89.1 | 56.3 | 159 |
+| by explicit stack | 186 | 102 | 65.6 | 133 |
+| by fixed clamp-add | 93.3 | 89.1 | 42.5 | 126 |
+| library | 88.5 | 66.4 | 32.5 | 69.8 |
+| by aligned nodes | 92.1 | 68 | 33.9 | 77.5 |
+| by separate arrays | 101 | 80.7 | 43.3 | 87.5 |
+| by three adds | 122 | 98.2 | 66.7 | 110 |
+| by optional mapping | 254 | 126 | 124 | 169 |
+| by unconditional push | 199 | 132 | 102 | 186 |
+| by no collapse | 196 | 97.6 | 77 | 143 |
 
-The second table uses `-march=native`, n=q=2e5. The library takes 194 ms
-on the balanced mix versus 356 ms for the generic engine, a 45.5% reduction
-(`1 - 194/356`). The aligned layout is close on add-recharge (91.6 versus
-91.7 ms); this does not establish a general win for padding nodes.
+The second table uses `-march=native`, n=q=2e5. Balanced mix costs
+151/142 ms for the library versus 281/281 ms for the generic engine,
+a 46.26%/49.47% reduction (`1 - 151/281`, `1 - 142/281`). Aligned nodes
+lose add-recharge native (68 versus 66.4 ms); they also lose every other
+represented comparison with the library.
+
+The native generic collapse and no-collapse contender rows vary between
+runs (1.28x and 1.25x spread); those rows alone do not establish a stable
+advantage for any collapse policy.
 
 ## Pitfalls and choosing
 

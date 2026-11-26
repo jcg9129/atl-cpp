@@ -131,8 +131,9 @@ interface and the prime modulus, not the arithmetic.
 
 ## Measured performance
 
-Not measured yet. Every library choice is a provisional default and every contender is an
-`atl::experimental` function named `<function>_by_<method>`; the races are pending. The
+Both flag sets are measured; adoption decisions remain open. Every library choice is a
+provisional default and every contender is an `atl::experimental`
+function named `<function>_by_<method>`. The
 provisional Euclidean leaf size of the half-gcd is 64; `polynomial_gcd_by_leaf_cutoff_plain_products`,
 `polynomial_gcd_by_leaf_cutoff_fused_products` and their `polynomial_extended_gcd_by_...`
 counterparts sweep it over 32, 48, 64, 96, 128, 192 and 256, with ordinary or with fused
@@ -158,7 +159,15 @@ at `n` = 2^10, 2^12, 2^14, 2^16, 2^17 and 500000 modulo 998244353 and 2^16 modul
 1000000007, with coprime inputs and inputs with a planted common factor of degree `n / 3`;
 the quadratic contenders run only up to 2^12. The recurrence race uses lengths 2^10, 2^14
 and 2^16 (the library `berlekamp_massey` up to 2^14) and the leaf-size sweep lengths 256,
-1024 and 4096. A winner needs x86-64 records under both plain `-O2` and `-march=native`.
+1024 and 4096. A winner needs x86-64 measurements under both plain `-O2` and `-march=native`.
+
+Measurements (2026-11-25, AMD EPYC-Milan ccx23, GCC 15.2.0,
+RelWithDebInfo, assertions off; plain `-O2` / `-O2 -march=native`, minimum
+of five run means, 25 samples per row), in plain/native milliseconds:
+At p=998244353, n=1024 coprime, the library gcd loses to schoolbook
+Euclid (2.9/2.9 versus 1.4/1.4 ms). Extended gcd loses to fused matrix
+products (4.2/4.1 versus 3.5/3.5 ms). These examples do not determine a
+cutoff across all lengths and moduli.
 
 ## Pitfalls and notes
 

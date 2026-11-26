@@ -37,7 +37,7 @@ where to put guide prose, executable examples and API comments.
 - [Segment tree beats](segment-tree-beats.md): conditional range actions.
 - [Dynamic segment tree](dynamic-segment-tree.md): sparse point updates and folds.
 - [Dynamic lazy segment tree](dynamic-lazy-segment-tree.md): sparse range actions and folds.
-- [Aggregate queue and deque](aggregate-queue-deque.md): mutable FIFO and deque with an ordered monoid fold of the live values; experimental contenders are not measured yet.
+- [Aggregate queue and deque](aggregate-queue-deque.md): mutable FIFO and deque with an ordered monoid fold of the live values.
 - [Treap map](treap-map.md): ordered keys, order statistics and value folds.
 - [Treap sequence](treap-sequence.md): positional surgery, folds, lazy tags and reversal.
 - [Splay engine](splay-engine.md): structural algorithms over caller-owned nodes.
@@ -78,7 +78,7 @@ where to put guide prose, executable examples and API comments.
 - [Min-cost flow](min-cost-flow.md): costs, supplies, lower bounds and dual certificates.
 - [Dense assignment](assignment.md): rectangular matching with exact dual potentials.
 - [Bipartite matching](bipartite-matching.md): matching, vertex sets, edge roles and DAG covers.
-- [Functional graphs](functional-graphs.md): canonical cycle/tree decomposition, k-step successors and ordered edge folds; experimental contenders are not measured yet.
+- [Functional graphs](functional-graphs.md): canonical cycle/tree decomposition, k-step successors and ordered edge folds.
 - [Graph components](graph-components.md): directed SCCs, bridge components, edge blocks and articulation points.
 - [Lowest common ancestors](lca.md): static forest queries and heavy-first path intervals.
 - [Virtual trees](virtual-tree.md): sparse key sets closed under LCA.

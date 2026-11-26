@@ -54,18 +54,21 @@ it. "By run ctz" counts them on the carried run, after the addition. "By shift
 loop" shifts the carried run down one bit at a time. Each step of the
 benchmark depends on the previous one, so it measures per-step latency.
 
-Xeon Platinum 8280, GCC 15.2, RelWithDebInfo without assertions, 2026-10-15.
-Minimum of 3 runs, milliseconds per full enumeration:
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | flags | library | by run ctz | by shift loop |
 |---|---|---:|---:|---:|
-| C(28,14) | `-O2` | 113 | 161 | 112 |
-| C(28,14) | `-O2 -march=native` | 90.5 | 118 | 92.0 |
-| C(40,6) | `-O2` | 10.7 | 15.4 | 16.3 |
-| C(40,6) | `-O2 -march=native` | 8.7 | 11.3 | 14.8 |
+| C(28,14) | `-O2` | 99.5 | 122 | 99.5 |
+| C(28,14) | `-O2 -march=native` | 77.2 | 88.3 | 78.9 |
+| C(40,6) | `-O2` | 9.5 | 11.6 | 13.7 |
+| C(40,6) | `-O2 -march=native` | 7.4 | 8.4 | 13 |
 
-The library form is never slower. The shift loop only ties it when the moved
-runs sit low in the word (C(28,14)).
+The library form is never slower. The shift loop ties it only on the plain C(28,14) row (99.5 ms each);
+the library wins that shape native (77.2 versus 78.9 ms).
 
 ## Pitfalls and notes
 

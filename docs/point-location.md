@@ -73,26 +73,40 @@ with the same bounds, lifetime and classification semantics. Expected build
 O(n + V + E log(E + 2)), query O(log(E + 2) + log(V + 2)), storage O(n + V + E).
 Its walks are iterative and its APIs runtime-only.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15; `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run means, three runs of 25 samples; milliseconds.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Operation / shape | library -O2 | by trapezoid map -O2 | library native | by trapezoid map native |
 |---|---:|---:|---:|---:|
-| build sparse, V=10k | 2.0 | 6.9 | 2.0 | 7.3 |
-| build dense, V=60k E=118k | 375 | 671 | 381 | 707 |
-| 1e5 queries, sparse | 63.5 | 102 | 65.7 | 111 |
-| 1e5 queries, dense | 182 | 305 | 203 | 320 |
+| build sparse, V=10k | 1.5 | 4.7 | 1.4 | 4.5 |
+| build dense, V=60k E=118k | 300 | 472 | 312 | 446 |
+| 1e5 queries, sparse | 35.1 | 72.2 | 39.3 | 64.9 |
+| 1e5 queries, dense | 112 | 187 | 128 | 212 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Batch mode | -O2 | native |
 |---|---:|---:|
-| 1e5 queries, sparse | 64.3 | 68.3 |
-| 1e5 queries, dense | 221 | 233 |
-| no queries, dense sweep | 111 | 116 |
+| 1e5 queries, sparse | 36.1 | 41.8 |
+| 1e5 queries, dense | 136 | 143 |
+| no queries, dense sweep | 71.9 | 76.4 |
 
-Slabs win every recorded build/query shape. For a dense single batch, compare
-221 ms against 375 + 182 ms for building and querying slabs. Batch timings
+Slabs beat the trapezoid map on every measured build/query shape. For a
+dense single batch, `locations_of` takes 136/143 ms versus
+300 + 112 = 412 ms plain and 312 + 128 = 440 ms native for building
+and querying slabs separately. Batch timings
 include frame construction; the no-query row measures that plus status updates.
+
+The dense build and sparse/dense query comparisons include rows that vary
+between runs (spreads up to 1.37x). The quoted minima and their sums do
+not establish a stable single-batch speedup by themselves.
 
 ## Pitfalls and notes
 

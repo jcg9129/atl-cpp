@@ -101,34 +101,42 @@ locally. The library retargets found pool entries and reuses scratch. The
 certifying list contender is `suffix_tree_by_sibling_list` in
 `experimental/atl/experimental/strings/suffix_tree_variants.hpp`.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean milliseconds over three runs of 25 samples.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape / operation | Contender | -O2 ms | native ms |
 |---|---|---|---|
-| sigma=2 child storage | library | 399 | 404 |
-| sigma=2 child storage | by sibling list | 269 | 277 |
-| sigma=26 child storage | library | 560 | 577 |
-| sigma=26 child storage | by sibling list | 1206 | 1218 |
-| sigma=1000000 child storage | library | 672 | 691 |
-| one word sigma=2 | library | 410 | 419 |
-| one word sigma=2 | by separate lookups | 444 | 448 |
-| one word sigma=26 | library | 575 | 584 |
-| one word sigma=26 | by separate lookups | 601 | 611 |
-| one word sigma=1000000 | library | 680 | 687 |
-| one word sigma=1000000 | by separate lookups | 880 | 872 |
-| one Fibonacci word | library | 63.7 | 66.3 |
-| one Fibonacci word | by separate lookups | 73.5 | 78.9 |
-| 1e6 symbols, words length 1-5 sigma=26 | library | 139 | 139 |
-| 1e6 symbols, words length 1-5 sigma=26 | by separate lookups | 138 | 147 |
-| 1e5 words x10 sigma=26 | library | 357 | 374 |
-| 1e5 words x10 sigma=26 | by separate lookups | 376 | 388 |
+| sigma=2 child storage | library | 483 | 403 |
+| sigma=2 child storage | by sibling list | 326 | 259 |
+| sigma=26 child storage | library | 638 | 427 |
+| sigma=26 child storage | by sibling list | 1250 | 1030 |
+| sigma=1000000 child storage | library | 795 | 511 |
+| one word sigma=2 | library | 487 | 419 |
+| one word sigma=2 | by separate lookups | 504 | 433 |
+| one word sigma=26 | library | 643 | 423 |
+| one word sigma=26 | by separate lookups | 680 | 464 |
+| one word sigma=1000000 | library | 799 | 519 |
+| one word sigma=1000000 | by separate lookups | 1130 | 706 |
+| one Fibonacci word | library | 105 | 56.1 |
+| one Fibonacci word | by separate lookups | 117 | 60.9 |
+| 1e6 symbols, words length 1-5 sigma=26 | library | 195 | 110 |
+| 1e6 symbols, words length 1-5 sigma=26 | by separate lookups | 202 | 113 |
+| 1e5 words x10 sigma=26 | library | 433 | 266 |
+| 1e5 words x10 sigma=26 | by separate lookups | 461 | 289 |
 
 
 The sibling list wins the two-symbol storage race and loses the 26-symbol race.
 It is excluded at sigma=1e6 because root scans take linear degree; the pool is
 measured there. The separate-lookup contender has no consistent advantage.
+
+The library loses two-symbol child storage to the sibling list
+(483/403 versus 326/259 ms), but wins 26-symbol storage
+(638/427 versus 1250/1030 ms). The plain 26-symbol sibling-list row varies
+between runs (1.37x spread). Separate lookups lose every shown minimum;
+the plain sigma=1e6 separate-lookup row also varies (1.25x spread).
 
 ## Pitfalls and notes
 

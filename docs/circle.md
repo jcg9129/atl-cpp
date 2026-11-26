@@ -133,15 +133,19 @@ not promise identical permutations across standard libraries.
 
 `benchmarks/geometry/circle.cpp` measures complete-call throughput, with no
 contender: enclosing a uniform int64 cloud, classifications on circle pairs
-and circle-point pairs. Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0,
-RelWithDebInfo, assertions off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`,
-optionally `-march=native`; minimum per-run means over three runs, 25 samples.
+and circle-point pairs.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Operation | -O2 ms | native ms | Largest spread |
 |---|---:|---:|---:|
-| minimum enclosing circle, 1e6 | 12.5 | 11.7 | 2.59x |
-| relation, 1e6 pairs | 16.0 | 18.7 | 1.01x |
-| contains, 1e6 pairs | 4.3 | 4.8 | 1.04x |
+| minimum enclosing circle, 1e6 | 8.6 | 9.7 | 2.07x |
+| relation, 1e6 pairs | 11.2 | 10.8 | 1.02x |
+| contains, 1e6 pairs | 2.2 | 3.3 | 1.03x |
 
 Ray operations are not measured yet. Enclosing-circle timing is unstable.
 

@@ -93,24 +93,29 @@ whole texts. By transition reinsertion looks up split transitions and reinserts
 clone edges; the library carries found entries and copies the sibling tree
 structurally.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean milliseconds over three runs of 25 samples.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape / operation | Contender | -O2 ms | native ms |
 |---|---|---|---|
-| 1e6 sigma=2 | library | 211 | 207 |
-| 1e6 sigma=2 | by transition reinsertion | 289 | 292 |
-| 1e6 sigma=26 | library | 434 | 449 |
-| 1e6 sigma=26 | by transition reinsertion | 565 | 533 |
-| 1e6 sigma=1000000 | library | 635 | 618 |
-| 1e6 sigma=1000000 | by transition reinsertion | 782 | 777 |
-| 1e6 unary | library | 15.0 | 15.7 |
-| 1e6 unary | by transition reinsertion | 30.6 | 31.6 |
-| 1e5 words x10 sigma=26 | library | 291 | 279 |
-| 1e5 words x10 sigma=26 | by transition reinsertion | 354 | 331 |
+| 1e6 sigma=2 | library | 196 | 273 |
+| 1e6 sigma=2 | by transition reinsertion | 308 | 355 |
+| 1e6 sigma=26 | library | 406 | 554 |
+| 1e6 sigma=26 | by transition reinsertion | 386 | 671 |
+| 1e6 sigma=1000000 | library | 511 | 734 |
+| 1e6 sigma=1000000 | by transition reinsertion | 703 | 872 |
+| 1e6 unary | library | 14.1 | 14.2 |
+| 1e6 unary | by transition reinsertion | 28 | 25.9 |
+| 1e5 words x10 sigma=26 | library | 279 | 390 |
+| 1e5 words x10 sigma=26 | by transition reinsertion | 322 | 453 |
 
-
+The library loses sigma=26 plain (406 versus 386 ms for transition
+reinsertion), while winning native (554 versus 671 ms). Both contenders
+on this shape vary between runs (spreads up to 1.75x), so minima alone
+do not establish stable rankings.
 
 ## Pitfalls and notes
 

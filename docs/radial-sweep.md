@@ -69,22 +69,23 @@ n - 1 arcs and the grid cannot help); a 500-point cluster in a uniform
 background, where most anchors cannot beat the cluster's count and skip their
 sweep; 1e5 points in a 1e6 box; and `max_arc_overlap` on 1e6 random arcs.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run mean over three runs of 25 samples;
-milliseconds. Spreads 1.00x to 1.02x.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | -O2 | native |
 |---|---:|---:|
-| `max_points_in_circle`, uniform 2000, r = 300 | 6.5 | 6.4 |
-| `max_points_in_circle`, uniform 5000, r = 300 | 42.3 | 41.5 |
-| `max_points_in_circle`, dense 2000, r = 400 (all arcs) | 283 | 278 |
-| `max_points_in_circle`, cluster 500 + background 4500, r = 300 | 60.1 | 59.3 |
-| `max_points_in_circle`, uniform 1e5 in a 1e6 box, r = 300 | 56.0 | 52.8 |
-| `max_arc_overlap`, 1e6 random arcs | 187 | 190 |
+| `max_points_in_circle`, uniform 2000, r = 300 | 5.4 | 5 |
+| `max_points_in_circle`, uniform 5000, r = 300 | 37.1 | 34.4 |
+| `max_points_in_circle`, dense 2000, r = 400 (all arcs) | 241 | 229 |
+| `max_points_in_circle`, cluster 500 + background 4500, r = 300 | 54.5 | 50.4 |
+| `max_points_in_circle`, uniform 1e5 in a 1e6 box, r = 300 | 43.2 | 45.5 |
+| `max_arc_overlap`, 1e6 random arcs | 204 | 200 |
 
-The dense shape costs 44x the uniform 2000 shape of the same size at `-O2`
-(283 against 6.5 ms): all n - 1 arcs per anchor against a handful.
+The dense shape costs 241/5.4 = 44.63 times the uniform 2000 shape
+plain (229/5 = 45.80 native): all n - 1 arcs per anchor against a handful.
 
 ## Pitfalls and notes
 

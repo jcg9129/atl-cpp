@@ -72,18 +72,21 @@ requirements. Use tolerances for area certificates, including translated inputs.
 one vertex sort, and the same half-edge assembly. It avoids a sweep status
 but pays for every pair and scans below-anchors on demand.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15; `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run means, three runs of 25 samples; milliseconds.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape / contender | -O2 | native |
 |---|---:|---:|
-| sparse 5000, library | 14.7 | 13.8 |
-| sparse 5000, by all pairs | 1920 | 1705 |
-| dense 700 chords, library | 295 | 303 |
-| dense 700 chords, by all pairs | 303 | 292 |
+| sparse 5000, library | 7.9 | 7.8 |
+| sparse 5000, by all pairs | 1300 | 1130 |
+| dense 700 chords, library | 175 | 182 |
+| dense 700 chords, by all pairs | 151 | 160 |
 
-The library dominates the sparse shape; dense results depend on flags. The
+The library wins the sparse shape (7.9/7.8 versus 1300/1130 ms), but loses
+the dense shape to all pairs in both modes (175/182 versus 151/160 ms). The
 contender accepts integral coordinates only, with **both int32 and int64
 magnitudes below `2^26`**, asserted. Its anchor numerator has degree four
 and magnitude below `64 B^4`, within int128; subsequent products use int256.

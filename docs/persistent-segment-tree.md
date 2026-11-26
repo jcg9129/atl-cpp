@@ -57,16 +57,18 @@ no order-statistic meaning. CTAD rejects narrowing from the range value type.
 queries with parallel raw arrays, then child-id reads with whole-node copying
 for point sets. The latter changes aggregate copy traffic, retaining the same tree.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off.
-Milliseconds, minimum of three run means; each pair is plain `-O2` /
-`-O2 -march=native`, both also with `-g -DNDEBUG -std=c++23`. Measured 2026-10-15.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | library / by child ids | by parallel arrays / by whole-node copy |
 |---|---:|---:|
-| 2e5 prefix builds + 2e5 kth queries | 317 / 326 | 355 / 373 |
-| 2e5 sets, 2x2 matrix | 273 / 275 | 274 / 284 |
-| 2e5 sets, 24-character string maximum | 827 / 835 | 940 / 933 |
-| 2e5 sets, uint32 sum | 101 / 97.8 | 107 / 103 |
+| 2e5 prefix builds + 2e5 kth queries | 287 / 399 | 294 / 417 |
+| 2e5 sets, 2x2 matrix | 203 / 252 | 213 / 268 |
+| 2e5 sets, 24-character string maximum | 515 / 651 | 551 / 674 |
+| 2e5 sets, uint32 sum | 78.8 / 113 | 82.4 / 121 |
 
 ## Pitfalls and notes
 

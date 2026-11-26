@@ -107,41 +107,50 @@ Mutation has no transactional rollback guarantee.
 The library uses top-down descent and split storage; other splay contenders
 change descent or layout. The treap and standard map provide balancing baselines.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off,
-2026-10-24. Minimum of three run means, ms; both flag sets also use
-`-g -DNDEBUG -std=c++23`. Larger timing spreads in the plain run mean small
+Larger timing spreads in the plain run mean small
 differences should be interpreted cautiously.
 
-Milliseconds, for every recorded workload and size. Columns use the benchmark labels.
+Milliseconds. Columns use the benchmark labels.
 The final column divides the standard-map time by the library time; values
 above one mean that the library took less time.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | flags | workload | n | by std map | by treap map | library | by top down interleaved | by bottom up interleaved | by bottom up split | by std map / library |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `-O2` | uniform insert/find/erase | 2e5 | 69.8 | 128 | 111 | 112 | 132 | 141 | 0.63x |
-| `-O2` | uniform insert/find/erase | 1e6 | 721 | 1171 | 1098 | 1071 | 1261 | 1319 | 0.66x |
-| `-O2` | Zipf s=1.0 finds | 2e5 | 62.5 | 51.2 | 55.7 | 56.0 | 65.3 | 70.5 | 1.12x |
-| `-O2` | Zipf s=1.5 finds | 2e5 | 30.2 | 21.5 | 19.9 | 20.3 | 21.3 | 22.4 | 1.52x |
-| `-O2` | Zipf s=1.0 finds | 1e6 | 596 | 441 | 487 | 470 | 543 | 579 | 1.22x |
-| `-O2` | Zipf s=1.5 finds | 1e6 | 207 | 141 | 116 | 130 | 137 | 128 | 1.78x |
-| `-O2` | successor chains, length 1,000 | 2e5 | 29.3 | 24.3 | 13.8 | 14.6 | 14.2 | 14.0 | 2.12x |
-| `-O2` | successor chains, length 1,000 | 1e6 | 205 | 141 | 80.1 | 96.9 | 100 | 82.0 | 2.56x |
-| `-O2` | working-set finds, window 1,000 | 2e5 | 35.4 | 24.8 | 38.3 | 39.4 | 45.3 | 49.2 | 0.92x |
-| `-O2` | working-set finds, window 1,000 | 1e6 | 218 | 147 | 212 | 233 | 267 | 269 | 1.03x |
-| `-O2` | sorted inserts | 2e5 | 33.4 | 32.5 | 6.0 | 6.4 | 5.4 | 5.0 | 5.57x |
-| `-O2` | sorted inserts | 1e6 | 222 | 218 | 33.6 | 57.2 | 52.3 | 28.4 | 6.61x |
-| `-O2 -march=native` | uniform insert/find/erase | 2e5 | 70.4 | 129 | 114 | 112 | 135 | 142 | 0.62x |
-| `-O2 -march=native` | uniform insert/find/erase | 1e6 | 762 | 1134 | 1065 | 1058 | 1258 | 1283 | 0.72x |
-| `-O2 -march=native` | Zipf s=1.0 finds | 2e5 | 59.3 | 49.1 | 56.9 | 54.6 | 66.0 | 69.9 | 1.04x |
-| `-O2 -march=native` | Zipf s=1.5 finds | 2e5 | 28.2 | 23.1 | 20.3 | 19.6 | 21.3 | 22.1 | 1.39x |
-| `-O2 -march=native` | Zipf s=1.0 finds | 1e6 | 582 | 459 | 488 | 465 | 544 | 576 | 1.19x |
-| `-O2 -march=native` | Zipf s=1.5 finds | 1e6 | 207 | 163 | 122 | 130 | 137 | 126 | 1.70x |
-| `-O2 -march=native` | successor chains, length 1,000 | 2e5 | 29.4 | 24.2 | 14.2 | 14.1 | 14.5 | 14.3 | 2.07x |
-| `-O2 -march=native` | successor chains, length 1,000 | 1e6 | 207 | 142 | 82.3 | 97.4 | 101 | 84.0 | 2.52x |
-| `-O2 -march=native` | working-set finds, window 1,000 | 2e5 | 35.2 | 25.9 | 39.0 | 38.0 | 45.8 | 49.3 | 0.90x |
-| `-O2 -march=native` | working-set finds, window 1,000 | 1e6 | 217 | 154 | 211 | 226 | 267 | 262 | 1.03x |
-| `-O2 -march=native` | sorted inserts | 2e5 | 33.6 | 36.4 | 5.8 | 6.1 | 5.3 | 5.0 | 5.79x |
-| `-O2 -march=native` | sorted inserts | 1e6 | 224 | 215 | 32.3 | 55.9 | 51.3 | 28.9 | 6.93x |
+| `-O2` | uniform insert/find/erase | 2e5 | 74.6 | 93.2 | 88 | 86 | 115 | 121 | 0.85x |
+| `-O2` | uniform insert/find/erase | 1e6 | 890 | 910 | 892 | 767 | 1010 | 1030 | 1.00x |
+| `-O2` | Zipf s=1.0 finds | 2e5 | 33.8 | 32.2 | 45.8 | 43.8 | 56.3 | 62.5 | 0.74x |
+| `-O2` | Zipf s=1.5 finds | 2e5 | 15.9 | 13 | 16.7 | 16.3 | 18.2 | 19.7 | 0.95x |
+| `-O2` | Zipf s=1.0 finds | 1e6 | 413 | 320 | 375 | 352 | 444 | 496 | 1.10x |
+| `-O2` | Zipf s=1.5 finds | 1e6 | 121 | 93.4 | 96.3 | 96.7 | 104 | 111 | 1.26x |
+| `-O2` | successor chains, length 1,000 | 2e5 | 19.7 | 17 | 12.3 | 12.2 | 12.4 | 12.5 | 1.60x |
+| `-O2` | successor chains, length 1,000 | 1e6 | 144 | 97 | 73.7 | 72 | 74.5 | 76.1 | 1.95x |
+| `-O2` | working-set finds, window 1,000 | 2e5 | 24.7 | 18.5 | 32 | 31 | 40.6 | 43.3 | 0.77x |
+| `-O2` | working-set finds, window 1,000 | 1e6 | 172 | 115 | 172 | 173 | 223 | 227 | 1.00x |
+| `-O2` | sorted inserts | 2e5 | 21.2 | 23.8 | 4.6 | 4.3 | 4 | 3.8 | 4.61x |
+| `-O2` | sorted inserts | 1e6 | 143 | 173 | 23.4 | 43.8 | 42 | 19.8 | 6.11x |
+| `-O2 -march=native` | uniform insert/find/erase | 2e5 | 91.8 | 119 | 97.3 | 92.2 | 127 | 125 | 0.94x |
+| `-O2 -march=native` | uniform insert/find/erase | 1e6 | 1230 | 1380 | 1230 | 1190 | 1090 | 1420 | 1.00x |
+| `-O2 -march=native` | Zipf s=1.0 finds | 2e5 | 32.5 | 35.9 | 48.1 | 45.5 | 54.6 | 62.1 | 0.68x |
+| `-O2 -march=native` | Zipf s=1.5 finds | 2e5 | 13 | 13.1 | 16.7 | 15.7 | 17 | 18.9 | 0.78x |
+| `-O2 -march=native` | Zipf s=1.0 finds | 1e6 | 516 | 364 | 390 | 398 | 456 | 588 | 1.32x |
+| `-O2 -march=native` | Zipf s=1.5 finds | 1e6 | 113 | 103 | 97 | 95.3 | 104 | 111 | 1.16x |
+| `-O2 -march=native` | successor chains, length 1,000 | 2e5 | 16.4 | 20.1 | 11.4 | 11.5 | 16.7 | 17.9 | 1.44x |
+| `-O2 -march=native` | successor chains, length 1,000 | 1e6 | 165 | 108 | 61.5 | 59.9 | 87.8 | 90.8 | 2.68x |
+| `-O2 -march=native` | working-set finds, window 1,000 | 2e5 | 28.1 | 23.9 | 37.9 | 35.5 | 40.7 | 43.3 | 0.74x |
+| `-O2 -march=native` | working-set finds, window 1,000 | 1e6 | 178 | 124 | 190 | 196 | 220 | 229 | 0.94x |
+| `-O2 -march=native` | sorted inserts | 2e5 | 18.4 | 21.4 | 3.7 | 3.6 | 2.9 | 3.1 | 4.97x |
+| `-O2 -march=native` | sorted inserts | 1e6 | 121 | 128 | 19.5 | 18.3 | 15.7 | 16.7 | 6.21x |
+
+The library loses uniform n=2e5 to `std::map` (88/97.3 versus 74.6/91.8 ms),
+and working-set n=2e5 to the treap (32/37.9 versus 18.5/23.9 ms).
+Several native rows, including uniform n=2e5, vary between runs (spreads
+up to 2.43x); these minima alone do not establish stable rankings.
 
 ## Pitfalls and notes
 

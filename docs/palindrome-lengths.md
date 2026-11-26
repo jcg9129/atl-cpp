@@ -59,25 +59,28 @@ single-pass range does not.
 
 `benchmarks/strings/palindrome_lengths.cpp` measures full radius construction.
 The library expands virtual positions; by parity step expands real pairs.
-The library wins on repetitive shapes, while random26 favors parity steps.
+The library wins on repetitive shapes, but loses random26 to parity
+steps: 3.7/5.6 versus 3.6/3.8 ms at 10^6, and 82.5/96.7 versus
+81.9/85.5 ms at 10^7 (plain/native).
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-10-15. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean ms over three runs of 25 samples; parentheses are
-slowest/fastest spread.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | library -O2 | by parity step -O2 | library native | by parity step native |
 |---|---:|---:|---:|---:|
-| all-a 10^6 | 10.9 (1.00x) | 12.1 (1.00x) | 10.9 (1.00x) | 12.2 (1.00x) |
-| abab 10^6 | 10.8 (1.00x) | 12.1 (1.00x) | 10.8 (1.01x) | 12.0 (1.01x) |
-| fib 10^6 | 11.5 (1.01x) | 12.7 (1.01x) | 11.6 (1.01x) | 12.7 (1.01x) |
-| random2 10^6 | 17.1 (1.01x) | 17.6 (1.00x) | 16.9 (1.01x) | 17.6 (1.01x) |
-| random26 10^6 | 6.4 (1.02x) | 4.7 (1.01x) | 5.8 (1.01x) | 4.7 (1.01x) |
-| all-a 10^7 | 145 (1.00x) | 158 (1.00x) | 145 (1.01x) | 159 (1.00x) |
-| abab 10^7 | 144 (1.00x) | 157 (1.00x) | 144 (1.01x) | 157 (1.00x) |
-| fib 10^7 | 153 (1.00x) | 164 (1.00x) | 154 (1.00x) | 164 (1.00x) |
-| random2 10^7 | 207 (1.01x) | 212 (1.00x) | 204 (1.00x) | 212 (1.00x) |
-| random26 10^7 | 100 (1.01x) | 83.3 (1.01x) | 94.7 (1.00x) | 83.5 (1.00x) |
+| all-a 10^6 | 8.5 (1.01x) | 9.9 (1.02x) | 8.2 (1.05x) | 10 (1.08x) |
+| abab 10^6 | 8.6 (1.03x) | 10 (1.01x) | 8.8 (1.06x) | 10 (1.10x) |
+| fib 10^6 | 9.1 (1.02x) | 10.2 (1.02x) | 9.5 (1.10x) | 10.6 (1.10x) |
+| random2 10^6 | 13.9 (1.02x) | 15 (1.02x) | 13.2 (1.09x) | 14.3 (1.07x) |
+| random26 10^6 | 3.7 (1.04x) | 3.6 (1.02x) | 5.6 (1.08x) | 3.8 (1.13x) |
+| all-a 10^7 | 131 (1.02x) | 145 (1.01x) | 131 (1.04x) | 147 (1.06x) |
+| abab 10^7 | 132 (1.02x) | 146 (1.01x) | 138 (1.05x) | 148 (1.10x) |
+| fib 10^7 | 138 (1.02x) | 149 (1.02x) | 143 (1.10x) | 151 (1.11x) |
+| random2 10^7 | 184 (1.01x) | 194 (1.02x) | 175 (1.07x) | 188 (1.08x) |
+| random26 10^7 | 82.5 (1.04x) | 81.9 (1.02x) | 96.7 (1.10x) | 85.5 (1.10x) |
 
 ## Pitfalls and notes
 

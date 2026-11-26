@@ -205,7 +205,7 @@ new records, so the run is O((n + M') log n) for `M'` the sum of those
 minima: O(n log n) on the path above, never more than the weight rule's `M`
 plus O(n). It returns the same total cost and path total (the new costs can
 differ where a piece of slope exactly `-D_v` makes two reconstructions
-optimal). Not measured yet; the library keeps the weight rule until it is.
+optimal). The library uses the weight rule.
 
 Ties: the root takes the smallest minimizer of its function (unbounded
 below only with zero weights; then its leftmost breakpoint, or 0), and each
@@ -305,12 +305,8 @@ so a path of 10^6 vertices or a star of 10^6 leaves runs in one stack frame
 
 ## Measured performance
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions
-off. Milliseconds, minimum of three run means, plain `-O2` /
-`-O2 -march=native`; both also use `-g -DNDEBUG -std=c++23`.
-
 **The breakpoint pool** ([benchmark](../benchmarks/dp/convex_piecewise_linear_forest.cpp),
-2026-11-01). The library pool empties a discarded heap (`clear`, and the
+2026-11-22). The library pool empties a discarded heap (`clear`, and the
 right heap of `take_all`, whose left heap pops to emit the sorted
 breakpoints) with `meldable_heap_forest::release`, one walk over the links;
 the contenders empty it by repeated pops, each pairing the root's children,
@@ -319,49 +315,67 @@ on the library's heaps (by repeated pops) and on the experimental
 Unit breakpoints at positions uniform in [0, 1e9); the tree shape melds 2e5
 sets of 3 bottom-up along random parents and discards the root.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape | library (release) | by repeated pops | by tunable pairing pops |
 |---|---|---|---|
-| clear: 1 set x 1e6 | 74.1 / 75.3 | 1357 / 1348 | 1332 / 1340 |
-| clear: 1000 sets x 1000 | 222 / 222 | 393 / 382 | 364 / 370 |
-| clear: 1e5 sets x 10 | 88.8 / 91.9 | 132 / 127 | 122 / 124 |
-| clear + refill: 1000 sets x 1000, 3 rounds | 632 / 631 | 1724 / 1693 | 1666 / 1683 |
-| clear: melded random tree n=2e5 (root) | 104 / 79.0 | 706 / 706 | 698 / 690 |
-| take_all: 1 set x 1e6 | 812 / 807 | 1463 / 1449 | 1447 / 1435 |
-| take_all: 1000 sets x 1000 | 315 / 315 | 409 / 406 | 392 / 394 |
-| take_all: 1e5 sets x 10 | 143 / 142 | 162 / 162 | 152 / 150 |
-| take_all: melded random tree n=2e5 (root) | 493 / 469 | 803 / 791 | 797 / 790 |
+| clear: 1 set x 1e6 | 83.3 / 71.2 | 1820 / 1830 | 1760 / 1840 |
+| clear: 1000 sets x 1000 | 97.3 / 89.2 | 245 / 232 | 219 / 214 |
+| clear: 1e5 sets x 10 | 103 / 95.5 | 132 / 124 | 108 / 105 |
+| clear + refill: 1000 sets x 1000, 3 rounds | 170 / 157 | 1330 / 1400 | 1280 / 1390 |
+| clear: melded random tree n=2e5 (root) | 79.4 / 94.4 | 854 / 861 | 817 / 854 |
+| take_all: 1 set x 1e6 | 956 / 1030 | 1790 / 1960 | 1750 / 1980 |
+| take_all: 1000 sets x 1000 | 168 / 161 | 241 / 234 | 219 / 216 |
+| take_all: 1e5 sets x 10 | 123 / 116 | 138 / 128 | 117 / 115 |
+| take_all: melded random tree n=2e5 (root) | 545 / 571 | 918 / 1010 | 921 / 1000 |
 
-Release wins every shape: 17.8x to 18.3x on clearing one large set, 6.7x to
-8.9x on the melded tree, 1.06x to 1.80x on `take_all`, where the sorted pops
-of the left heap remain.
+Release wins all five clearing shapes. Against repeated pops, clearing one
+large set is 1820/83.3 = 21.85 times faster plain and 1830/71.2 = 25.70
+native; clearing the melded tree is 10.76/9.12 times faster. The library
+loses `take_all` on 1e5 sets of 10 to tunable pairing pops (123/116 versus
+117/115 ms); these rows vary between runs, so the minima do not establish a
+stable ranking. The other `take_all` shapes favor release in both modes.
 
 **Leaf-path balancing** ([benchmark](../benchmarks/dp/leaf_path_balance.cpp),
-2026-10-24). The example against by ordered map (each function a `std::map`
+2026-11-25). The example against by ordered map (each function a `std::map`
 from position to weight with a lazy offset, children merged
 smaller-into-larger, O(n log^2 n) without a bound; with one, O((n + M)
-log^2 (n + M)) for the `M` moved pieces). The benchmark also races by fewer
-entries and a bounded rising-weight path of `n = 2e3`: not measured yet. n = 2e5, costs uniform in [1, 1e6];
+log^2 (n + M)) for the `M` moved pieces). The benchmark also measures by
+fewer entries and a bounded rising-weight
+path of `n = 2e3`. n = 2e5, costs uniform in [1, 1e6];
 free-cost weighted: weights uniform in [1, 1e6], any new costs; nonnegative
 unit-weight: unit weights, new costs `>= 0`. Caterpillar = a spine of n/2
 with one leaf per spine vertex; random = parent uniform among the earlier
 vertices.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | shape (n = 2e5) | example (heap forest) | by ordered map |
 |---|---|---|
-| free-cost weighted path | 5.9 / 5.9 | 7.4 / 7.9 |
-| free-cost weighted star | 44.4 / 43.7 | 109 / 106 |
-| free-cost weighted caterpillar | 11.5 / 12.1 | 16.0 / 16.4 |
-| free-cost weighted random | 53.6 / 54.6 | 62.3 / 63.0 |
-| nonnegative unit-weight path | 7.1 / 6.9 | 7.3 / 7.6 |
-| nonnegative unit-weight star | 44.8 / 44.9 | 105 / 106 |
-| nonnegative unit-weight caterpillar | 19.9 / 21.1 | 48.3 / 50.6 |
-| nonnegative unit-weight random | 58.9 / 57.9 | 127 / 132 |
+| free-cost weighted path | 4.6 / 3.1 | 4.4 / 3.8 |
+| free-cost weighted star | 32.4 / 28.2 | 69.8 / 66.2 |
+| free-cost weighted caterpillar | 8.6 / 8.2 | 10.3 / 8.4 |
+| free-cost weighted random | 28.3 / 24.1 | 44 / 33.8 |
+| nonnegative unit-weight path | 5.3 / 4.5 | 4.6 / 4.1 |
+| nonnegative unit-weight star | 32.2 / 28.3 | 71 / 67 |
+| nonnegative unit-weight caterpillar | 17.8 / 15.6 | 30.7 / 27.8 |
+| nonnegative unit-weight random | 34.8 / 27.9 | 96.1 / 83.1 |
 
-The heap forest wins every row: 1.15x to 2.46x free-cost weighted, 1.03x to
-2.43x nonnegative unit-weight (the path is the near tie).
+The heap forest loses the nonnegative unit-weight path to ordered maps
+(5.3/4.5 versus 4.6/4.1 ms). The weighted path favors maps plain (4.4 versus
+4.6 ms) and the forest native (3.1 versus 3.8 ms). The forest wins the other
+six shapes in both modes; no engine wins every row.
 
 **Tree transport** ([benchmark](../benchmarks/dp/tree_transport.cpp),
-2026-10-24). The example on the library's pairing heaps against the same
+2026-11-25). The example on the library's pairing heaps against the same
 loop on the other engines of the meldable heap race (by skew, by rank
 leftist, by binary: `std::vector` heaps melded smaller-into-larger), and
 against the loop without the example's two savings (by pop and push) and
@@ -370,31 +384,40 @@ costs uniform in [1, 1e6]; mixed: every vertex has a supply and a demand
 uniform in [0, 7]; split: supplies on the first half of the vertices,
 demands on the second.
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | instance | example (pairing) | by pop and push | by length records | by skew | by rank leftist | by binary |
 |---|---|---|---|---|---|---|
-| mixed path | 41.6 / 44.7 | 47.2 / 43.6 | 72.3 / 72.7 | 37.1 / 39.7 | 59.4 / 59.5 | 108 / 108 |
-| mixed star | 74.3 / 77.6 | 107 / 103 | 129 / 130 | 77.5 / 80.0 | 99.8 / 135 | 51.6 / 52.0 |
-| mixed caterpillar | 37.7 / 39.5 | 44.2 / 41.7 | 73.1 / 73.3 | 37.9 / 40.1 | 58.7 / 59.1 | 97.0 / 96.9 |
-| mixed random | 69.9 / 71.6 | 71.6 / 69.8 | 85.9 / 90.0 | 62.0 / 66.3 | 77.6 / 88.1 | 153 / 153 |
-| split path | 16.9 / 18.2 | 18.7 / 17.5 | 17.6 / 17.8 | 12.7 / 14.0 | 17.8 / 17.8 | 48.5 / 48.9 |
-| split star | 71.6 / 75.2 | 104 / 102 | 134 / 130 | 75.2 / 75.4 | 99.2 / 131 | 50.3 / 49.6 |
-| split caterpillar | 18.0 / 18.9 | 20.1 / 18.9 | 19.5 / 20.0 | 17.9 / 19.0 | 22.2 / 22.6 | 52.2 / 52.1 |
-| split random | 70.4 / 69.9 | 71.4 / 71.7 | 87.2 / 89.6 | 62.9 / 67.5 | 76.2 / 84.0 | 153 / 153 |
+| mixed path | 60.3 / 52.6 | 64 / 54.1 | 53.2 / 52.2 | 59.3 / 45.7 | 65.5 / 61 | 101 / 97.8 |
+| mixed star | 59.3 / 55.8 | 82.3 / 76.2 | 90.2 / 92.8 | 67.8 / 69.8 | 107 / 119 | 50.2 / 44.6 |
+| mixed caterpillar | 51.8 / 45.7 | 54.9 / 48.6 | 48.1 / 47.3 | 53.6 / 45.4 | 59.4 / 56.9 | 88.4 / 83.8 |
+| mixed random | 46.4 / 55.7 | 45.9 / 52.8 | 48.8 / 61 | 47.7 / 63.8 | 57.4 / 88.4 | 153 / 186 |
+| split path | 19.7 / 15.6 | 19.6 / 15.8 | 14 / 13.5 | 18.1 / 11.2 | 19 / 16.8 | 42.6 / 44 |
+| split star | 55.8 / 76.4 | 82.7 / 78.5 | 87.6 / 83.4 | 64 / 59.2 | 104 / 98 | 48.4 / 42 |
+| split caterpillar | 18.7 / 15.6 | 19.5 / 16.3 | 14.4 / 14.2 | 19.8 / 15.4 | 20.6 / 18.9 | 45.6 / 41.5 |
+| split random | 45.2 / 43.2 | 45.2 / 52.8 | 48.7 / 61.5 | 47.9 / 48.5 | 58.2 / 89.3 | 152 / 161 |
 
-- **The savings** buy 1.44x / 1.33x on the mixed star and 1.45x / 1.36x on
-  the split star (all the work is the root's re-centering), 1.01x to 1.17x
-  under plain `-O2` on the other shapes and 0.96x to 1.06x with
-  `-march=native`. The side array of lengths is slower except on the native
-  split path (1.04x to 1.94x): the indirection costs more than the pops it
-  saves.
-- **Engines.** Skew heaps beat pairing on the paths (1.12x to 1.33x) and the
-  random trees (1.04x to 1.13x), stay within 2% on the caterpillars and lose
-  the stars by up to 1.05x. Binary heaps win the stars 1.42x to 1.52x (every
-  child brings one segment, and the root's swaps pop a contiguous array) and
-  lose every other shape by 2.14x to 2.90x. Rank-leftist heaps lose
-  everywhere except the native split path (17.8 against 18.2). The example
-  stays on the library's pairing heaps, which won the meldable heap race;
-  switching it to skew heaps remains an open choice.
+The direct example beats pop/push on the mixed star (59.3/55.8 versus
+82.3/76.2 ms), but loses on mixed random trees (46.4/55.7 versus
+45.9/52.8 ms). Length records beat it on both paths and the split
+caterpillar; the mixed caterpillar favors length records plain
+(48.1 versus 51.8 ms) and the direct example native (45.7 versus 47.3 ms).
+
+Skew beats the library's pairing heaps on both paths, but loses both random
+trees. Caterpillar and split-star rankings depend on flags. Binary heaps
+beat pairing on both stars (50.2/44.6 versus 59.3/55.8 ms mixed;
+48.4/42 versus 55.8/76.4 ms split), and lose every other shape. Rank-leftist
+wins the split path plain (19 versus 19.7 ms) but loses it native
+(16.8 versus 15.6 ms), and loses every other shape. Some transport rows vary
+between runs, with spreads reaching 1.46x plain and 2.55x native; these
+minimum-time comparisons do not establish stable rankings on those rows.
+
+The weighted random leaf-path comparison varies between runs (spread up
+to 1.27x); its minima alone do not establish a stable engine ranking.
 
 ## Pitfalls and notes
 
@@ -422,7 +445,7 @@ demands on the second.
   costs and large weights, every edge may move many breakpoints (see the
   worked example); with unit weights it moves at most two units of weight.
   The experimental `balance_leaf_paths_by_fewer_entries` avoids the known
-  quadratic path (not measured yet).
+  quadratic path.
 - **`take_all` combines equal positions only**, also with an output tail it
   did not write: a tail at another position is left alone, whatever its
   order relative to the set.

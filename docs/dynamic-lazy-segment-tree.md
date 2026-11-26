@@ -76,20 +76,28 @@ over a 10^9 domain, including construction. Materialized push creates both
 children at every push; offline compression uses width-carrying dense cells.
 Point reads compare one tag-composing descent with a singleton range fold.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off,
-2026-10-15. Milliseconds, plain `-O2` / `-O2 -march=native`, both with
-`-g -DNDEBUG -std=c++23`; minimum of three run means.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | mixed workload | time |
 |---|---:|
-| library | 225 / 229 |
-| by materialized push | 222 / 226 |
-| by offline compression | 123 / 120 |
+| library | 362 / 197 |
+| by materialized push | 361 / 192 |
+| by offline compression | 192 / 84.2 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | 1,000,000 point reads after 50,000 applies | time |
 |---|---:|
-| library | 395 / 396 |
-| by singleton fold | 549 / 548 |
+| library | 528 / 365 |
+| by singleton fold | 729 / 484 |
 
 ## Pitfalls and notes
 

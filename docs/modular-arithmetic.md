@@ -137,20 +137,21 @@ reductions at modulus 998244353. Library `reduce_mod` uses division; by reciproc
 uses a local reciprocal and high-word product; the library constructor uses its
 shared reciprocal, reducing signed magnitude then sign.
 
-Intel Xeon Platinum 8280 at 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions disabled,
-2026-10-15. Common flags: `-g -DNDEBUG -std=c++23`. Minimum mean across three runs,
-25 samples per row; milliseconds:
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Input and method | `-O2` | `-O2 -march=native` |
 |---|---:|---:|
-| uint64, library reduce_mod (division) | 75.1 | 75.2 |
-| uint64, by reciprocal | 15.5 | 15.5 |
-| uint64, library constructor | 19.7 | 15.4 |
-| int64, library reduce_mod (division) | 118 | 117 |
-| int64, library constructor (magnitude reciprocal) | 58.7 | 57.5 |
+| uint64, library reduce_mod (division) | 19.1 | 19.3 |
+| uint64, by reciprocal | 7.2 | 7.2 |
+| uint64, library constructor | 7.3 | 7.3 |
+| int64, library reduce_mod (division) | 41.6 | 41.3 |
+| int64, library constructor (magnitude reciprocal) | 39.7 | 39.4 |
 
-These supplied native-backend records require remeasurement for the portability
-edits; software-backend performance is not measured yet.
+Software-backend performance is not measured yet.
 
 ### Pitfalls and notes
 
@@ -234,17 +235,19 @@ its sum needs an extra bit at full width.
 static reciprocal reduction, Montgomery REDC, and the modular wrapper. The
 wrapper selects Montgomery at 10^18+3. Each form conversion surrounds the chain.
 
-Intel Xeon Platinum 8280 at 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions disabled,
-2026-10-15. Common flags: `-g -DNDEBUG -std=c++23`. Minimum mean across three runs,
-25 samples per row; milliseconds:
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Modulus and method | `-O2` | `-O2 -march=native` |
 |---|---:|---:|
-| 10^18+3, library static_modulus (reciprocal) | 30.1 | 27.1 |
-| 10^18+3, library montgomery (REDC) | 18.8 | 18.5 |
-| 10^18+3, library mod_int64 (Montgomery) | 18.9 | 18.5 |
-| 998244353, library static_modulus (reciprocal) | 17.1 | 17.1 |
-| 998244353, library montgomery (REDC) | 18.4 | 18.4 |
+| 10^18+3, library static_modulus (reciprocal) | 26.2 | 23.1 |
+| 10^18+3, library montgomery (REDC) | 17 | 16.5 |
+| 10^18+3, library mod_int64 (Montgomery) | 17 | 16.5 |
+| 998244353, library static_modulus (reciprocal) | 16.5 | 16.4 |
+| 998244353, library montgomery (REDC) | 16.5 | 16.4 |
 
 `benchmarks/nt/static_modulus.cpp` compares the same chain length across
 reciprocal, Mersenne-fold, runtime-modulus and by-wide-remainder paths. Two
@@ -252,25 +255,30 @@ additional rows sum 10^5 modular powers with exponent `e | (1 << 40)` to compare
 64-bit integer spellings. Same CPU, compiler, build, date, sampling and common
 flags; milliseconds:
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | Modulus and method | `-O2` | `-O2 -march=native` |
 |---|---:|---:|
-| 998244353, library static_modulus | 17.3 | 17.2 |
-| 998244353, library mod_int | 17.4 | 17.2 |
-| 998244353, library mul_mod (runtime modulus) | 52.5 | 52.0 |
-| 2^31-1, library static_modulus (fold) | 13.7 | 13.6 |
-| 2^31-1, library mod_int | 13.7 | 13.8 |
-| 2^61-1, library static_modulus (fold) | 14.6 | 14.5 |
-| 2^61-1, library mod_int64 | 14.7 | 14.6 |
-| 10^18, by wide remainder | 133 | 137 |
-| 10^18, library static_modulus (barrett64) | 30.4 | 27.5 |
-| 10^18, library mod_int64 | 30.6 | 27.6 |
-| 10^18+3, library pow_mod<unsigned long long>, 10^5 powers | 119 | 121 |
-| 10^18+3, library pow_mod<uint64>, 10^5 powers | 122 | 121 |
+| 998244353, library static_modulus | 16.4 | 16.4 |
+| 998244353, library mod_int | 16.4 | 16.5 |
+| 998244353, library mul_mod (runtime modulus) | 19.1 | 19.1 |
+| 2^31-1, library static_modulus (fold) | 10.9 | 10.9 |
+| 2^31-1, library mod_int | 10.9 | 10.9 |
+| 2^61-1, library static_modulus (fold) | 12.3 | 12.4 |
+| 2^61-1, library mod_int64 | 12.3 | 12.3 |
+| 10^18, by wide remainder | 29.7 | 29.7 |
+| 10^18, library static_modulus (barrett64) | 23.5 | 23.4 |
+| 10^18, library mod_int64 | 23.5 | 23.1 |
+| 10^18+3, library pow_mod<unsigned long long>, 10^5 powers | 22 | 22 |
+| 10^18+3, library pow_mod<uint64>, 10^5 powers | 21.9 | 22.2 |
 
-The 10^18 reciprocal is 4.4 times as fast as wide remainder with plain `-O2`
-and 5.0 times with native flags (133/30.4 and 137/27.5, rounded). These supplied
-native-backend records require remeasurement for the portability edits;
-software-backend performance is not measured yet.
+The 10^18 reciprocal is 29.7/23.5 = 1.26 times as fast as wide remainder
+plain and 29.7/23.4 = 1.27 times native. Software-backend performance is
+not measured yet.
 
 ### Pitfalls and notes
 
@@ -339,8 +347,9 @@ Invalid calls with assertions disabled are outside the contract.
 ### Measured performance
 
 The runtime uint32 multiplication and reduction paths appear in the tables
-above. Standalone Barrett setup, Barrett64 and 128-bit raw arithmetic are not
-measured yet.
+above. Barrett64 chains are measured above, and `benchmarks/types/int128.cpp`
+measures raw native/software 128-bit arithmetic.
+Standalone Barrett setup is not measured yet.
 
 ### Pitfalls and notes
 

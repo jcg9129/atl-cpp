@@ -236,42 +236,48 @@ Exceptions propagate, with no transactional restoration guarantee.
 
 Time divide and conquer races recursive vectors, unpruned/configurable CSR,
 dense CSR, frame skipping, rank compression, and ranked frame skipping. Loops
-measure whole-log throughput with rollback DSU or persistent DSU by copy. The
-supplied record's library row is dense CSR without ranks; the current library
-chooses sparse ranks automatically. Forced ranking in the record has no separate
-entry point in the current benchmark; its integrated dispatch is not measured yet.
+measure whole-log throughput with rollback DSU or persistent DSU by copy.
+The library uses automatic sparse-rank dispatch. The dense CSR column is a
+separate contender. Forced ranking has no separate entry point, and its
+column uses a different machine; it cannot establish ranking speedups on
+the machine above.
 
 Source: [`benchmarks/ds/time_divide_and_conquer.cpp`](../benchmarks/ds/time_divide_and_conquer.cpp).
-CPU: Intel Xeon Platinum 8280; GCC 15.2; RelWithDebInfo, asserts off; 2026-11-01.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Cells are minimum milliseconds
-over three runs of 25 samples, plain / native.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+— marks a variant that `benchmarks/ds/time_divide_and_conquer.cpp` no longer measures.
 
 | Shape and restore mode | by dense CSR | by frame skipping | by rank compression | by ranked frame skipping |
 |---|---|---|---|---|
-| churn n=q=300000, 50% queries, rollback | 20.6 / 19.4 | 21.6 / 20.8 | 19.3 / 19.8 | 19.2 / 18.6 |
-| churn n=q=300000, 10% queries, rollback | 29.6 / 28.5 | 29.0 / 29.0 | 17.6 / 17.7 | 17.2 / 16.5 |
-| churn n=q=300000, 1% queries, rollback | 34.6 / 32.9 | 33.1 / 32.8 | 13.8 / 13.9 | 13.5 / 13.2 |
-| churn n=q=300000, 50% queries, by copy | 487 / 497 | 490 / 500 | 492 / 500 | 496 / 500 |
-| churn n=q=300000, 10% queries, by copy | 573 / 577 | 572 / 577 | 550 / 557 | 550 / 553 |
-| churn n=q=300000, 1% queries, by copy | 548 / 552 | 546 / 555 | 510 / 517 | 509 / 518 |
-| bipartite toggles n=q=100000, every time | 11.1 / 10.7 | 11.4 / 10.8 | 10.8 / 11.4 | not measured yet |
+| churn n=q=300000, 50% queries, rollback | 16.3 / 18.4 | 16.6 / 17.4 | — | 15.3 / 17.1 |
+| churn n=q=300000, 10% queries, rollback | 25 / 26 | 25 / 25.9 | — | 14 / 14.7 |
+| churn n=q=300000, 1% queries, rollback | 28.7 / 31.7 | 29.6 / 30.9 | — | 10.3 / 11.2 |
+| churn n=q=300000, 50% queries, by copy | 433 / 444 | 427 / 443 | — | 432 / 447 |
+| churn n=q=300000, 10% queries, by copy | 497 / 520 | 497 / 510 | — | 478 / 497 |
+| churn n=q=300000, 1% queries, by copy | 463 / 494 | 468 / 501 | — | 432 / 454 |
+| bipartite toggles n=q=100000, every time set 2 | 9.7 / 9.3 | 9.2 / 9.3 | — | 9.6 / 9.6 |
 
 The source includes connectivity and bipartite-toggle shapes. Both fixed-seed
 timed bipartite-toggle shapes stay forests. Untimed validation repeatedly
 creates and removes odd cycles, compares every engine's complete answer vector
 against fresh graph coloring, and checks dense and sparse selected times.
-Recursive, unpruned,
-unstretched, long/short-lived and lifetimes-only rows: not measured yet. Automatic ranking uses `Q <= T / 10`;
+Automatic ranking uses `Q <= T / 10`;
 callbacks retain original indices. Frame skipping remains experimental.
 
-The forced rank-compression row cuts rollback time at 1% queries by
-60.1% / 57.8%, and at 10% by 40.5% / 37.9% (plain/native), relative to dense CSR.
-Sparse copy-mode reductions range from 3.5% to 6.9%. At every time visited,
-forced ranking is 2.7% faster / 6.5% slower. Frame skipping costs 4.9% / 7.2%
-on balanced rollback churn and shows no copy-mode gain. Ranked frame skipping
-remains experimental; these records do not establish an advantage over ranking
-alone. Rollback is much cheaper than persistent copies on these workloads.
+The forced-ranking column uses a different machine from the dense CSR and
+ranked-frame-skipping columns, so their times cannot establish a speedup.
+On balanced rollback churn, frame skipping loses plain (16.6 versus 16.3 ms), but
+wins native (17.4 versus 18.4 ms). Balanced copy mode narrowly favors
+frame skipping (427/443 versus 433/444 ms). Ranked frame skipping beats
+dense CSR on sparse rollback (10.3/11.2 versus 28.7/31.7 ms at 1% queries)
+and sparse copy mode (432/454 versus 463/494 ms), but these rows do not
+isolate ranking from frame skipping. Rollback is much cheaper than
+persistent copying on the matched workloads.
 
 ### Deletion-time connectivity
 
@@ -281,26 +287,32 @@ pair the raw log and return a component count per query; the loop measures whole
 throughput, including preprocessing.
 
 Source: [`benchmarks/graph/deletion_time_connectivity.cpp`](../benchmarks/graph/deletion_time_connectivity.cpp).
-CPU: Intel Xeon Platinum 8168; GCC 15.2; RelWithDebInfo, asserts off; 2026-10-25.
-Flags: `-O2 -g -DNDEBUG -std=c++23` and
-`-O2 -march=native -g -DNDEBUG -std=c++23`. Minimum milliseconds over three
-runs of ten samples, plain / native:
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | component_counts by deletion time | component_counts by rollback DSU |
 |---|---|---|
-| churn n=q=300000, 50% queries | 40.1 / 40.0 | 32.0 / 32.0 |
-| churn n=q=300000, 1% queries | 74.1 / 70.1 | 41.4 / 39.5 |
-| long-lived n=q=300000, 90% never cut, 50% queries | 65.7 / 63.0 | 59.6 / 61.4 |
-| short-lived n=q=300000, link-query-cut | 49.5 / 47.3 | 14.3 / 14.3 |
-| dense churn n=1000, q=300000, 50% queries | 27.7 / 27.8 | 29.8 / 30.1 |
+| churn n=q=300000, 50% queries | 21.9 / 24.8 | 24.2 / 26.3 |
+| churn n=q=300000, 1% queries | 38.7 / 42.5 | 15.9 / 17.5 |
+| long-lived n=q=300000, 90% never cut, 50% queries | 33.4 / 37.6 | 41.3 / 45.6 |
+| short-lived n=q=300000, link-query-cut | 22.5 / 26.4 | 9.1 / 9 |
+| dense churn n=1000, q=300000, 50% queries | 19.8 / 21.5 | 24.4 / 26.3 |
 
-For these recorded logs, rollback is 1.25 / 1.25 times as fast on balanced churn,
-1.79 / 1.77 times on sparse churn, 1.10 / 1.03 times on long-lived edges, and
-3.46 / 3.31 times on short-lived edges. The deletion-time forest is 1.08 / 1.08
-times as fast on dense churn. Prefer rollback when its measured workload fits;
-use the forest when deletion times are known on insertion but queries arrive
-online or depend on earlier answers. Replay wrappers still require the complete
-log. These measurements do not isolate the effect of automatic rank dispatch.
+Rollback loses balanced churn to the deletion-time forest (24.2/26.3 versus
+21.9/24.8 ms), and long-lived edges (41.3/45.6 versus 33.4/37.6 ms).
+It wins sparse churn by 38.7/15.9 = 2.43 times plain and
+42.5/17.5 = 2.43 native, and short-lived edges by 2.47/2.93 times.
+On dense churn rollback loses (24.4/26.3 versus 19.8/21.5 ms); the forest
+is 1.23/1.22 times as fast. Choose from the measured workload and required
+query mode: the forest can answer online when deletion times are known on
+insertion; replay wrappers still require the complete log. These timings
+do not isolate automatic rank dispatch.
+
 
 ## Pitfalls and notes
 

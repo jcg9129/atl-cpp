@@ -125,65 +125,92 @@ and cost scaling with and without global price updates. Separate loops isolate
 arc layout, adjacency-tree traversal and the residual certificate. Samples
 measure complete operations with their local working-storage allocation.
 
-Intel Xeon Platinum 8358 at 2.60 GHz, GCC 15.2, RelWithDebInfo, assertions
-disabled, 2026-10-15. Minimum of three per-run means, ten samples per row.
-Plain flags: `-O2 -g -DNDEBUG -std=c++23`; native adds `-march=native`.
-All times below are milliseconds. The supplied complete-workload solver record
-includes certificate work; this API exposes that work separately. Fresh
-solve-only timings are not measured yet. The isolated rows retain the measured
-core and certificate costs without subtracting independently measured minima.
+Separate measurements isolate the solver core and certificate. The isolated rows report those costs directly, without
+subtracting independently measured minima.
 
 ### Plain -O2
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | contender | random 2e4/1.2e5 | assignment 300² | grid 80² | parallel paths 4e3 | negative DAG 60×40 |
 |---|---|---|---|---|---|
-| library | 65.3 | 10.9 | 86.1 | 2.6 | 53.3 |
-| by cost scaling price update | 107 | 33.7 | 206 | 5.7 | 71.5 |
-| by cost scaling | 602 | 48.7 | 706 | 2.9 | 191 |
-| by capacity scaling | 4003 | 72.7 | 290 | 844 | 464 |
-| by dijkstra | 254 | 95.1 | 789 | 663 | 275 |
-| by zkw | 336 | 73.7 | 888 | 815 | 339 |
-| by spfa | 251 | 103 | 2363 | 97.2 | 391 |
+| library | 36.7 | 6.2 | 49.5 | 2.1 | 45.5 |
+| by cost scaling price update | 57.3 | 19.5 | 132 | 4 | 51.1 |
+| by cost scaling | 407 | 24.6 | 494 | 1.3 | 97.6 |
+| by capacity scaling | 3180 | 59.3 | 194 | 557 | 363 |
+| by dijkstra | 187 | 76 | 604 | 544 | 216 |
+| by zkw | 278 | 72.8 | 709 | 707 | 283 |
+| by spfa | 181 | 80.2 | 1690 | 70.3 | 248 |
 
 ### -O2 -march=native
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | contender | random 2e4/1.2e5 | assignment 300² | grid 80² | parallel paths 4e3 | negative DAG 60×40 |
 |---|---|---|---|---|---|
-| library | 65.2 | 11.2 | 87.7 | 2.6 | 53.7 |
-| by cost scaling price update | 106 | 33.4 | 208 | 5.7 | 71.7 |
-| by cost scaling | 599 | 48.5 | 713 | 2.8 | 185 |
-| by capacity scaling | 3918 | 73.8 | 286 | 831 | 458 |
-| by dijkstra | 255 | 124 | 796 | 676 | 278 |
-| by zkw | 337 | 75.6 | 888 | 808 | 337 |
-| by spfa | 251 | 103 | 2278 | 92.6 | 390 |
+| library | 36.4 | 6.3 | 51.3 | 2 | 46.6 |
+| by cost scaling price update | 65.4 | 18.2 | 145 | 3.8 | 57.7 |
+| by cost scaling | 465 | 25.2 | 507 | 1.1 | 110 |
+| by capacity scaling | 3640 | 60.4 | 225 | 640 | 437 |
+| by dijkstra | 207 | 81.7 | 702 | 517 | 257 |
+| by zkw | 294 | 65.5 | 787 | 650 | 318 |
+| by spfa | 211 | 67.4 | 1890 | 61.7 | 294 |
 
 ### Isolated operations, plain -O2
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | operation | random 2e4/1.2e5 | assignment 300² | grid 80² | paths 4e3 | negative DAG | random 5e4/3e5 |
 |---|---|---|---|---|---|---|
-| simplex core library | 42.9 | 7.1 | 53.8 | 2.4 | 50.5 | 177 |
-| simplex core by adjacency | 64.1 | 11.3 | 123 | 4.0 | 118 | 279 |
-| certificate | 21.0 | 3.2 | 30.7 | 0.178 | 2.7 | — |
-| library complete workload | — | — | — | — | — | 238 |
+| simplex core library | 36.4 | 6.1 | 49.4 | 2 | 45.5 | 160 |
+| simplex core by adjacency | 51.6 | 8.6 | 91 | 3.1 | 89.6 | 237 |
+| certificate | 14.8 | 1.8 | 23.1 | 0.106 | 1.7 | — |
+| library complete workload | — | — | — | — | — | 164 |
 
 ### Isolated operations, -O2 -march=native
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | operation | random 2e4/1.2e5 | assignment 300² | grid 80² | paths 4e3 | negative DAG | random 5e4/3e5 |
 |---|---|---|---|---|---|---|
-| simplex core library | 42.7 | 7.1 | 54.3 | 2.5 | 50.7 | 178 |
-| simplex core by struct arcs | 46.6 | 7.6 | 57.2 | 2.8 | 53.1 | 192 |
-| simplex core by flat arcs | 42.9 | 7.1 | 54.7 | 2.5 | 51.0 | 178 |
-| simplex core by adjacency | 66.1 | 11.3 | 130 | 4.1 | 125 | 290 |
-| certificate | 21.0 | 3.2 | 32.0 | 0.153 | 2.8 | — |
-| library complete workload | — | — | — | — | — | 240 |
+| simplex core library | 35.8 | 6.2 | 51.2 | 2 | 46.8 | 144 |
+| simplex core by struct arcs | 36.6 | 6.2 | 50.9 | 2.1 | 46.5 | 144 |
+| simplex core by flat arcs | 35.5 | 6.2 | 52.2 | 2 | 47.3 | 144 |
+| simplex core by adjacency | 49.9 | 8.7 | 88.9 | 3.1 | 88.2 | 218 |
+| certificate | 15.6 | 1.5 | 25.6 | 0.093 | 1.9 | — |
+| library complete workload | — | — | — | — | — | 143 |
 
-The library wins the five complete-workload shapes under both flag sets.
+The library wins four of the five complete-workload shapes in both modes.
+It loses parallel paths to cost scaling without price updates (2.1/2
+versus 1.3/1.1 ms).
 Global price updates improve cost scaling on random, assignment, grid and DAG
 inputs, while adding work on parallel paths. Early Dijkstra termination avoids
 labels beyond the sink; capacity scaling pushes the full bottleneck, using its
 threshold only for eligibility. Parallel paths expose the augmentation count
-of the SSP family. Flat pricing arrays and threaded subtree walks reduce the
-core cost without changing the pivot rule.
+of the SSP family. Threaded subtree walks beat adjacency traversal on every isolated shape.
+Arc layout has no uniform winner: native the library loses the grid to
+struct arcs (51.2 versus 50.9 ms) and random input to flat arcs
+(35.8 versus 35.5 ms), while beating those contenders on other shapes.
+
+The isolated plain library core row varies between runs on several shapes
+(spread up to 1.70x); those minima alone do not establish stable core-layout
+rankings.
 
 ## Pitfalls and notes
 

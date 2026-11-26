@@ -81,93 +81,94 @@ by query options switches individual search shortcuts. These contenders live in
 `experimental/atl/experimental/strings/sorted_dictionary_variants.hpp` and the
 benchmark; the parts-build RMQ variant is the certifying experimental oracle.
 
-Intel Xeon Platinum 8168 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-11-03. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean milliseconds over three runs of 25 samples.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape / operation | Contender | -O2 ms | native ms |
 |---|---|---|---|
-| char 1e6 build | library | 97.7 | 97.1 |
-| char 1e6 build | library, queried once | 98.6 | 98.4 |
-| char 1e6 build | by parts build, RMQ descent | 82.2 | 90.6 |
-| char 1e6 build | by parts build, novector | 82.2 | 90.9 |
-| char 1e6 build | by query options | 77.2 | 80.4 |
-| char 1e6 build | by parts build, symbol reserve | 79.0 | 79.5 |
-| char 1e6 build | by parts build, descent LCP | 201 | 204 |
-| char 1e6 build | library, repeat | 99.2 | 96.7 |
-| char 1e6 build | by inplace build, trivial symbol reserve | 99.8 | 95.8 |
-| char 1e6 build | by inplace build, all symbol reserve | 98.9 | 95.9 |
-| uint64 prefix500 2e4 build | library | 74.2 | 74.8 |
-| uint64 prefix500 2e4 build | library, queried once | 74.5 | 75.6 |
-| uint64 prefix500 2e4 build | by parts build, RMQ descent | 134 | 136 |
-| uint64 prefix500 2e4 build | by parts build, novector | 136 | 137 |
-| uint64 prefix500 2e4 build | by query options | 136 | 138 |
-| uint64 prefix500 2e4 build | by parts build, symbol reserve | 76.3 | 77.0 |
-| uint64 prefix500 2e4 build | by parts build, descent LCP | 139 | 140 |
-| uint64 prefix500 2e4 build | library, repeat | 76.6 | 77.3 |
-| uint64 prefix500 2e4 build | by inplace build, trivial symbol reserve | 77.1 | 78.0 |
-| uint64 prefix500 2e4 build | by inplace build, all symbol reserve | 77.3 | 78.6 |
-| tokens 2e4x50 build | library | 97.4 | 99.3 |
-| tokens 2e4x50 build | library, queried once | 98.1 | 99.2 |
-| tokens 2e4x50 build | by parts build, RMQ descent | 97.3 | 97.5 |
-| tokens 2e4x50 build | by parts build, novector | 97.3 | 97.4 |
-| tokens 2e4x50 build | by query options | 97.3 | 97.4 |
-| tokens 2e4x50 build | by parts build, symbol reserve | 61.8 | 62.6 |
-| tokens 2e4x50 build | by parts build, descent LCP | 97.9 | 96.4 |
-| tokens 2e4x50 build | library, repeat | 97.5 | 97.6 |
-| tokens 2e4x50 build | by inplace build, trivial symbol reserve | 97.4 | 97.2 |
-| tokens 2e4x50 build | by inplace build, all symbol reserve | 61.7 | 60.9 |
-| char 5e5 hits | library | 394 | 411 |
-| char 5e5 hits | by parts build, linear upper scan | 513 | 532 |
-| char 5e5 hits | by parts build, descent LCP | 395 | 415 |
-| char 5e5 hits | by parts build, linear upper scan and descent LCP | 357 | 356 |
-| char 5e5 hits | by inplace build | 384 | 409 |
-| char 5e5 hits | by inplace build, linear upper scan | 347 | 367 |
-| char 5e5 misses | library | 227 | 247 |
-| char 5e5 misses | by parts build, linear upper scan | 409 | 425 |
-| char 5e5 misses | by parts build, descent LCP | 230 | 233 |
-| char 5e5 misses | by parts build, linear upper scan and descent LCP | 235 | 225 |
-| char 5e5 misses | by inplace build | 219 | 232 |
-| char 5e5 misses | by inplace build, linear upper scan | 226 | 240 |
-| char 5e5 whole words | library | 348 | 357 |
-| char 5e5 whole words | by parts build, linear upper scan | 495 | 527 |
-| char 5e5 whole words | by parts build, descent LCP | 346 | 379 |
-| char 5e5 whole words | by parts build, linear upper scan and descent LCP | 316 | 337 |
-| char 5e5 whole words | by inplace build | 340 | 371 |
-| char 5e5 whole words | by inplace build, linear upper scan | 307 | 303 |
-| uint64 2e4 misses | library | 10.3 | 10.3 |
-| uint64 2e4 misses | by parts build, linear upper scan | 10.3 | 10.4 |
-| uint64 2e4 misses | by parts build, descent LCP | 10.3 | 10.3 |
-| uint64 2e4 misses | by parts build, linear upper scan and descent LCP | 10.3 | 10.4 |
-| uint64 2e4 misses | by inplace build | 10.1 | 10.5 |
-| uint64 2e4 misses | by inplace build, linear upper scan | 10.1 | 10.3 |
-| uint64 2e4 unique hits | library | 26.2 | 26.7 |
-| uint64 2e4 unique hits | by parts build, linear upper scan | 26.1 | 27.3 |
-| uint64 2e4 unique hits | by parts build, descent LCP | 26.1 | 26.2 |
-| uint64 2e4 unique hits | by parts build, linear upper scan and descent LCP | 26.0 | 26.1 |
-| uint64 2e4 unique hits | by inplace build | 26.4 | 26.6 |
-| uint64 2e4 unique hits | by inplace build, linear upper scan | 26.2 | 26.3 |
-| uint64 2e4 wide | library | 15.0 | 15.5 |
-| uint64 2e4 wide | by parts build, linear upper scan | 15.8 | 16.6 |
-| uint64 2e4 wide | by parts build, descent LCP | 15.0 | 15.8 |
-| uint64 2e4 wide | by parts build, linear upper scan and descent LCP | 15.0 | 15.4 |
-| uint64 2e4 wide | by inplace build | 14.6 | 15.6 |
-| uint64 2e4 wide | by inplace build, linear upper scan | 14.8 | 15.5 |
-| tokens 2e4 queries | library | 22.3 | 25.1 |
-| tokens 2e4 queries | by parts build, linear upper scan | 22.2 | 24.3 |
-| tokens 2e4 queries | by parts build, descent LCP | 21.9 | 22.1 |
-| tokens 2e4 queries | by parts build, linear upper scan and descent LCP | 22.1 | 22.3 |
-| tokens 2e4 queries | by inplace build | 21.4 | 22.4 |
-| tokens 2e4 queries | by inplace build, linear upper scan | 22.1 | 23.4 |
+| char 1e6 build | library | 65.4 | 61.8 |
+| char 1e6 build | library, queried once | 65.6 | 62.6 |
+| char 1e6 build | by parts build, RMQ descent | 62.8 | 56.6 |
+| char 1e6 build | by parts build, novector | 62.9 | 56.2 |
+| char 1e6 build | by query options | 51.9 | 48.6 |
+| char 1e6 build | by parts build, symbol reserve | 58.1 | 51.1 |
+| char 1e6 build | by parts build, descent LCP | 193 | 138 |
+| char 1e6 build | library, repeat | 65.4 | 62.6 |
+| char 1e6 build | by inplace build | 65.4 | 62 |
+| uint64 prefix500 2e4 build | library | 57.1 | 59.7 |
+| uint64 prefix500 2e4 build | library, queried once | 57.5 | 59.7 |
+| uint64 prefix500 2e4 build | by parts build, RMQ descent | 99.5 | 100 |
+| uint64 prefix500 2e4 build | by parts build, novector | 99.9 | 101 |
+| uint64 prefix500 2e4 build | by query options | 99.7 | 101 |
+| uint64 prefix500 2e4 build | by parts build, symbol reserve | 59 | 60.1 |
+| uint64 prefix500 2e4 build | by parts build, descent LCP | 102 | 103 |
+| uint64 prefix500 2e4 build | library, repeat | 58.5 | 60.6 |
+| uint64 prefix500 2e4 build | by inplace build | 58.1 | 60.8 |
+| tokens 2e4x50 build | library | 40.9 | 42.3 |
+| tokens 2e4x50 build | library, queried once | 40.8 | 41.7 |
+| tokens 2e4x50 build | by parts build, RMQ descent | 64.4 | 66.4 |
+| tokens 2e4x50 build | by parts build, novector | 64.7 | 66.4 |
+| tokens 2e4x50 build | by query options | 65 | 66.2 |
+| tokens 2e4x50 build | by parts build, symbol reserve | 41.3 | 41.3 |
+| tokens 2e4x50 build | by parts build, descent LCP | 65.1 | 66.3 |
+| tokens 2e4x50 build | library, repeat | 40.8 | 42.6 |
+| tokens 2e4x50 build | by inplace build | 40.5 | 42.4 |
+| char 5e5 hits | library | 353 | 234 |
+| char 5e5 hits | by parts build, linear upper scan | 379 | 264 |
+| char 5e5 hits | by parts build, descent LCP | 349 | 227 |
+| char 5e5 hits | by parts build, linear upper scan and descent LCP | 301 | 207 |
+| char 5e5 hits | by inplace build | 337 | 221 |
+| char 5e5 hits | by inplace build, linear upper scan | 296 | 202 |
+| char 5e5 misses | library | 197 | 135 |
+| char 5e5 misses | by parts build, linear upper scan | 305 | 207 |
+| char 5e5 misses | by parts build, descent LCP | 201 | 136 |
+| char 5e5 misses | by parts build, linear upper scan and descent LCP | 197 | 136 |
+| char 5e5 misses | by inplace build | 198 | 135 |
+| char 5e5 misses | by inplace build, linear upper scan | 193 | 136 |
+| char 5e5 whole words | library | 351 | 216 |
+| char 5e5 whole words | by parts build, linear upper scan | 396 | 253 |
+| char 5e5 whole words | by parts build, descent LCP | 349 | 214 |
+| char 5e5 whole words | by parts build, linear upper scan and descent LCP | 292 | 184 |
+| char 5e5 whole words | by inplace build | 336 | 214 |
+| char 5e5 whole words | by inplace build, linear upper scan | 282 | 180 |
+| uint64 2e4 misses | library | 9.4 | 8.4 |
+| uint64 2e4 misses | by parts build, linear upper scan | 9.5 | 8.5 |
+| uint64 2e4 misses | by parts build, descent LCP | 9.2 | 8.1 |
+| uint64 2e4 misses | by parts build, linear upper scan and descent LCP | 9.4 | 8.5 |
+| uint64 2e4 misses | by inplace build | 9.5 | 8.3 |
+| uint64 2e4 misses | by inplace build, linear upper scan | 9.5 | 8.5 |
+| uint64 2e4 unique hits | library | 14.3 | 14 |
+| uint64 2e4 unique hits | by parts build, linear upper scan | 17 | 17.2 |
+| uint64 2e4 unique hits | by parts build, descent LCP | 14.4 | 14 |
+| uint64 2e4 unique hits | by parts build, linear upper scan and descent LCP | 14 | 14.1 |
+| uint64 2e4 unique hits | by inplace build | 14.4 | 13.9 |
+| uint64 2e4 unique hits | by inplace build, linear upper scan | 13.9 | 13.6 |
+| uint64 2e4 wide | library | 11.9 | 11.5 |
+| uint64 2e4 wide | by parts build, linear upper scan | 13.1 | 12.6 |
+| uint64 2e4 wide | by parts build, descent LCP | 11.9 | 11.2 |
+| uint64 2e4 wide | by parts build, linear upper scan and descent LCP | 12 | 11.3 |
+| uint64 2e4 wide | by inplace build | 11.8 | 11.3 |
+| uint64 2e4 wide | by inplace build, linear upper scan | 11.8 | 11.3 |
+| tokens 2e4 queries | library | 20.1 | 15.8 |
+| tokens 2e4 queries | by parts build, linear upper scan | 21 | 16.8 |
+| tokens 2e4 queries | by parts build, descent LCP | 19.8 | 15.7 |
+| tokens 2e4 queries | by parts build, linear upper scan and descent LCP | 18.9 | 15.5 |
+| tokens 2e4 queries | by inplace build | 18.9 | 15.8 |
+| tokens 2e4 queries | by inplace build, linear upper scan | 17.9 | 15.5 |
 
 
-Other query-option micro-variant rows are not measured yet. The supplied records
-include both trivial-symbol and all-symbol reserve rows; the library reserves
-all symbols on forward ranges. Token build times in that comparison are
-97.4 versus 61.7 ms at -O2 and 97.2 versus 60.9 ms native. Linear upper scans
-have no consistent win: the inplace comparison's hit and whole-word rows improve,
-but miss times rise from 219 to 226 ms and 232 to 240 ms, within substantial noise.
-The char query spreads reach 1.22x; these figures do not establish small speedups.
+The library loses char construction to by query options (65.4/61.8 versus
+51.9/48.6 ms). On queries, inplace linear upper scanning improves char hits
+relative to inplace without scanning (296/202 versus 337/221 ms) and whole
+words (282/180 versus 336/214 ms); the library loses both comparisons
+(353/234 ms hits, 351/216 ms whole words). Misses favor linear scanning
+plain (193 versus 198 ms inplace, library 197 ms) but lose native
+(136 versus 135 ms for both). These minimum-time comparisons do not
+establish small stable speedups; some char-query rows vary between runs.
+
 
 ## Pitfalls and notes
 

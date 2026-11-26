@@ -65,18 +65,19 @@ exceeds uint64. Allocation failures propagate.
 The three rows measure library calls with shared-factor pairs, three-prime
 reconstructions, and general linear equations; there are no contender algorithms.
 
-Source: `benchmarks/nt/crt.cpp`. Intel Xeon Platinum 8358, GCC 15.2,
-RelWithDebInfo, assertions disabled, 2026-10-15. Timings are milliseconds for
-`-O2 -g -DNDEBUG -std=c++23` and the same flags plus `-march=native`.
-Each cell is minimum milliseconds (spread = slowest run / fastest run), over
-three runs of 25 samples; each run contributes its mean.
-These records measure native 128-bit arithmetic; software-wide timings are not measured yet.
+Source: `benchmarks/nt/crt.cpp`. These measurements use native 128-bit arithmetic; software-wide timings are not measured yet.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload (1e5 calls) | -O2 | -O2 -march=native |
 | --- | --- | --- |
-| pair intersection, moduli<1e9 | 8.5 (1.00x) | 8.5 (1.00x) |
-| Garner, three primes to 1e9+7 | 26.3 (1.00x) | 26.7 (1.02x) |
-| linear congruence, m<2^63 | 23.0 (1.00x) | 23.0 (1.00x) |
+| pair intersection, moduli<1e9 | 5.8 (1.02x) | 5.6 (1.07x) |
+| Garner, three primes to 1e9+7 | 15.6 (1.02x) | 15.9 (1.03x) |
+| linear congruence, m<2^63 | 13.9 (1.02x) | 14.1 (1.02x) |
 
 
 ## Pitfalls and notes

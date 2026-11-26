@@ -79,20 +79,22 @@ entry, except the last row directly exercises the monotone sweep. The convex
 construction merges parallel edge directions, so its actual vertex count can
 be below the nominal 1e5 generated edges. No separate contender is timed.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15; `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run means, three runs of 25 samples; milliseconds.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | -O2 | native |
 |---|---:|---:|
-| exactly convex, nominal 1e5 | 4.4 | 4.9 |
-| random star, 1e5 | 184 | 187 |
-| random star, 1e5, double | 192 | 194 |
-| adversarial comb, 2e4 | 22.7 | 23.7 |
-| collinear-top comb, 1e5, sweep/repair | 131 | 134 |
+| exactly convex, nominal 1e5 | 4.9 | 4.1 |
+| random star, 1e5 | 145 | 152 |
+| random star, 1e5, double | 162 | 166 |
+| adversarial comb, 2e4 | 17.4 | 15.7 |
+| collinear-top comb, 1e5, sweep/repair | 104 | 106 |
 
-These records establish shape costs, not an independently reproducible numeric
-optimum for the dispatch threshold. The benchmark retains every shape.
+These measurements establish shape costs, not an independently reproducible
+numeric optimum for the dispatch threshold.
 
 ## Pitfalls and notes
 

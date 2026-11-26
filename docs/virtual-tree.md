@@ -66,36 +66,44 @@ The alternative builders are defined in
 changes key sorting while keeping the stack sweep and query keys fixed.
 The counting-dispatch contender comparison-sorts below ceil(n/32), then counts;
 pure counting scans the key domain, while bitmap sorting scans words and
-collapses duplicates. Cells are minimum milliseconds over three runs of 25
+collapses duplicates. Cells are minimum milliseconds over five runs of 25
 samples, plain / native. LCA construction is excluded.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, assertions off, 2026-11-01. Flags `-O2 -g -DNDEBUG -std=c++23`,
-also with `-march=native`.
+The counting-dispatch rows measure `virtual_tree_by_sort` with
+`counting_dispatch`; the bitmap rows measure the library entry point.
 
-The supplied record's counting-dispatch rows map to `virtual_tree_by_sort`
-with `counting_dispatch`; its bitmap rows map to the library entry point.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | n | batch | by counting dispatch | library bitmap | by counting | by comparison |
 |---|---|---|---|---|---|
-| 500000 | 1 query, k=n/2 | 20.3 / 20.0 | 15.7 / 14.9 | 20.8 / 19.4 | 33.3 / 34.3 |
-| 500000 | 4 queries, k=n/8 | 24.5 / 23.2 | 21.8 / 20.6 | 25.3 / 22.3 | 35.9 / 35.1 |
-| 500000 | 16 queries, k=n/32 | 30.1 / 28.3 | 26.1 / 24.1 | 30.6 / 28.3 | 36.7 / 36.0 |
-| 500000 | 64 queries, k=n/128 | 39.4 / 38.6 | 32.0 / 30.2 | 53.3 / 49.0 | 38.9 / 38.6 |
-| 500000 | 512 queries, k=n/1024 | 33.8 / 32.2 | 36.1 / 33.3 | 184 / 180 | 33.2 / 32.6 |
-| 200000 | 1 query, k=n/2 | 6.1 / 5.7 | 5.0 / 4.7 | 6.1 / 5.7 | 11.2 / 11.1 |
-| 200000 | 4 queries, k=n/8 | 7.3 (native) | 6.5 (native) | 7.3 (native) | 11.9 (native) |
-| 200000 | 16 queries, k=n/32 | 9.6 (native) | 7.7 (native) | 9.6 (native) | 12.0 (native) |
-| 200000 | 64 queries, k=n/128 | 11.0 (native) | 8.2 (native) | 15.2 (native) | 11.0 (native) |
-| 200000 | 512 queries, k=n/1024 | 8.8 (native) | 8.6 (native) | 53.7 (native) | 8.8 (native) |
+| 500000 | 1 query, k=n/2 | 10.9 / 10.8 | 8.6 / 8.9 | 11.5 / 10.9 | 25.4 / 28.3 |
+| 500000 | 4 queries, k=n/8 | 12.6 / 12 | 11.3 / 11 | 12.5 / 12 | 25.1 / 24.7 |
+| 500000 | 16 queries, k=n/32 | 15.8 / 15.9 | 13 / 13 | 15.8 / 17 | 25.3 / 24.8 |
+| 500000 | 64 queries, k=n/128 | 24.8 / 22.8 | 25.2 / 28.2 | 24.4 / 24.3 | 24.3 / 29.8 |
+| 500000 | 512 queries, k=n/1024 | 19.5 / 19.5 | 19.5 / 18.9 | 99.6 / 103 | 20.1 / 21 |
+| 200000 | 1 query, k=n/2 | 3.9 / 3.8 | 3.2 / 3.1 | 3.8 / 3.7 | 9.4 / 9.6 |
+| 200000 | 4 queries, k=n/8 | 4.6 (1.04x) | 4.2 (1.04x) | 4.7 (1.14x) | 9.3 (1.04x) |
+| 200000 | 16 queries, k=n/32 | 5.8 (1.02x) | 5 (1.02x) | 5.8 (1.03x) | 9 (1.02x) |
+| 200000 | 64 queries, k=n/128 | 8.5 (1.06x) | 8.5 (1.03x) | 9.4 (1.02x) | 8.5 (1.03x) |
+| 200000 | 512 queries, k=n/1024 | 6.9 (1.03x) | 6.9 (1.04x) | 36.9 (1.04x) | 6.9 (1.03x) |
 
 The library switches to the bitmap from ceil(n/128), except for the fixed
 buffer path. At n/1024, comparison sorting is competitive; the precise
-crossover between n/128 and n/1024 is unmeasured. The benchmark retains
-one-sort and two-sort algorithms, packed/projected/entry-time keys, an
-entry-space sparse-table backend, depth-ranked frames, a raw stack array and
-per-query scratch allocation. Those comparisons are not measured yet in the
-supplied records.
+crossover between n/128 and n/1024 is unmeasured. The benchmark compares
+one-sort and two-sort algorithms,
+packed/projected/entry-time keys, an entry-space sparse-table backend,
+depth-ranked frames, a raw stack array and per-query scratch allocation.
+At n=500000, k=n/128 the library bitmap loses to counting
+dispatch (25.2/28.2 versus 24.8/22.8 ms). It beats that contender for
+the three larger key batches in both modes.
+
+All shown n=500000 sorting comparisons include rows that vary between
+runs (spreads up to 2.03x). Their minimum-time rankings alone do not
+establish stable crossover points.
 
 ## Pitfalls and notes
 

@@ -109,28 +109,42 @@ checks the actual forwarded conversion, including explicit casts.
 recursion, then compares skipping identity pushes with unconditional pushes.
 Each sample builds a fresh tree and replays a complete operation stream.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2, RelWithDebInfo, assertions off,
-2026-10-15. Milliseconds, plain `-O2` / `-O2 -march=native`, both with
-`-g -DNDEBUG -std=c++23`; minimum of three run means.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | 1,000,000 mixed operations at n=1e6 | library | by recursion |
 |---|---:|---:|
-| add/sum, 50/50 | 470 / 444 | 751 / 750 |
+| add/sum, 50/50 | 362 / 561 | 561 / 938 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | operation stream | library | by unconditional push |
 |---|---:|---:|
-| add/sum, n=1e6, 50/50 | 497 / 488 | 497 / 485 |
-| affine, n=1e6, 50/50 | 922 / 944 | 970 / 1003 |
+| add/sum, n=1e6, 50/50 | 385 / 628 | 392 / 642 |
+| affine, n=1e6, 50/50 | 856 / 1500 | 925 / 1640 |
 
-Additional `-O2 -march=native` streams from the same record:
+Additional `-O2 -march=native` streams:
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | stream | library | by unconditional push |
 |---|---:|---:|
-| add/sum, n=1e6, 10/90 | 427 | 437 |
-| affine, n=1e6, 10/90 | 840 | 938 |
-| add/sum, n=1e6, point operations + 10% range apply | 308 | 325 |
-| add/sum, n=1e6, boundary search + 10% range apply | 313 | 326 |
-| add/sum, n=1e3, 50/50 | 145 | 146 |
+| add/sum, n=1e6, 10/90 | 556 | 596 |
+| affine, n=1e6, 10/90 | 1370 | 1540 |
+| add/sum, n=1e6, point operations + 10% range apply | 391 | 425 |
+| add/sum, n=1e6, boundary search + 10% range apply | 386 | 400 |
+| add/sum, n=1e3, 50/50 | 212 | 216 |
 
 ## Pitfalls and notes
 

@@ -134,15 +134,9 @@ row fills. `transition_table_by_row_options` in
 `experimental/atl/experimental/strings/aho_corasick_variants.hpp` varies
 zeroing, prefetch threshold and cache-line read/write hints. Its zeroed
 first-line instantiation is the certifying experimental oracle. The same header
-contains `aho_corasick_by_dense_table`, which stores all transitions permanently;
-its build/scan race is not measured yet in the supplied records. Sparse
-build/scan and step/walk table-fill comparisons are also not measured yet.
+contains `aho_corasick_by_dense_table`, which stores all transitions permanently.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions off,
-2026-11-02. Flags: `-O2 -g -DNDEBUG -std=c++23`, optionally `-march=native`.
-Minimum per-run mean milliseconds over three runs of 25 samples. The record
-filter covers only the table-build variants. Rows below retain all measured
-shapes and contenders. Z = by row options, zeroed first line; O = by row
+Z = by row options, zeroed first line; O = by row
 options, overwrite first line; N = by row options, never prefetch;
 A = by row options, always first line; L = by row options, all lines;
 W = by row options, all lines write; OW = by row options, overwrite all lines
@@ -150,45 +144,62 @@ write. Z/O use a 2^18-cell prefetch threshold; A/L/W/OW use zero.
 
 ### Plain -O2
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | sigma, patterns | Nodes / cells | library | Z | O | N | A | L | W | OW |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2, 1000x10 | 1582 / 3164 | 0.004 | 0.010 | 0.010 | 0.005 | 0.009 | 0.006 | 0.011 | 0.004 |
-| 2, 10000x10 | 2047 / 4094 | 0.005 | 0.011 | 0.011 | 0.006 | 0.011 | 0.007 | 0.013 | 0.006 |
-| 2, 100000x10 | 2047 / 4094 | 0.005 | 0.011 | 0.011 | 0.006 | 0.011 | 0.007 | 0.013 | 0.006 |
-| 2, 10000x20 | 78124 / 156248 | 0.582 | 0.808 | 0.788 | 0.610 | 0.824 | 0.667 | 0.922 | 0.583 |
-| 2, 100000x20 | 455054 / 910108 | 8.2 | 9.6 | 9.3 | 8.0 | 9.4 | 8.0 | 9.5 | 7.4 |
-| 2, 100000x30 | 1450237 / 2900474 | 45.8 | 54.1 | 52.0 | 48.2 | 52.9 | 46.6 | 55.2 | 46.3 |
-| 8, 1000x10 | 7388 / 59104 | 0.043 | 0.053 | 0.052 | 0.046 | 0.052 | 0.049 | 0.057 | 0.045 |
-| 8, 10000x10 | 62684 / 501472 | 0.750 | 0.838 | 0.778 | 0.803 | 0.839 | 0.784 | 0.861 | 0.703 |
-| 26, 1000x10 | 8502 / 221052 | 0.078 | 0.094 | 0.091 | 0.094 | 0.094 | 0.091 | 0.103 | 0.078 |
-| 26, 10000x10 | 78250 / 2034500 | 1.5 | 1.8 | 1.6 | 1.8 | 1.8 | 1.7 | 1.8 | 1.3 |
-| 26, 100000x10 | 707617 / 18398042 | 72.3 | 76.4 | 73.9 | 75.8 | 76.0 | 77.3 | 79.3 | 75.6 |
-| 26, a^2000 | 2001 / 52026 | 0.018 | 0.021 | 0.018 | 0.021 | 0.021 | 0.022 | 0.021 | 0.018 |
-| 26, a^20000 | 20001 / 520026 | 0.175 | 0.245 | 0.177 | 0.242 | 0.255 | 0.251 | 0.254 | 0.175 |
+| 2, 1000x10 | 1582 / 3164 | 0.003 | 0.007 | 0.007 | 0.006 | 0.006 | 0.009 | 0.009 | 0.009 |
+| 2, 10000x10 | 2047 / 4094 | 0.003 | 0.007 | 0.007 | 0.007 | 0.007 | 0.009 | 0.008 | 0.009 |
+| 2, 100000x10 | 2047 / 4094 | 0.003 | 0.007 | 0.006 | 0.007 | 0.007 | 0.009 | 0.009 | 0.009 |
+| 2, 10000x20 | 78124 / 156248 | 0.375 | 0.596 | 0.559 | 0.586 | 0.543 | 0.676 | 0.634 | 0.625 |
+| 2, 100000x20 | 455054 / 910108 | 9.2 | 8.2 | 7.7 | 9.8 | 10.6 | 13.4 | 13.5 | 13.9 |
+| 2, 100000x30 | 1450237 / 2900474 | 37.8 | 44.1 | 43.6 | 52.1 | 43.4 | 54.9 | 45.3 | 46.2 |
+| 8, 1000x10 | 7388 / 59104 | 0.027 | 0.029 | 0.028 | 0.031 | 0.03 | 0.039 | 0.038 | 0.033 |
+| 8, 10000x10 | 62684 / 501472 | 0.404 | 0.415 | 0.368 | 0.458 | 0.399 | 0.528 | 0.477 | 0.423 |
+| 26, 1000x10 | 8502 / 221052 | 0.047 | 0.058 | 0.048 | 0.055 | 0.053 | 0.067 | 0.063 | 0.052 |
+| 26, 10000x10 | 78250 / 2034500 | 0.561 | 0.66 | 0.564 | 0.687 | 0.651 | 0.8 | 0.762 | 0.652 |
+| 26, 100000x10 | 707617 / 18398042 | 58.4 | 65.3 | 63.2 | 66 | 64.7 | 68 | 68.4 | 68.1 |
+| 26, a^2000 | 2001 / 52026 | 0.012 | 0.013 | 0.012 | 0.013 | 0.013 | 0.013 | 0.013 | 0.012 |
+| 26, a^20000 | 20001 / 520026 | 0.123 | 0.147 | 0.125 | 0.143 | 0.147 | 0.145 | 0.149 | 0.123 |
 
 ### -O2 -march=native
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | sigma, patterns | Nodes / cells | library | Z | O | N | A | L | W | OW |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2, 1000x10 | 1582 / 3164 | 0.004 | 0.010 | 0.010 | 0.004 | 0.010 | 0.012 | 0.012 | 0.004 |
-| 2, 10000x10 | 2047 / 4094 | 0.004 | 0.011 | 0.011 | 0.005 | 0.011 | 0.014 | 0.013 | 0.006 |
-| 2, 100000x10 | 2047 / 4094 | 0.005 | 0.011 | 0.011 | 0.005 | 0.011 | 0.014 | 0.013 | 0.006 |
-| 2, 10000x20 | 78124 / 156248 | 0.583 | 0.809 | 0.813 | 0.605 | 0.831 | 0.916 | 0.910 | 0.585 |
-| 2, 100000x20 | 455054 / 910108 | 7.8 | 10.2 | 10.1 | 8.0 | 9.6 | 10.6 | 10.0 | 8.1 |
-| 2, 100000x30 | 1450237 / 2900474 | 46.3 | 52.2 | 51.5 | 46.9 | 51.3 | 55.5 | 54.0 | 45.2 |
-| 8, 1000x10 | 7388 / 59104 | 0.033 | 0.052 | 0.053 | 0.041 | 0.053 | 0.058 | 0.057 | 0.033 |
-| 8, 10000x10 | 62684 / 501472 | 0.750 | 0.839 | 0.790 | 0.814 | 0.839 | 0.875 | 0.877 | 0.647 |
-| 26, 1000x10 | 8502 / 221052 | 0.078 | 0.090 | 0.087 | 0.085 | 0.091 | 0.105 | 0.102 | 0.070 |
-| 26, 10000x10 | 78250 / 2034500 | 1.5 | 1.8 | 1.6 | 1.9 | 1.8 | 1.9 | 1.9 | 1.4 |
-| 26, 100000x10 | 707617 / 18398042 | 71.9 | 75.2 | 74.5 | 75.8 | 75.6 | 79.5 | 79.9 | 75.9 |
-| 26, a^2000 | 2001 / 52026 | 0.018 | 0.021 | 0.018 | 0.021 | 0.021 | 0.022 | 0.021 | 0.018 |
-| 26, a^20000 | 20001 / 520026 | 0.177 | 0.246 | 0.182 | 0.245 | 0.255 | 0.248 | 0.242 | 0.174 |
+| 2, 1000x10 | 1582 / 3164 | 0.003 | 0.008 | 0.009 | 0.006 | 0.007 | 0.01 | 0.01 | 0.01 |
+| 2, 10000x10 | 2047 / 4094 | 0.003 | 0.007 | 0.009 | 0.006 | 0.008 | 0.009 | 0.01 | 0.01 |
+| 2, 100000x10 | 2047 / 4094 | 0.003 | 0.007 | 0.008 | 0.006 | 0.008 | 0.009 | 0.009 | 0.009 |
+| 2, 10000x20 | 78124 / 156248 | 0.371 | 0.622 | 0.671 | 0.565 | 0.574 | 0.697 | 0.729 | 0.671 |
+| 2, 100000x20 | 455054 / 910108 | 7.4 | 9.2 | 9.1 | 10.1 | 8.2 | 8.7 | 11.3 | 9.3 |
+| 2, 100000x30 | 1450237 / 2900474 | 37.7 | 41.9 | 41.9 | 43.7 | 42.3 | 52.5 | 53.2 | 48.5 |
+| 8, 1000x10 | 7388 / 59104 | 0.02 | 0.032 | 0.03 | 0.029 | 0.036 | 0.04 | 0.039 | 0.038 |
+| 8, 10000x10 | 62684 / 501472 | 0.431 | 0.434 | 0.399 | 0.451 | 0.436 | 0.492 | 0.482 | 0.491 |
+| 26, 1000x10 | 8502 / 221052 | 0.057 | 0.061 | 0.059 | 0.058 | 0.059 | 0.069 | 0.069 | 0.061 |
+| 26, 10000x10 | 78250 / 2034500 | 0.601 | 0.691 | 0.591 | 0.801 | 0.676 | 0.815 | 0.794 | 0.681 |
+| 26, 100000x10 | 707617 / 18398042 | 62.9 | 69.7 | 66.8 | 71.9 | 69.9 | 75.3 | 71.6 | 69.1 |
+| 26, a^2000 | 2001 / 52026 | 0.013 | 0.014 | 0.013 | 0.014 | 0.014 | 0.014 | 0.014 | 0.013 |
+| 26, a^20000 | 20001 / 520026 | 0.129 | 0.159 | 0.128 | 0.155 | 0.157 | 0.168 | 0.158 | 0.13 |
 
-The plain -O2 overwrite-first-line row at sigma=2 100000x10 has an unstable
-3.42x spread. Other spreads reach 1.33x at -O2 and 1.26x native; tiny differences
-are not reliable speedups. No prefetch policy wins uniformly. Library row and
-payload lookahead keeps the large sigma=26 table at 72.3/71.9 ms compared with
-76.4/75.2 for zeroed first-line public-API filling.
+Table-build rows vary between runs: spreads reach 1.79x plain and 2.48x
+native. The plain sigma=2 100000x10 overwrite-first-line row has a 1.12x
+spread. Small differences do not establish reliable speedups. No prefetch
+policy wins uniformly. The library loses to overwrite-first-line filling on
+sigma=2 100000x20 with plain flags (9.2 versus 7.7 ms), while native favors
+the library (7.4 versus 9.1 ms). At sigma=8 10000x10 it loses in both modes
+(0.404/0.431 versus 0.368/0.399 ms); these rows vary between runs.
+On the large sigma=26 table the library takes 58.4/62.9 ms versus
+65.3/69.7 ms for zeroed first-line filling, also with run-to-run variation.
+
 
 ## Pitfalls and notes
 

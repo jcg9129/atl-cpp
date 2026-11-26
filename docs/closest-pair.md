@@ -60,41 +60,44 @@ rebuilt on every improvement). Power-of-two division avoids cell-index
 rounding gaps, and integer neighbor offsets remain distinct above `2^53`.
 The grid has O(n^2) worst-case time; expected O(n) requires that its minimum
 side and saturated indices do not merge unboundedly many nearby points.
-Its cell-scale correction needs fresh performance measurements. Each row is one call on 1e6 int64 points:
+Each row is one call on 1e6 int64 points:
 uniform in a 2e9 square; a Gaussian cluster with duplicates, where the
 distance-0 exit decides; the cluster without duplicates ("dedup"); a strip
 x < 1000 and one vertical line, where the window holds almost every point.
 Every contender must find the library's distance.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run mean over three runs of 25 samples;
-milliseconds. Spreads 1.00x to 1.07x except where marked.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | -O2 | native |
 |---|---|---:|---:|
-| uniform 1e6 | library | 162 | 163 |
-| uniform 1e6 | by divide and conquer | 290 | 275 |
-| uniform 1e6 | by randomized grid | 1201 | 1126 |
-| cluster 1e6 | library | 110 | 111 |
-| cluster 1e6 | by divide and conquer | 146 | 142 |
-| cluster 1e6 | by randomized grid | 144 (spread 1.74x) | 52.8 (spread 4.20x) |
-| dedup cluster | library | 161 | 160 |
-| dedup cluster | by divide and conquer | 314 | 301 |
-| strip x < 1000, 1e6 | library | 283 | 280 |
-| strip x < 1000, 1e6 | by divide and conquer | 317 | 311 |
-| vertical line, 1e6 | library | 519 | 516 |
-| vertical line, 1e6 | by divide and conquer | 261 | 264 |
+| uniform 1e6 | library | 117 | 115 |
+| uniform 1e6 | by divide and conquer | 221 | 218 |
+| uniform 1e6 | by randomized grid | 804 | 724 |
+| cluster 1e6 | library | 83.7 | 90.2 |
+| cluster 1e6 | by divide and conquer | 116 | 119 |
+| cluster 1e6 | by randomized grid | 36.7 (spread 2.47x) | 44 (spread 2.01x) |
+| dedup cluster | library | 117 | 114 |
+| dedup cluster | by divide and conquer | 236 | 234 |
+| strip x < 1000, 1e6 | library | 216 | 219 |
+| strip x < 1000, 1e6 | by divide and conquer | 233 | 228 |
+| vertical line, 1e6 | library | 336 | 270 |
+| vertical line, 1e6 | by divide and conquer | 167 | 159 |
 
-Divide and conquer takes 79% longer than the library on uniform points at
-`-O2` (69% native), 33% (28%) on the cluster, 95% (88%) on the dedup cluster
-and 12% (11%) on the strip; it wins only the vertical line, where the library
-takes 99% longer (95% native) because its window holds every point. The grid
-takes 7.4x the library's time on uniform points (6.9x native); on the cluster
-it can stop at the first distance 0, but how soon depends on the shuffle, and
-its runs spread up to 4.2x. The library keeps the sweep: the vertical line is
-not worth a slower common case, and the constexpr capability of divide and
-conquer does not pay for 79% at run time.
+Divide and conquer takes 88.89%/89.57% longer than the library on uniform
+points, 38.59%/31.93% on the cluster, 101.71%/105.26% on the dedup cluster
+and 7.87%/4.11% on the strip (plain/native). The library loses the vertical
+line: 336/270 versus 167/159 ms, or 101.20%/69.81% longer. The grid takes
+804/117 = 6.87 times the library's time plain on uniform points
+(724/115 = 6.30 native). On the duplicate cluster the library loses to the
+grid (83.7/90.2 versus 36.7/44 ms), but the grid row varies between runs,
+with 2.47x/2.01x spread. The sweep wins the uniform,
+deduplicated-cluster and strip comparisons with divide and conquer; there
+is no winner across all shapes.
+
 
 ## Pitfalls and notes
 

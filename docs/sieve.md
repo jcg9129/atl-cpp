@@ -69,32 +69,39 @@ Linear builds compare a modulo divisibility test with a least-prime comparison.
 Factor walks compare index widths and omitting result construction; prime lists
 compare segmented and unsegmented byte arrays.
 
-Source: `benchmarks/nt/sieve.cpp`. Intel Xeon Platinum 8280, GCC 15.2,
-RelWithDebInfo, assertions disabled, 2026-10-15. Columns give milliseconds for
-`-O2 -g -DNDEBUG -std=c++23` and the same flags plus `-march=native`.
-Each cell is minimum milliseconds (spread = slowest run / fastest run), over
-three runs of 25 samples; each run contributes its mean.
-These records measure native 128-bit arithmetic; software-wide timings are not measured yet.
+Source: `benchmarks/nt/sieve.cpp`. These measurements use native 128-bit arithmetic; software-wide timings are not measured yet.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | method | -O2 | -O2 -march=native |
 | --- | --- | --- | --- |
-| build n=1e6 | library (modulo) | 5.7 (1.07x) | 6.5 (1.01x) |
-| build n=1e6 | by least prime comparison | 5.7 (1.03x) | 5.8 (1.00x) |
-| build n=1e7 | library (modulo) | 163 (1.02x) | 164 (1.01x) |
-| build n=1e7 | by least prime comparison | 169 (1.03x) | 166 (1.01x) |
-| factor every i<1e7 | by size type walk | 918 (1.02x) | 806 (1.05x) |
-| factor every i<1e7 | library (uint32 walk) | 690 (1.02x) | 490 (1.07x) |
-| exponent sum every i<1e7 | by uint32 exponent sum | 439 (1.03x) | 476 (1.05x) |
-| prime factors every i<1e7 | library | 414 (1.04x) | 413 (1.04x) |
-| primes n=1e6 | by unsegmented sieve | 1.5 (1.06x) | 1.6 (1.01x) |
-| primes n=1e6 | library | 1.5 (1.02x) | 1.3 (1.01x) |
-| primes n=1e7 | by unsegmented sieve | 22.3 (1.03x) | 23.7 (1.00x) |
-| primes n=1e7 | library | 14.9 (1.01x) | 13.6 (1.01x) |
-| primes n=1e8 | by unsegmented sieve | 617 (1.02x) | 646 (1.01x) |
-| primes n=1e8 | library | 162 (1.00x) | 152 (1.01x) |
+| build n=1e6 | library (modulo) | 3.8 (1.05x) | 3.1 (1.20x) |
+| build n=1e6 | by least prime comparison | 3.3 (1.04x) | 2.9 (1.25x) |
+| build n=1e7 | library (modulo) | 116 (1.02x) | 100 (1.09x) |
+| build n=1e7 | by least prime comparison | 112 (1.01x) | 98.2 (1.10x) |
+| factor every i<1e7 | by size type walk | 349 (1.05x) | 216 (1.22x) |
+| factor every i<1e7 | library (uint32 walk) | 372 (1.05x) | 212 (1.23x) |
+| exponent sum every i<1e7 | by uint32 exponent sum | 193 (1.02x) | 198 (1.21x) |
+| prime factors every i<1e7 | library | 186 (1.03x) | 196 (1.21x) |
+| primes n=1e6 | by unsegmented sieve | 0.973 (1.02x) | 1 (1.08x) |
+| primes n=1e6 | library | 1.1 (1.01x) | 1 (1.06x) |
+| primes n=1e7 | by unsegmented sieve | 10.2 (1.01x) | 10.8 (1.08x) |
+| primes n=1e7 | library | 10.1 (1.04x) | 9.8 (1.06x) |
+| primes n=1e8 | by unsegmented sieve | 243 (1.03x) | 197 (1.16x) |
+| primes n=1e8 | library | 119 (1.05x) | 104 (1.05x) |
 
 
-The modulo test has no consistent disadvantage across shapes. Segmentation keeps
+The library modulo test loses both build sizes to least-prime comparison:
+3.8/3.1 versus 3.3/2.9 ms at n=1e6, and 116/100 versus 112/98.2 ms
+at n=1e7. The native n=1e6 contender varies between runs (1.25x spread),
+so that row alone does not establish a stable ranking. The factor walk
+favors size_t plain (349 versus 372 ms) and uint32 native (212 versus
+216 ms). The library prime list loses n=1e6 plain (1.1 versus 0.973 ms)
+and ties native (1 ms), while winning the two larger sizes in both modes. Segmentation keeps
 strikes in cache as the range grows. Returning the fixed factor object costs more
 than directly accumulating exponents; the latter computes a smaller result.
 

@@ -122,53 +122,67 @@ construction and one complete operation on the named shape. Edmonds-Karp and
 capacity-scaling Edmonds-Karp remain readable certifying test oracles; their
 O(nm²+n+m) and O((n+m)m log(U+1)+n+m) bounds exclude them from timing at these sizes.
 
-Intel Xeon Platinum 8358, GCC 15.2, RelWithDebInfo, assertions disabled,
-2026-10-15. Minimum of three per-run means, ten samples per row.
-Plain flags: `-O2 -g -DNDEBUG -std=c++23`; native adds `-march=native`.
-All values below are milliseconds.
-
 ### Plain -O2
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | contender | random 1e5 / 5e5 | bipartite 2e4+2e4 | grid 300×300 | dense 2e3 / 4e5 | layered 200×50 |
 |---|---|---|---|---|---|
-| by dinic | 177 | 36.9 | 3340 | 31.3 | 1.7 |
-| by capacity scaling dinic | 417 | 38.3 | 7952 | 270 | 1.8 |
-| by isap | 59.5 | 30.2 | 1103 | 24.1 | 1.6 |
-| library | 111 | 25.1 | 162 | 34.2 | 2.6 |
-| library value | 75.8 | 21.3 | 154 | 20.4 | 1.8 |
-| by discharge order capacity first | 76.3 | — | — | 19.2 | — |
-| by discharge order direct debit | 71.1 | — | — | 19.2 | — |
-| by discharge order height first | 71.7 | — | — | 13.1 | — |
-| by discharge order direct debit height first | 66.3 | — | — | 13.9 | — |
-| residual library | 21.1 | — | — | 10.9 | 0.708 |
-| residual by bucket grouping | 21.6 | — | — | 13.6 | 0.925 |
+| by dinic | 169 | 26.3 | 3120 | 21.9 | 0.987 |
+| by capacity scaling dinic | 439 | 28 | 7290 | 244 | 1.2 |
+| by isap | 43.7 | 22.5 | 1080 | 16.5 | 0.991 |
+| library | 105 | 18.8 | 129 | 24.6 | 1.8 |
+| library value | 66.8 | 15.8 | 122 | 12.8 | 1.1 |
+| by discharge order capacity first | 65.6 | — | — | 12.3 | — |
+| by discharge order direct debit | 66.3 | — | — | 13.4 | — |
+| by discharge order height first | 62.8 | — | — | 7 | — |
+| by discharge order direct debit height first | 61 | — | — | 6.7 | — |
+| residual library | 6.8 | — | — | 2.7 | 0.291 |
+| residual by bucket grouping | 12.6 | — | — | 8.1 | 0.54 |
 
 ### -O2 -march=native
 
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+
 | contender | random 1e5 / 5e5 | bipartite 2e4+2e4 | grid 300×300 | dense 2e3 / 4e5 | layered 200×50 |
 |---|---|---|---|---|---|
-| by dinic | 172 | 37.6 | 3320 | 30.9 | 1.7 |
-| by capacity scaling dinic | 428 | 39.1 | 8164 | 278 | 1.9 |
-| by isap | 59.1 | 30.7 | 1097 | 23.6 | 1.7 |
-| library | 110 | 25.3 | 160 | 34.2 | 2.7 |
-| library value | 74.1 | 21.4 | 154 | 19.3 | 1.8 |
-| by discharge order capacity first | 70.3 | 22.3 | 153 | 19.1 | 1.8 |
-| by discharge order direct debit | 74.9 | 21.5 | 154 | 18.4 | 1.8 |
-| by discharge order height first | 62.4 | 21.6 | 161 | 13.6 | 1.7 |
-| by discharge order direct debit height first | 64.8 | 21.3 | 161 | 13.6 | 1.7 |
-| residual library | 19.7 | 2.3 | 2.2 | 9.9 | 0.715 |
-| residual by bucket grouping | 21.1 | 2.4 | 3.4 | 12.8 | 0.931 |
+| by dinic | 178 | 29.4 | 4250 | 23.1 | 0.999 |
+| by capacity scaling dinic | 453 | 30.9 | 9440 | 218 | 1.1 |
+| by isap | 51.7 | 26.2 | 1640 | 20.2 | 1 |
+| library | 152 | 25.9 | 148 | 38.1 | 1.9 |
+| library value | 96.4 | 21.9 | 137 | 20.7 | 1.2 |
+| by discharge order capacity first | 95.7 | 23.1 | 134 | 19.8 | 1.2 |
+| by discharge order direct debit | 88.7 | 21.5 | 135 | 19.3 | 1.2 |
+| by discharge order height first | 86.3 | 23.1 | 130 | 9.3 | 1.1 |
+| by discharge order direct debit height first | 82 | 21.4 | 130 | 9.2 | 1.1 |
+| residual library | 12.3 | 0.866 | 1.3 | 6.6 | 0.338 |
+| residual by bucket grouping | 14.3 | 1.3 | 2.2 | 11 | 0.639 |
 
-HLPP takes 162 ms on the plain grid versus ISAP's 1103 and Dinic's 3340;
-ISAP wins sparse random (59.5 versus 111 ms). Value-only HLPP saves the second
+HLPP takes 129/148 ms on the grid versus ISAP's 1080/1640 and Dinic's
+3120/4250 ms. The library loses sparse random to ISAP (105/152 versus
+43.7/51.7 ms), dense input to ISAP (24.6/38.1 versus 16.5/20.2 ms),
+and layered input to Dinic (1.8/1.9 versus 0.987/0.999 ms). Value-only HLPP saves the second
 phase and witness construction. Capacity scaling wins none of these shapes;
 Dinic's phase bound is already independent of capacity values.
 
-The micro comparisons retain the capacity-first/reverse-arc debit loop: direct
-debit is noisy, height-first loses the native grid (153 versus 161 ms), and
-bucket grouping costs 3.4 versus 2.2 ms on that grid. A dash marks an auxiliary
-timing not reproduced in the table. Sorting adjacency by target adds construction
+The micro comparisons favor height-first over capacity-first on the
+native grid (130 versus 134 ms), and direct debit takes 135 ms there.
+Bucket grouping loses to library scatter (2.2 versus 1.3 ms on that grid).
+Sorting adjacency by target adds construction
 work without an established end-to-end win here.
+
+The native ISAP grid, complete library dense and complete library layered
+rows vary between runs (1.30x, 1.31x and 1.37x spread); those minima alone
+do not establish stable rankings. The plain random residual-scatter row
+also varies (1.80x).
 
 ## Pitfalls and notes
 

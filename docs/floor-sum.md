@@ -70,32 +70,34 @@ Reduced-loop contenders retain 128-bit divisions throughout or choose 64/128 bit
 once at entry. The library narrows once the running values shrink below 2^32.
 Additional rows measure first-residue searches and a staircase sum monoid.
 
-Source: `benchmarks/nt/floor_sum.cpp`. Intel Xeon Platinum 8358, GCC 15.2,
-RelWithDebInfo, assertions disabled, 2026-10-15. Timings are milliseconds for
-`-O2 -g -DNDEBUG -std=c++23` and the same flags plus `-march=native`.
-Each cell is minimum milliseconds (spread = slowest run / fastest run), over
-three runs of 25 samples; each run contributes its mean.
-These records measure native 128-bit arithmetic; software-wide timings are not measured yet.
+Source: `benchmarks/nt/floor_sum.cpp`. These measurements use native 128-bit arithmetic; software-wide timings are not measured yet.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload (1e5 queries) | method | -O2 | -O2 -march=native |
 | --- | --- | --- | --- |
-| n,m<1e9 | library | 28.4 (1.01x) | 28.5 (1.00x) |
-| n,m<1e9 | by wide divisions | 45.4 (1.05x) | 45.8 (1.00x) |
-| n,m<1e9 | by entry dispatch | 26.6 (1.05x) | 26.8 (1.00x) |
-| n,m<1e18 | library | 64.2 (1.01x) | 64.2 (1.00x) |
-| n,m<1e18 | by wide divisions | 92.3 (1.00x) | 93.1 (1.00x) |
-| n,m<1e18 | by entry dispatch | 107 (1.00x) | 108 (1.00x) |
-| n<1e18,m<1e9 | library | 36.6 (1.00x) | 36.8 (1.00x) |
-| n<1e18,m<1e9 | by wide divisions | 46.2 (1.00x) | 46.6 (1.00x) |
-| n<1e18,m<1e9 | by entry dispatch | 53.7 (1.00x) | 53.9 (1.00x) |
-| first residue m<1e18 | library | 61.8 (1.01x) | 70.7 (1.00x) |
-| staircase sum n,m<1e9 | library | 112 (1.00x) | 122 (1.00x) |
+| n,m<1e9 | library | 20.6 (1.05x) | 18.8 (1.02x) |
+| n,m<1e9 | by wide divisions | 35.3 (1.01x) | 45.8 (1.03x) |
+| n,m<1e9 | by entry dispatch | 20.6 (1.02x) | 17.8 (1.05x) |
+| n,m<1e18 | library | 48.4 (1.02x) | 45.4 (1.03x) |
+| n,m<1e18 | by wide divisions | 74.3 (1.01x) | 94.9 (1.02x) |
+| n,m<1e18 | by entry dispatch | 85 (1.01x) | 97.3 (1.01x) |
+| n<1e18,m<1e9 | library | 27.3 (1.02x) | 27.1 (1.03x) |
+| n<1e18,m<1e9 | by wide divisions | 37.9 (1.01x) | 47.9 (1.02x) |
+| n<1e18,m<1e9 | by entry dispatch | 43.2 (1.01x) | 49.7 (1.02x) |
+| first residue m<1e18 | library | 36.6 (1.06x) | 43.5 (1.03x) |
+| staircase sum n,m<1e9 | library | 83.5 (1.02x) | 90.2 (1.02x) |
 
 
-Entry dispatch has the smallest small-input time. Narrowing wins both wide-input
-shapes by benefiting from shrinking values. The generic staircase monoid costs
+Small inputs tie plain (20.6 ms); the library loses native to entry
+dispatch (18.8 versus 17.8 ms). Narrowing wins both wide-input shapes
+in both modes. The generic staircase monoid costs
 more than the dedicated floor-sum loop, and expresses aggregates the scalar loop
-cannot. These records do not measure the current overflow-check implementation.
+cannot.
 
 ## Pitfalls and notes
 

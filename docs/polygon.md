@@ -136,40 +136,43 @@ crossing in a 1000 square or scattered over the full range (mostly early
 exits); the polygon rows run 1000 `contains` queries against a 1e5-vertex star
 and one `polygon_area2` over it.
 
-Intel Xeon Platinum 8358 @ 2.60 GHz, GCC 15.2.0, RelWithDebInfo, assertions
-off, 2026-10-15. Flags `-O2 -g -DNDEBUG -std=c++23`, optionally
-`-march=native`. Minimum per-run mean over three runs of 25 samples;
-milliseconds. Spreads 1.00x to 1.06x.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Row | -O2 | native |
 |---|---:|---:|
-| `contains`, 1e5-vertex star, 1000 queries | 671 | 794 |
-| `polygon_area2`, 1e5 vertices | 0.370 | 0.389 |
-| `sort_by_polar_angle` library, int64 | 147 | 148 |
-| `sort_by_polar_angle` library, int32 | 129 | 129 |
-| `sort_by_polar_angle` by stable_sort, int64 | 150 | 149 |
-| `sort_by_polar_angle` library, double, exact | 194 | 179 |
-| `sort_by_polar_angle` library, double, fast | 172 | 164 |
-| `polar_angle_order`, int64 | 151 | 151 |
-| `polar_angle_order`, double | 218 | 210 |
-| `polar_angle_order`, int64 same-ray ties | 150 | 151 |
-| `intersects`, int64, dense hits, exact | 24.1 | 30.9 |
-| `intersects`, int64, dense hits, fast | 24.1 | 30.7 |
-| `intersects`, double, dense hits, exact | 39.0 | 38.6 |
-| `intersects`, double, dense hits, fast | 14.9 | 15.2 |
-| `intersects`, int64, sparse hits, exact | 12.7 | 17.6 |
-| `intersects`, int64, sparse hits, fast | 12.7 | 17.6 |
-| `intersects`, double, sparse hits, exact | 21.7 | 21.1 |
-| `intersects`, double, sparse hits, fast | 6.4 | 6.9 |
+| `contains`, 1e5-vertex star, 1000 queries | 479 | 552 |
+| `polygon_area2`, 1e5 vertices | 0.248 | 0.331 |
+| `sort_by_polar_angle` library, int64 | 129 | 122 |
+| `sort_by_polar_angle` library, int32 | 119 | 108 |
+| `sort_by_polar_angle` by stable_sort, int64 | 133 | 123 |
+| `sort_by_polar_angle` library, double, exact | 204 | 170 |
+| `sort_by_polar_angle` library, double, fast | 151 | 150 |
+| `polar_angle_order`, int64 | 130 | 118 |
+| `polar_angle_order`, double | 203 | 198 |
+| `polar_angle_order`, int64 same-ray ties | 130 | 114 |
+| `intersects`, int64, dense hits, exact | 16.6 | 18.1 |
+| `intersects`, int64, dense hits, fast | 16.5 | 17.9 |
+| `intersects`, double, dense hits, exact | 37.2 | 38.4 |
+| `intersects`, double, dense hits, fast | 14 | 13.7 |
+| `intersects`, int64, sparse hits, exact | 8 | 9.3 |
+| `intersects`, int64, sparse hits, fast | 8 | 9.3 |
+| `intersects`, double, sparse hits, exact | 19.1 | 19.9 |
+| `intersects`, double, sparse hits, fast | 2.7 | 2.3 |
 
-`contains` costs 6.7 ns per vertex at `-O2` (7.9 native), `polygon_area2`
-3.7 ns (3.9). The stable sort takes 2% longer than the library sort at `-O2`
-(150 against 147 ms) and 1% with `-march=native`; `int32` sorts 12% faster
-than `int64`, and the exact double sort takes 13% longer than the fast one at
-`-O2`, 9% native. The `intersects` rows are ns per call: exactness costs 2.6x
-over `fast` on dense double hits and 3.4x on sparse ones at `-O2`; for `int64`
-both policies are the same code. A bounding-box-first `contains` lost on the
-int64 star (937 against 664 ms, `-O2`, 2026-10-14) and is not kept.
+`contains` costs 4.79/5.52 ns per visited vertex (479/552 ms over
+1000 queries of 1e5 vertices); `polygon_area2` costs 2.48/3.31 ns per
+vertex. Stable sort takes 3.10%/0.82% longer than the library int64 sort
+(133/123 versus 129/122 ms). Int32 sort takes 7.75%/11.48% less time than
+int64; exact double sort takes 35.10%/13.33% longer than fast double.
+The `intersects` rows are also ns per call: exact double takes
+37.2/14 = 2.66 times as long as fast on dense hits plain (38.4/13.7 = 2.80
+native), and 19.1/2.7 = 7.07 times on sparse hits (19.9/2.3 = 8.65
+native). For int64 both policies use the same arithmetic.
+
 
 ## Pitfalls and notes
 

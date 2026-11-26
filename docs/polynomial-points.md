@@ -161,8 +161,9 @@ restriction for the Taylor shift or the evaluation. Evaluation allows repeated p
 
 ## Measured performance
 
-Not measured yet. Every library choice is a provisional default and every contender is
-an `atl::experimental` function named `<function>_by_<method>`; the races are pending.
+Both flag sets are measured; adoption decisions remain open. Every library choice is a
+provisional default and every contender is an `atl::experimental`
+function named `<function>_by_<method>`.
 The provisional schoolbook leaf size is 32 points; the contender
 `polynomial_evaluation_by_leaf_cutoff` sweeps it over 16, 24, 32, 48, 64, 96 and 128.
 
@@ -187,8 +188,17 @@ The source is `benchmarks/nt/polynomial_points.cpp`. It checks every contender a
 library result before timing, at `n = m` = 2^10, 2^12, 2^16, 2^17 and 500000 modulo
 998244353 and 2^16 modulo 1000000007; the quadratic contenders run only up to 2^12.
 Other shapes: unequal factors of degree 1 to 17 with total degree `n`, and a tree built
-once and used for evaluation and interpolation. A winner needs x86-64 records under both
+once and used for evaluation and interpolation. A winner needs x86-64 measurements under both
 plain `-O2` and `-march=native`.
+
+Measurements (2026-11-23, AMD EPYC-Milan ccx23, GCC 15.2.0,
+RelWithDebInfo, assertions off; plain `-O2` / `-O2 -march=native`, minimum
+of five run means, 25 samples per row), in plain/native milliseconds:
+At p=998244353, n=m=1024, library evaluation loses to leaf cutoff 16
+(0.68/0.703 versus 0.646/0.662 ms). The library polynomial product loses
+to smallest-first products (0.272/0.284 versus 0.265/0.277 ms); its plain
+row varies between runs (1.38x spread), so this minimum alone does not
+establish a stable ranking.
 
 ## Pitfalls and notes
 

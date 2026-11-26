@@ -57,20 +57,30 @@ and arbitrary action tags are outside this interface.
 
 ## Measured performance
 
-Measured 2026-11-01 using `benchmarks/ds/dual_segment_tree.cpp`.
-x86-64 Xeon Platinum 8280, g++ 15.2, asserts off, minimum over three runs;
-ms, plain `-O2` / `-march=native`. n=1e6, 1e6 operations including construction,
-int64 values, random ranges; add updates in [-1000,1000], xor in [0,1024).
+`benchmarks/ds/dual_segment_tree.cpp`: n=1e6, 1e6 operations including
+construction, int64 values, random ranges; add updates in [-1000,1000],
+xor in [0,1024).
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
+Every timing pair is plain / native.
 
 | workload | commutative dual tree | difference_fenwick |
-|---|---|---|
-| add / point get, 50/50 | 93.0 / 98.0 | 40.1 / 39.9 |
-| add / point get, 90/10 | 128 / 143 | 57.0 / 58.1 |
-| xor / point get, 50/50 | 103 / 99.0 | 39.6 / 38.8 |
-| xor / point get, 90/10 | 145 / 144 | 57.3 / 57.2 |
+| --- | --- | --- |
+| range add / point get, 50/50 | 79.4 / 77.3† | 57.8 / 59.7 |
+| range add / point get, 90/10 | 109 / 108 | 90.9 / 92.6 |
+| range xor / point get, 50/50 | 79.0 / 74.8 | 56.9 / 60.4 |
+| range xor / point get, 90/10 | 110 / 104 | 94.8 / 93.5 |
 
-These workloads cost 55% to 62% less than the commutative dual tree. Other
-sizes, non-trivial values and query mixes were not measured. This is an
+Across these mixes, difference Fenwick costs 14.26% to 27.20% less for add
+and 10.10% to 27.97% less for xor than the commutative dual tree. At 90/10,
+add takes 90.9 / 92.6 versus 109 / 108 ms, and xor takes 94.8 / 93.5 versus
+110 / 104 ms. The native 50/50 add comparison includes a dual-tree timing
+with 1.25x spread (†); the plain row and both 90/10 rows also favor Fenwick.
+Other sizes, non-trivial values and query mixes were not measured. This is an
 explicit separate class; no existing dual tree call gains allocation or
 value-copy costs through automatic dispatch.
 

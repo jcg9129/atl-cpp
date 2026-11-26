@@ -54,39 +54,43 @@ The strategy race compares Pohlig-Hellman with whole-group baby-step giant-step;
 the engine race compares Barrett32, Barrett64 and runtime Montgomery. Targets
 are powers of the least primitive root, so every timed query is solvable.
 
-Source: `benchmarks/nt/discrete_log.cpp`. Intel Xeon Platinum 8280, GCC 15.2,
-RelWithDebInfo, assertions disabled, 2026-10-15. Timings are milliseconds for
-`-O2 -g -DNDEBUG -std=c++23` and the same flags plus `-march=native`.
-Each cell is minimum milliseconds (spread = slowest run / fastest run), over
-three runs of 25 samples; each run contributes its mean.
-These records measure native 128-bit arithmetic; software-wide timings are not measured yet.
+Source: `benchmarks/nt/discrete_log.cpp`. These measurements use native 128-bit arithmetic; software-wide timings are not measured yet.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | modulus / query count | method | -O2 | -O2 -march=native |
 | --- | --- | --- | --- |
-| 998244353 / 100 | library | 1.1 (1.03x) | 1.1 (1.01x) |
-| 998244353 / 100 | by pohlig hellman barrett32 | 1.1 (1.01x) | 1.1 (1.04x) |
-| 998244353 / 100 | by baby step giant step barrett32 | 76.3 (1.01x) | 79.8 (1.01x) |
-| 998244353 / 100 | by pohlig hellman barrett64 | 1.4 (1.02x) | 1.6 (1.00x) |
-| 998244353 / 100 | by pohlig hellman montgomery | 1.2 (1.00x) | 1.2 (1.02x) |
-| 998244353 / 100 | by baby step giant step barrett64 | 95.1 (1.00x) | 107 (1.01x) |
-| 998244353 / 100 | by baby step giant step montgomery | 79.5 (1.01x) | 79.0 (1.00x) |
-| 1e9+7 / 20 | library | 13.1 (1.00x) | 13.7 (1.01x) |
-| 1e9+7 / 20 | by pohlig hellman barrett32 | 13.1 (1.04x) | 13.6 (1.01x) |
-| 1e9+7 / 20 | by baby step giant step barrett32 | 15.4 (1.02x) | 16.1 (1.01x) |
-| 1e9+7 / 20 | by pohlig hellman barrett64 | 15.7 (1.01x) | 15.9 (1.01x) |
-| 1e9+7 / 20 | by pohlig hellman montgomery | 13.2 (1.00x) | 14.1 (1.00x) |
-| 1e9+7 / 20 | by baby step giant step barrett64 | 21.1 (1.01x) | 21.6 (1.01x) |
-| 1e9+7 / 20 | by baby step giant step montgomery | 16.0 (1.01x) | 16.0 (1.00x) |
-| 29*2^57+1 / 100 | library | 3.8 (1.00x) | 3.7 (1.01x) |
-| 29*2^57+1 / 100 | by pohlig hellman barrett64 | 4.6 (1.00x) | 5.4 (1.00x) |
-| 29*2^57+1 / 100 | by pohlig hellman montgomery | 3.8 (1.00x) | 3.7 (1.01x) |
-| semi-smooth ~1e18, q~1e12 / 5 | library | 377 (1.04x) | 381 (1.07x) |
-| semi-smooth ~1e18, q~1e12 / 5 | by pohlig hellman barrett64 | 430 (1.01x) | 452 (1.01x) |
-| semi-smooth ~1e18, q~1e12 / 5 | by pohlig hellman montgomery | 371 (1.01x) | 384 (1.02x) |
+| 998244353 / 100 | library | 0.389 (1.02x) | 0.369 (1.04x) |
+| 998244353 / 100 | by pohlig hellman barrett32 | 0.392 (1.02x) | 0.37 (1.04x) |
+| 998244353 / 100 | by baby step giant step barrett32 | 61 (1.02x) | 59.2 (1.00x) |
+| 998244353 / 100 | by pohlig hellman barrett64 | 0.572 (1.02x) | 0.528 (1.05x) |
+| 998244353 / 100 | by pohlig hellman montgomery | 0.384 (1.02x) | 0.366 (1.04x) |
+| 998244353 / 100 | by baby step giant step barrett64 | 72.5 (1.03x) | 70 (1.02x) |
+| 998244353 / 100 | by baby step giant step montgomery | 60.2 (1.03x) | 58.8 (1.02x) |
+| 1e9+7 / 20 | library | 10 (1.03x) | 9.8 (1.05x) |
+| 1e9+7 / 20 | by pohlig hellman barrett32 | 10.1 (1.02x) | 10 (1.02x) |
+| 1e9+7 / 20 | by baby step giant step barrett32 | 12.2 (1.04x) | 11.8 (1.06x) |
+| 1e9+7 / 20 | by pohlig hellman barrett64 | 12 (1.03x) | 11.4 (1.05x) |
+| 1e9+7 / 20 | by pohlig hellman montgomery | 10.1 (1.02x) | 9.6 (1.06x) |
+| 1e9+7 / 20 | by baby step giant step barrett64 | 14.7 (1.02x) | 14.1 (1.05x) |
+| 1e9+7 / 20 | by baby step giant step montgomery | 12.2 (1.03x) | 11.8 (1.04x) |
+| 29*2^57+1 / 100 | library | 1.3 (1.04x) | 1.2 (1.03x) |
+| 29*2^57+1 / 100 | by pohlig hellman barrett64 | 1.9 (1.03x) | 1.8 (1.05x) |
+| 29*2^57+1 / 100 | by pohlig hellman montgomery | 1.3 (1.02x) | 1.2 (1.05x) |
+| semi-smooth ~1e18, q~1e12 / 5 | library | 334 (1.05x) | 255 (1.04x) |
+| semi-smooth ~1e18, q~1e12 / 5 | by pohlig hellman barrett64 | 428 (1.04x) | 302 (1.02x) |
+| semi-smooth ~1e18, q~1e12 / 5 | by pohlig hellman montgomery | 343 (1.02x) | 253 (1.04x) |
 
 
-Pohlig-Hellman wins strongly on smooth orders. Barrett32 ties its library dispatch
-near 1e9, while Montgomery has the smallest wide-modulus times. Whole-group
+Pohlig-Hellman wins strongly on smooth orders. Near 1e9, Barrett32 and
+the library dispatch are close. At 998244353 the library narrowly loses to
+Pohlig-Hellman Montgomery (0.389/0.369 versus 0.384/0.366 ms). For the
+semi-smooth wide modulus the library wins plain (334 versus 343 ms), but
+loses native (255 versus 253 ms); neither engine wins every comparison. Whole-group
 BSGS near 1e18 was excluded for its billion-entry table requirement.
 
 ## Pitfalls and notes

@@ -130,45 +130,65 @@ Documented only:
 streams, point reads, settled versus permanent commuting tags, and whole-node
 versus partial copies (links and tag, avoiding unused aggregate copies).
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off.
-Milliseconds, minimum of three run means; each pair is plain `-O2` /
-`-O2 -march=native`, both also with `-g -DNDEBUG -std=c++23`. Copy comparison measured 2026-11-01.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape (2e5 mixed operations) | library whole-node copy | by partial copy |
 |---|---:|---:|
-| affine n=100k linear | 934 / 961 | 937 / 959 |
-| add n=100k linear | 408 / 419 | 404 / 410 |
-| add n=100k branching | 472 / 492 | 471 / 474 |
-| add n=200k linear | 452 / 467 | 451 / 457 |
-| add n=200k branching | 518 / 546 | 519 / 527 |
-| wide add n=100k linear, default mode | 1087 / 1102 | 1064 / 1086 |
-| wide add n=100k linear, commutative mode | 594 / 613 | 591 / 615 |
+| affine n=100k linear | 874 / 938 | 882 / 922 |
+| add n=100k linear | 360 / 382 | 355 / 374 |
+| add n=100k branching | 420 / 515 | 403 / 532 |
+| add n=200k linear | 402 / 496 | 397 / 473 |
+| add n=200k branching | 466 / 646 | 450 / 597 |
+| wide add n=100k linear, default mode | 1020 / 1120 | 995 / 1080 |
+| wide add n=100k linear, commutative mode | 558 / 600 | 550 / 611 |
 
-The following workloads were measured 2026-10-24 with the same CPU, compiler,
-build type and flags. Each commuting tag row also reports node count / MB.
+The following workloads use the measurement setup below. Each commuting tag row also reports node count / MB.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library persistent | by in-place lazy tree |
 |---|---:|---:|
-| 2e5 mixed affine operations, linear versions | 567 / 587 | 147 / 142 |
+| 2e5 mixed affine operations, linear versions | 464 / 546 | 121 / 105 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | 1e6 affine point reads after 1e5 applies | time |
 |---|---:|
-| library direct descent | 444 / 446 |
-| by singleton fold | 547 / 547 |
+| library direct descent | 224 / 473 |
+| by singleton fold | 347 / 628 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | add shape | default mode | by permanent tags | default nodes / MB | permanent nodes / MB |
 |---|---:|---:|---:|---:|
-| n=100k linear | 806 / 812 | 437 / 449 | 10524748 / 336.8 | 4624692 / 148.0 |
-| n=100k branching | 914 / 924 | 517 / 542 | 10524748 / 336.8 | 4624692 / 148.0 |
-| n=200k linear | 882 / 894 | 489 / 501 | 11428509 / 365.7 | 5126301 / 164.0 |
-| n=200k branching | 987 / 991 | 568 / 597 | 11428509 / 365.7 | 5126301 / 164.0 |
+| n=100k linear | 693 / 762 | 364 / 406 | 10524748 / 336.8 | 4624692 / 148.0 |
+| n=100k branching | 798 / 963 | 416 / 557 | 10524748 / 336.8 | 4624692 / 148.0 |
+| n=200k linear | 759 / 848 | 411 / 475 | 11428509 / 365.7 | 5126301 / 164.0 |
+| n=200k branching | 878 / 1060 | 465 / 630 | 11428509 / 365.7 | 5126301 / 164.0 |
 
 ## Pitfalls and notes
 
 - **Cost of persistence.** Against the in-place [`lazy_segment_tree`](lazy-segment-tree.md)
   on an identical *linear* history (never branching, the in-place tree's home
-  ground), the persistent tree measures **3.86× / 4.13× the time** (567 / 587 vs 147 / 142 ms on 2×10⁵
-  mixed affine ops, x86-64 Xeon Platinum 8280, plain -O2 / -O2 -march=native, record of 2026-10-24):
+  ground), the persistent tree measures **3.83/5.20 times the time**
+  (464/546 versus 121/105 ms on 2×10⁵ mixed affine operations, AMD
+  EPYC-Milan ccx23, plain `-O2` / `-O2 -march=native`, 2026-11-25):
   each mutation allocates its copied path, and traversal is top-down through
   `uint32` links rather than the iterative array walk. Reach for it only when
   versions must coexist; a single timeline that merely needs undo is

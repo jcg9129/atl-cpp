@@ -65,19 +65,27 @@ compresses a subtree containing one touched position. Offline compression uses
 a dense tree; the treap map keeps only touched keys. The fold comparison visits
 both children unconditionally.
 
-Intel Xeon Platinum 8280 @ 2.70 GHz, GCC 15.2, RelWithDebInfo, assertions off,
-2026-10-15. Milliseconds, plain `-O2` / `-O2 -march=native`; both also use
-`-g -DNDEBUG -std=c++23`, minimum of three run means.
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | workload | library | by materialized paths | by treap map | by offline compression |
 |---|---:|---:|---:|---:|
-| 500,000 mixed steps, domain 10^9 | 263 / 271 | 430 / 427 | 604 / 633 | 174 / 189 |
+| 500,000 mixed steps, domain 10^9 | 177 / 173 | 301 / 303 | 439 / 425 | 140 / 149 |
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-22.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | 1,000,000 folds, domain 10^9 | library | by two-child fold |
 |---|---:|---:|
-| affine, lengths 1–64 | 404 / 445 | 508 / 539 |
-| int64 sum, lengths 1–64 | 360 / 400 | 404 / 421 |
-| affine, uniform ranges | 831 / 850 | 882 / 923 |
+| affine, lengths 1–64 | 260 / 266 | 368 / 345 |
+| int64 sum, lengths 1–64 | 234 / 222 | 264 / 265 |
+| affine, uniform ranges | 560 / 532 | 629 / 587 |
 
 ## Pitfalls and notes
 

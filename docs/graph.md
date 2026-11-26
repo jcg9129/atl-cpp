@@ -312,7 +312,7 @@ members storage is destroyed or reallocated. Results of `groups()` and
 
 The tables use method names matching the contenders. Timing columns give
 milliseconds, plain `-O2` / `-O2 -march=native`;
-minimum of three run means, 25 samples per row. Spread is the slowest
+minimum of five run means, 25 samples per row. Spread is the slowest
 run divided by the fastest run for the corresponding flag set. Benchmarks are compiled in CI
 and measured separately.
 
@@ -321,36 +321,45 @@ and measured separately.
 [benchmarks/graph/csr.cpp](../benchmarks/graph/csr.cpp) races library in-place
 row-offset cursors against a separate cursor copy, bucket indices plus gather,
 and nested vectors. Construction alone is timed, directed or doubled.
-Intel Xeon Platinum 8358 @ 2.60 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, `-O2 -g -DNDEBUG -std=c++23`, also `-march=native`, 2026-10-15.
+
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Direction | Contender | ms plain / native | spread plain / native |
 |---|---|---|---|---|
-| n=1e6 m=2e6 `arc<>` | directed | library | 22.6 / 22.8 | 1.07 / 1.07 |
-| same | directed | by cursor copy | 22.4 / 23.7 | 1.10 / 1.02 |
-| same | directed | by bucket gather | 35.8 / 36.6 | 1.06 / 1.02 |
-| same | undirected | library | 56.4 / 53.7 | 1.04 / 1.07 |
-| same | undirected | by cursor copy | 54.9 / 54.7 | 1.06 / 1.05 |
-| same | undirected | by bucket gather | 84.7 / 86.5 | 1.05 / 1.00 |
-| same | directed | by nested vectors | 301 / 287 | 1.06 / 1.07 |
-| same | undirected | by nested vectors | 535 / 535 | 1.01 / 1.05 |
-| n=1e6 m=2e6 `arc<int64>` | directed | library | 43.4 / 43.3 | 1.02 / 1.03 |
-| same | directed | by cursor copy | 44.2 / 43.7 | 1.02 / 1.03 |
-| same | directed | by bucket gather | 51.8 / 52.2 | 1.04 / 1.04 |
-| same | undirected | library | 112 / 111 | 1.01 / 1.01 |
-| same | undirected | by cursor copy | 112 / 112 | 1.00 / 1.01 |
-| same | undirected | by bucket gather | 143 / 147 | 1.01 / 1.01 |
-| same | directed | by nested vectors | 345 / 335 | 1.01 / 1.04 |
-| same | undirected | by nested vectors | 660 / 649 | 1.00 / 1.05 |
-| n=1e7 m=1e7 `arc<>` | directed | library | 399 / 401 | 1.01 / 1.00 |
-| same | directed | by cursor copy | 421 / 421 | 1.01 / 1.00 |
-| same | directed | by bucket gather | 542 / 552 | 1.01 / 1.01 |
-| same | undirected | library | 823 / 824 | 1.03 / 1.01 |
-| same | undirected | by cursor copy | 845 / 845 | 1.01 / 1.00 |
-| same | undirected | by bucket gather | 1201 / 1209 | 1.03 / 1.01 |
+| n=1e6 m=2e6 `arc<>` | directed | library | 4.9 / 8.1 | 1.86 / 1.30 |
+| same | directed | by cursor copy | 5.7 / 9 | 2.03 / 1.21 |
+| same | directed | by bucket gather | 9.4 / 14.7 | 2.26 / 1.73 |
+| same | undirected | library | 11.3 / 19.1 | 2.18 / 1.29 |
+| same | undirected | by cursor copy | 10.5 / 20.5 | 2.31 / 1.24 |
+| same | undirected | by bucket gather | 26.5 / 35.7 | 2.46 / 1.55 |
+| same | directed | by nested vectors | 193 / 236 | 1.97 / 1.55 |
+| same | undirected | by nested vectors | 374 / 438 | 1.75 / 1.49 |
+| n=1e6 m=2e6 `arc<int64>` | directed | library | 14.5 / 19.8 | 1.28 / 1.29 |
+| same | directed | by cursor copy | 15.5 / 20.8 | 1.32 / 1.35 |
+| same | directed | by bucket gather | 22.4 / 26.4 | 1.34 / 1.37 |
+| same | undirected | library | 64.1 / 74.9 | 1.11 / 1.30 |
+| same | undirected | by cursor copy | 64 / 75.8 | 1.11 / 1.26 |
+| same | undirected | by bucket gather | 87 / 96.9 | 1.25 / 1.09 |
+| same | directed | by nested vectors | 295 / 319 | 1.49 / 1.41 |
+| same | undirected | by nested vectors | 558 / 569 | 1.38 / 1.30 |
+| n=1e7 m=1e7 `arc<>` | directed | library | 172 / 211 | 1.14 / 1.11 |
+| same | directed | by cursor copy | 197 / 234 | 1.12 / 1.09 |
+| same | directed | by bucket gather | 246 / 298 | 1.11 / 1.11 |
+| same | undirected | library | 288 / 401 | 1.17 / 1.13 |
+| same | undirected | by cursor copy | 312 / 422 | 1.16 / 1.12 |
+| same | undirected | by bucket gather | 583 / 632 | 1.16 / 1.11 |
 
-The cursor copy is close at n=1e6; at n=1e7 its extra n-entry allocation and
-copy cost more. Bucket gather writes and rereads an m-entry index array absent
+At n=1e6, undirected cursor copy beats the library plain (10.5 versus
+11.3 ms unweighted, 64 versus 64.1 ms weighted); native favors the library.
+Several n=1e6 rows vary between runs, including the unweighted library
+(1.86x/1.30x directed, 2.18x/1.29x undirected), so these minima do not
+establish stable rankings. At n=1e7 the library wins both directions and
+flag sets. Bucket gather writes and rereads an m-entry index array absent
 from direct scatter. These contenders remain in
 `experimental/atl/experimental/graph/csr_variants.hpp` as
 `csr_by_cursor_copy` and `csr_by_bucket_gather`, cross-checked against nested
@@ -360,75 +369,92 @@ vector rows, including their stable order.
 [benchmarks/graph/traversal.cpp](../benchmarks/graph/traversal.cpp) compares
 complete traversal loops, lazy yields, eager event delivery, allocated seed
 lists, full visit-record queues and byte/bit markers. Setup builds graphs
-outside timing. Intel Xeon Platinum 8358 @ 2.60 GHz, x86-64 Linux;
-GCC 15.2.0, RelWithDebInfo, `-O2 -g -DNDEBUG -std=c++23`, also
-`-march=native`, 2026-10-15.
+outside timing.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | Shape | Contender | ms plain / native | spread plain / native |
 |---|---|---|---|
-| n=1e6 m=4e6 | BFS by raw arrays | 61.0 / 60.5 | 1.04 / 1.03 |
-| same | BFS library view, CSR | 61.0 / 60.3 | 1.13 / 1.01 |
-| same | BFS by allocated seeds, CSR | 63.9 / 61.6 | 1.03 / 1.06 |
-| same | bfs_visit library | 54.4 / 50.8 | 1.15 / 1.15 |
-| same | bfs_visit library, caller marker, no reserve | 62.6 / 56.7 | 1.15 / 1.15 |
-| same | bfs_visit by record queue | 60.0 / 55.5 | 1.09 / 1.11 |
-| same | BFS library view, nested vectors | 104 / 103 | 1.07 / 1.05 |
-| same | DFS by raw arrays | 122 / 126 | 1.11 / 1.07 |
-| same | DFS library view | 140 / 143 | 1.13 / 1.05 |
-| same | dfs_visit Euler intervals | 157 / 161 | 1.10 / 1.07 |
-| 2000x2000 grid | BFS implicit | 96.2 / 95.6 | 1.00 / 1.01 |
-| same | BFS materialized CSR | 124 / 119 | 1.00 / 1.02 |
-| path n=1e6 | BFS by raw arrays | 7.3 / 5.5 | 1.01 / 1.00 |
-| same | bfs_visit library | 4.9 / 5.0 | 1.00 / 1.00 |
-| same | bfs_visit library, caller marker, no reserve | 5.3 / 6.8 | 1.00 / 1.00 |
-| same | bfs_visit by record queue | 7.7 / 6.8 | 1.01 / 1.01 |
-| same | BFS library view | 8.4 / 8.5 | 1.00 / 1.01 |
-| random n=4e6 m=1.6e7 | BFS by raw arrays | 495 / 407 | 1.01 / 1.01 |
-| same | bfs_visit library | 380 / 359 | 1.00 / 1.01 |
-| same | bfs_visit library, caller marker, no reserve | 389 / 415 | 1.03 / 1.01 |
-| same | bfs_visit by record queue | 448 / 410 | 1.00 / 1.01 |
-| same | BFS library view | 444 / 405 | 1.03 / 1.02 |
-| 1e6 runs, components of 1-4 | BFS library view | 56.7 / 57.8 | 1.04 / 1.03 |
-| same | BFS by allocated seeds | 84.5 / 86.3 | 1.01 / 1.00 |
-| same | bfs_visit library | 55.8 / 54.6 | 1.00 / 1.03 |
-| same | bfs_visit by record queue | 53.6 / 57.1 | 1.01 / 1.02 |
-| same | BFS by reused queue | 24.7 / 25.3 | 1.01 / 1.02 |
-| n=1e5 m=4e5 | bfs_visit library bit marker | 3.0 / 3.9 | 1.00 / 1.01 |
-| same | bfs_visit by byte marker | 4.0 / 4.3 | 1.01 / 1.00 |
-| same | DFS library bit marker | 4.9 / 4.8 | 1.01 / 1.01 |
-| same | DFS by byte marker | 4.9 / 4.9 | 1.01 / 1.01 |
-| n=1e6 m=4e6 | bfs_visit library bit marker | 52.1 / 62.1 | 1.11 / 1.05 |
-| same | bfs_visit by byte marker | 68.5 / 75.3 | 1.12 / 1.02 |
-| same | DFS library bit marker | 136 / 138 | 1.02 / 1.05 |
-| same | DFS by byte marker | 140 / 142 | 1.02 / 1.09 |
-| n=4e6 m=1.6e7 | bfs_visit library bit marker | 379 / 413 | 1.02 / 1.01 |
-| same | bfs_visit by byte marker | 462 / 477 | 1.02 / 1.04 |
-| same | DFS library bit marker | 998 / 979 | 1.02 / 1.01 |
-| same | DFS by byte marker | 981 / 994 | 1.02 / 1.02 |
+| n=1e6 m=4e6 | BFS by raw arrays | 56.3 / 48 | 1.45 / 1.15 |
+| same | BFS library view, CSR | 53.7 / 43.7 | 1.54 / 1.14 |
+| same | BFS by allocated seeds, CSR | 64 / 47.3 | 1.41 / 1.09 |
+| same | bfs_visit library | 50 / 36.7 | 1.54 / 1.03 |
+| same | bfs_visit library, caller marker, no reserve | 52.6 / 35.9 | 1.41 / 1.03 |
+| same | bfs_visit by record queue | 54.8 / 39.9 | 1.38 / 1.07 |
+| same | BFS library view, nested vectors | 125 / 106 | 1.04 / 1.16 |
+| same | DFS by raw arrays | 96.2 / 71.7 | 1.90 / 1.08 |
+| same | DFS library view | 115 / 74.8 | 1.82 / 1.05 |
+| same | dfs_visit Euler intervals | 162 / 95.4 | 1.53 / 1.12 |
+| 2000x2000 grid | BFS implicit | 79.8 / 91 | 1.03 / 1.00 |
+| same | BFS materialized CSR | 77.5 / 136 | 1.02 / 1.02 |
+| path n=1e6 | BFS by raw arrays | 3.6 / 3.3 | 1.03 / 1.01 |
+| same | bfs_visit library | 3.1 / 3.2 | 1.03 / 1.04 |
+| same | bfs_visit library, caller marker, no reserve | 3.3 / 3.2 | 1.06 / 1.01 |
+| same | bfs_visit by record queue | 8.6 / 6.4 | 1.03 / 1.01 |
+| same | BFS library view | 7.9 / 9.2 | 1.05 / 1.04 |
+| random n=4e6 m=1.6e7 | BFS by raw arrays | 313 / 314 | 1.08 / 1.03 |
+| same | bfs_visit library | 404 / 321 | 1.11 / 1.05 |
+| same | bfs_visit library, caller marker, no reserve | 385 / 307 | 1.13 / 1.07 |
+| same | bfs_visit by record queue | 418 / 347 | 1.14 / 1.11 |
+| same | BFS library view | 459 / 379 | 1.07 / 1.13 |
+| 1e6 runs, components of 1-4 | BFS library view | 38.1 / 46.2 | 1.06 / 1.02 |
+| same | BFS by allocated seeds | 52.6 / 68 | 1.04 / 1.03 |
+| same | bfs_visit library | 34.9 / 46.1 | 1.03 / 1.03 |
+| same | bfs_visit by record queue | 38.6 / 46.8 | 1.09 / 1.09 |
+| same | BFS by reused queue | 12.7 / 16.8 | 1.04 / 1.02 |
+| n=1e5 m=4e5 | bfs_visit library bit marker | 2.6 / 2.5 | 1.05 / 1.01 |
+| same | bfs_visit by byte marker | 2.5 / 2.5 | 1.06 / 1.01 |
+| same | DFS library bit marker | 4.2 / 4.3 | 1.09 / 1.02 |
+| same | DFS by byte marker | 4.3 / 4.3 | 1.09 / 1.06 |
+| n=1e6 m=4e6 | bfs_visit library bit marker | 50.5 / 35.9 | 1.39 / 1.14 |
+| same | bfs_visit by byte marker | 46 / 34.1 | 1.23 / 1.08 |
+| same | DFS library bit marker | 119 / 77.2 | 1.84 / 1.16 |
+| same | DFS by byte marker | 129 / 77.9 | 1.67 / 1.18 |
+| n=4e6 m=1.6e7 | bfs_visit library bit marker | 405 / 311 | 1.06 / 1.11 |
+| same | bfs_visit by byte marker | 287 / 268 | 1.05 / 1.14 |
+| same | DFS library bit marker | 1200 / 840 | 1.10 / 1.16 |
+| same | DFS by byte marker | 1180 / 837 | 1.15 / 1.16 |
 
 Eager BFS holds bare vertex ids and tracks level boundaries, reducing queue
 traffic. It reserves the queue for an owned marker; caller-owned markers avoid
 an O(n) reserve when exploring tiny components. A single-source library view
 holds its seed inline. Use lazy views for early exit and lockstep searches;
-use eager visitors when consuming the entire traversal. Bit markers reduce the
-working set; the DFS marker results show no consistent advantage. Generated
-grid neighbors avoid loading explicit edges.
+use eager visitors when consuming the entire traversal. Bit markers reduce the working set; their timings have no consistent
+advantage. At n=4e6 the library bit-marker BFS loses to byte markers
+(405/311 versus 287/268 ms); eager BFS also loses to raw arrays
+(404/321 versus 313/314 ms). Reused queues beat eager BFS on tiny
+components (12.7/16.8 versus 34.9/46.1 ms). The DFS view loses to raw
+arrays at n=1e6 (115/74.8 versus 96.2/71.7 ms), but these plain random
+rows vary between runs. Generated grid neighbors avoid explicit edges;
+they lose to materialized CSR plain (79.8 versus 77.5 ms), while winning
+native (91 versus 136 ms).
 ### Partition materialization
 
 [benchmarks/graph/partition.cpp](../benchmarks/graph/partition.cpp) builds and
 scans every group; nested vectors trade allocations against flat offsets and
-members. Intel Xeon Platinum 8280 @ 2.70 GHz, x86-64 Linux; GCC 15.2.0,
-RelWithDebInfo, `-O2 -g -DNDEBUG -std=c++23`, also `-march=native`, 2026-10-23.
+members.
+
+AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
+`-march=native -O2 -g -DNDEBUG -std=c++23` (native).
+Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | n=1e6 shape | `groups()` ms plain / native | `grouped()` ms plain / native | nested spread plain / native | flat spread plain / native |
 |---|---|---|---|---|
-| all singletons | 198 / 196 | 22.5 / 23.0 | 1.01 / 1.03 | 1.04 / 1.06 |
-| components of 2-4 | 81.9 / 84.3 | 12.8 / 13.4 | 1.06 / 1.04 | 1.01 / 1.02 |
-| one giant component | 3.5 / 3.3 | 3.7 / 3.5 | 1.01 / 1.03 | 1.01 / 1.01 |
-| sqrt(n) components of sqrt(n) | 3.6 / 3.3 | 3.4 / 3.2 | 1.04 / 1.05 | 1.01 / 1.03 |
+| all singletons | 65 / 61.9 | 3.2 / 3.6 | 1.01 / 1.03 | 1.11 / 1.10 |
+| components of 2-4 | 15.4 / 19.3 | 4.4 / 4.4 | 1.25 / 1.06 | 1.16 / 1.08 |
+| one giant component | 1.3 / 1.5 | 1 / 0.785 | 1.04 / 1.01 | 1.03 / 1.06 |
+| sqrt(n) components of sqrt(n) | 1.9 / 1.6 | 1.3 / 0.98 | 1.20 / 1.17 | 1.01 / 1.06 |
 
-Flat groups help most when groups are numerous and tiny; either form is close
-for a single large group.
+Flat groups have smaller minima on every shape, with the largest advantage
+on singletons (3.2/3.6 versus 65/61.9 ms). For one giant component the
+times are 1/0.785 versus 1.3/1.5 ms. The plain nested groups-of-2–4 row
+varies between runs (1.25x spread).
 ## Pitfalls and notes
 
 A view refers to its graph, including a temporary graph. The rvalue-graph
