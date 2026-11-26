@@ -102,6 +102,29 @@ def main():
                          ("link-cut-tree", "basic"), ("point-location", "quick"),
                          ("polygon-overlay", "quick"), ("euler-tour-tree", "basic")):
         check(f"docs/examples/{folder}/{file}.cpp", hash_headers, hash_names)
+    cluster_names = {
+        "sum": ("sum", "sum_aggregate", "sum_path", "sum_tag", "sum_top_tree"),
+        "extremes": ("extremes", "extremes_aggregate", "extremes_path", "extremes_tag", "extremes_top_tree"),
+        "diameter": ("diameter", "diameter_value", "diameter_path", "diameter_point",
+                     "diameter_span", "farthest_vertex", "diameter_top_tree"),
+        "marked_distance": ("marked_distance", "marked_value", "marked_path", "marked_point",
+                            "marked_distance_top_tree"),
+    }
+    for file, used in {"basic": ("extremes", "diameter"), "path": ("sum",),
+                       "subtree": ("sum",), "diameter": ("diameter",)}.items():
+        excluded = tuple(cluster for cluster in cluster_names if cluster not in used)
+        # `sum` is also a field of the extremes algebra and of unrelated generic
+        # aggregates. Qualify the set name and guard concrete types and aliases.
+        names = tuple("top_clusters::sum" if name == "sum" else name
+                      for cluster in excluded for name in cluster_names[cluster])
+        check(f"docs/examples/top-tree/{file}.cpp",
+              ("atl/ds/top_clusters.hpp",) + tuple(f"atl/ds/top_clusters/{cluster}.hpp" for cluster in excluded),
+              names)
+        check(f"docs/examples/top-tree/{file}.cpp", hash_headers, hash_names)
+    check("include/atl/ds/top_tree_engine.hpp",
+          ("atl/ds/top_clusters.hpp",) + tuple(f"atl/ds/top_clusters/{cluster}.hpp" for cluster in cluster_names),
+          tuple("top_clusters::sum" if name == "sum" else name
+                for names in cluster_names.values() for name in names))
     for folder in ("point-location", "polygon-overlay"):
         check(f"docs/examples/{folder}/quick.cpp",
               ("atl/utils/hash_extensions.hpp", "atl/geometry/predicates_floating.hpp"),

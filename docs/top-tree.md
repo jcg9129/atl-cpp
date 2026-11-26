@@ -23,13 +23,50 @@ Output:
 
 \include top-tree/basic.out
 
-The ready-made algebras are declared in:
+`<atl/ds/top_tree.hpp>` is the normal entry point and includes every ready-made
+cluster. `<atl/ds/top_tree_core.hpp>` and `<atl/ds/top_clusters.hpp>` also include
+all four cluster headers.
+For a smaller distilled solution, include the engine and only the cluster
+headers your program uses:
 
 ```cpp
-#include <atl/ds/top_clusters.hpp>
+#include <atl/ds/top_tree_engine.hpp>
+#include <atl/ds/top_clusters/sum.hpp>             // sum_top_tree
+#include <atl/ds/top_clusters/extremes.hpp>        // extremes_top_tree
+#include <atl/ds/top_clusters/diameter.hpp>        // diameter_top_tree
+#include <atl/ds/top_clusters/marked_distance.hpp> // marked_distance_top_tree
 ```
 
-The header `<atl/ds/top_tree_core.hpp>` provides the tree implementation with narrow dependencies.
+Each cluster header provides its types, named members and tree alias, and
+includes the engine. The engine alone provides the generic `top_tree` and no
+concrete cluster types or aliases. `<atl/ds/top_clusters/common.hpp>` contains
+the shared numeric constraints and the `is_ready_made` opt-in trait.
+
+These single-feature programs include just one cluster header each.
+
+### Path sums and adds
+
+\include top-tree/path.cpp
+
+Output:
+
+\include top-tree/path.out
+
+### Subtree sums and adds
+
+\include top-tree/subtree.cpp
+
+Output:
+
+\include top-tree/subtree.out
+
+### Dynamic diameter
+
+\include top-tree/diameter.cpp
+
+Output:
+
+\include top-tree/diameter.out
 
 ## API
 
