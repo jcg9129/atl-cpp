@@ -12,7 +12,7 @@ namespace atl::detail {
 		int const s = std::countr_zero(n - 1);
 		uint64 const d = (n - 1) >> s;
 		using word = std::remove_cvref_t<decltype(mg.one())>; // the engine's residue type, at most 64 bits
-		uint64 const one = mg.one(), minus_one = n - one; // Montgomery forms of 1 and n - 1
+		uint64 const one = mg.one(), minus_one = n - one;	  // Montgomery forms of 1 and n - 1
 		for (uint64 a : bases) {
 			uint64 const base = a % n;
 			if (base == 0) continue;
