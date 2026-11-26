@@ -175,45 +175,47 @@ function from 20,000 random hinges (about 1e4 right entries) and then
 inserts 2000 segments.
 
 AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
-GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-26.
 Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
 `-march=native -O2 -g -DNDEBUG -std=c++23` (native).
 Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library | by Floyd replace_top |
 |---|---|---|
-| prefix minimum + \|x - a\|, unit | 56 / 53.9 | 57.4 / 56.2 |
-| window [-1000, 1000] + \|x - a\|, unit | 84.5 / 87.7 | 86.6 / 87.1 |
-| random hinges, unit | 48.8 / 46.8 | 55.4 / 59.3 |
-| prefix minimum + w\|x - a\|, weighted | 92 / 89.4 | 92.1 / 88.7 |
-| random weighted hinges | 70.6 / 68.7 | 70.7 / 68.5 |
+| prefix minimum + \|x - a\|, unit | 53.7 / 53.6 | 54.1 / 56 |
+| window [-1000, 1000] + \|x - a\|, unit | 83 / 87 | 85.1 / 86.8 |
+| random hinges, unit | 46.7 / 46.4 | 56.4 / 58.8 |
+| prefix minimum + w\|x - a\|, weighted | 91.6 / 88.3 | 91.5 / 87.8 |
+| random weighted hinges | 70.4 / 67.1 | 70.8 / 67.4 |
 
 AMD EPYC-Milan (Hetzner ccx23, 4 dedicated vCPU), x86-64 Linux,
-GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-25.
+GCC 15.2.0, RelWithDebInfo, assertions off, 2026-11-26.
 Flags: `-O2 -g -DNDEBUG -std=c++23` (plain),
 `-march=native -O2 -g -DNDEBUG -std=c++23` (native).
 Minimum of the per-run means, milliseconds; 5 runs of 25 samples per row.
 
 | shape | library (leaf scan) | by whole-heap scan |
 |---|---|---|
-| segments at the rightmost slope, unit | 25.7 / 22.7 | 17.3 / 11.9 |
-| segments at the rightmost slope, weighted | 25.7 / 23 | 17.4 / 12.1 |
+| segments at the rightmost slope, unit | 6.3 / 6.3 | 11.9 / 11.9 |
+| segments at the rightmost slope, weighted | 6.7 / 6.6 | 12.1 / 12.1 |
 
-The library's leaf scan loses to the whole-heap scan: 25.7/22.7 versus
-17.3/11.9 ms on unit entries, or 1.49/1.91 times as long, and 25.7/23 versus
-17.4/12.1 ms on weighted entries, or 1.48/1.90 times as long. Both are O(m).
-Floyd replacement loses the unit prefix-minimum and random-hinge shapes in
-both modes. It narrowly beats the library on native unit windows
-(87.1 versus 87.7 ms), weighted prefix minima (88.7 versus 89.4 ms) and
-weighted random hinges (68.5 versus 68.7 ms), while losing those rows plain.
+The library's leaf scan beats the whole-heap scan: 6.3/6.3 versus
+11.9/11.9 ms on unit entries, 1.89 times faster with both flag sets, and
+6.7/6.6 versus 12.1/12.1 ms on weighted entries, 1.81/1.83 times faster.
+Both are O(m); the leaf scan reads half the entries.
+Floyd replacement loses the unit prefix-minimum, unit random-hinge and
+weighted random-hinge shapes with both flag sets, and the plain unit window
+(85.1 versus 83 ms). It narrowly beats the library on the native unit window
+(86.8 versus 87 ms) and on weighted prefix minima (91.5/87.8 versus
+91.6/88.3 ms).
 
 `benchmarks/dp/convex_piecewise_linear.cpp` also measures the library's two
 modes against the textbook `std::priority_queue` form, unit-only heaps and
 the forest's breakpoint pool. The contenders are defined in
 `atl/experimental/dp/convex_piecewise_linear_variants.hpp`.
 
-The plain weighted random-hinge Floyd row varies between runs (1.28x
-spread); its near-tie minimum does not establish a stable ranking.
+The native unit random-hinge library row varies between runs (1.27x
+spread); its lead over Floyd (46.4 versus 58.8 ms) is larger than that.
 
 ## Pitfalls and notes
 
