@@ -1,5 +1,5 @@
-#include <atl/nt/mod_int_core.hpp>
-#include <atl/nt/polynomial_gcd_native.hpp>
+#include <atl/nt/mod_int_static.hpp>
+#include <atl/nt/polynomial_gcd_ntt.hpp>
 #include <cstdint>
 #include <iostream>
 #include <vector>

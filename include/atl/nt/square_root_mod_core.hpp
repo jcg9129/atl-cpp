@@ -61,17 +61,6 @@ namespace atl {
 		return (std::ranges::min)(canonical, prime - canonical);
 	}
 
-	/**
-	 * @brief Square root in a static prime field.
-	 * @tparam Coefficient Static prime-modulus integer type.
-	 * @param value The residue.
-	 * @return The smaller root as a residue (`root.value() <= mod / 2`), zero for zero, or nullopt for a non-residue.
-	 * @complexity As for the integer overload.
-	 */
-	template<static_prime_mod_int Coefficient>
-	[[nodiscard]] constexpr std::optional<Coefficient> square_root_mod(Coefficient value) {
-		auto const root = square_root_mod(std::uint64_t(value.value()), std::uint64_t(Coefficient::mod()));
-		if (!root) return std::nullopt;
-		return Coefficient(*root);
-	}
 }
+
+#include <atl/nt/detail/square_root_mod_static.hpp>

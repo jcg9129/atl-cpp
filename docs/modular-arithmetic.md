@@ -25,6 +25,15 @@ that extension before any use requiring a friend body in each translation unit
 queries may precede the extension. With the core alone, streaming fails at
 compile time with an include diagnostic; it never leaves an unresolved symbol.
 
+`<atl/nt/mod_int_static.hpp>` is a further reduced alternative for the same
+static arithmetic types and stream friend declarations, without the runtime
+64-bit Montgomery class. It keeps exactly the same `modulus_engine<Mod>`
+selection, including `montgomery<Mod>` for eligible 64-bit moduli. The matching
+`<atl/nt/montgomery_static.hpp>` provides the compile-time Montgomery engine
+and engine alias alone; `<atl/nt/montgomery.hpp>` remains the normal complete
+entry point. The modular reducers and portable integer types still include
+wide arithmetic.
+
 ## Modular values
 
 ### API

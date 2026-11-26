@@ -20,9 +20,16 @@ Expected stdout:
 \include series-composition/quick.out
 
 `<atl/nt/series_composition.hpp>` is the normal entry point for all strategies
-and the wide-residue product policy. The example uses the reduced alternative
+and the wide-residue product policy. The reduced alternative
 `<atl/nt/series_composition_native.hpp>` with Horner and Kinoshita–Li for the
-native series coefficient domain described in the power-series guide. The
+native series coefficient domain described in the power-series guide.
+The example uses `<atl/nt/series_composition_ntt.hpp>` together with
+`<atl/nt/mod_int_static.hpp>` for 998244353. This surface shares the Horner and
+Kinoshita–Li definitions and existing precision limits, but requires a native
+field with direct transform order at least 2^23. Packed work larger than the
+series cap is multiplied in blocks that satisfy the original series limits.
+It excludes FFT, CRT and runtime 64-bit Montgomery implementations. Use the
+native or umbrella header for primes without that order. The
 Brent–Kung implementation lives in
 `<atl/nt/detail/series_composition_brent_kung.hpp>` and is also used by the
 experimental comparison API.

@@ -27,6 +27,11 @@ class SplitCheckerTests(unittest.TestCase):
         with self.assertRaisesRegex(checker.SplitError, 'lost use of required_route'):
             checker.check('declaration.cpp', required_names=('required_route',))
 
+    def test_forbidden_declarations_are_checked(self):
+        # Definitions can survive distillation without a call (constructors and standard names).
+        with self.assertRaisesRegex(checker.SplitError, 'spells required_route'):
+            checker.check('declaration.cpp', forbidden_names=('required_route',))
+
     def test_expression_use(self):
         checker.check('use.cpp', required_names=('required_route',))
 

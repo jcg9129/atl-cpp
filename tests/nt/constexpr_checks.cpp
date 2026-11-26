@@ -837,3 +837,22 @@ TEST_CASE("series composition checks at run time", "[constexpr]") {
 	CHECK(series_composition_checks());
 	CHECK(series_composition_transform_checks());
 }
+
+namespace ntt_split_checks {
+	constexpr bool narrow_product() {
+		using C = atl::mod_int32<998244353>;
+		std::vector<C> a(49, C(1));
+		auto const result = atl::convolution_ntt(a, a);
+		return result.size() == 97 && result[48] == C(49) && result[96] == C(1);
+	}
+
+	static_assert(narrow_product());
+	static_assert(!atl::detail::static_is_prime<atl::uint32(0)>());
+	static_assert(atl::detail::static_is_prime<atl::uint32(2)>());
+	static_assert(!atl::detail::static_is_prime<atl::uint32(3215031751)>());
+	static_assert(atl::detail::static_is_prime<atl::uint32(4294967291)>());
+	static_assert(!atl::detail::static_is_prime<atl::uint64(3825123056546413051)>());
+	static_assert(atl::detail::static_is_prime<atl::uint64(18446744073709551557ULL)>());
+	static_assert(atl::square_root_mod(atl::mod_int32<998244353>(4))->value() == 2);
+	static_assert(atl::square_root_mod(atl::mod_int64<18446744073709551557ULL>(4))->value() == 2);
+}

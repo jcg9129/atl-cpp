@@ -26,6 +26,10 @@ def main():
         cases.append(('atl/nt/mod_int_core.hpp', 'atl/nt/mod_int_io.hpp',
                       'int main() { atl::mod_int32<17> m; std::ostream os(nullptr); '
                       f'std::istream is(nullptr); {operation}; }}'))
+    cases.append(('atl/nt/power_series_ntt.hpp', 'atl/nt/power_series_native.hpp',
+                  '#include <atl/nt/mod_int_static.hpp>\n'
+                  'int main() { using C = atl::mod_int32<1000000007>; '
+                  '(void)atl::series_inverse(std::vector<C>{1, -1}, 129); }'))
     with tempfile.TemporaryDirectory(dir=args.build_dir) as directory:
         scratch = Path(directory)
         env = dict(os.environ, TMPDIR=str(scratch), TMP=str(scratch), TEMP=str(scratch))

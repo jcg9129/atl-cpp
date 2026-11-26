@@ -1,6 +1,7 @@
 #pragma once
 #include <atl/ds/flat_hash_map_core.hpp>
-#include <atl/nt/power_series_native.hpp>
+#include <atl/nt/mod_int_static.hpp>
+#include <atl/nt/power_series_ntt.hpp>
 #include <string>
 #include <vector>
 
@@ -14,7 +15,8 @@ inline int split_route() {
 
 template<typename C>
 inline bool split_series() {
-	return atl::series_inverse(std::vector<C>{1, -1}, 129) == std::vector<C>(129, 1);
+	return atl::series_inverse(std::vector<C>{1, -1}, 129) == std::vector<C>(129, 1)
+		&& atl::square_root_mod(C(4)) == C(2);
 }
 
 inline bool split_scalar_map() {

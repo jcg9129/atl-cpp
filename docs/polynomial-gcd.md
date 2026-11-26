@@ -21,9 +21,14 @@ Expected stdout:
 \include polynomial-gcd/quick.out
 
 `<atl/nt/polynomial_gcd.hpp>` is the normal entry point, including the
-wide-residue product policy. The examples use the reduced alternative
+wide-residue product policy. The reduced alternative
 `<atl/nt/polynomial_gcd_native.hpp>` for the native series coefficient domain
 described in the power-series guide.
+The examples use `<atl/nt/polynomial_gcd_ntt.hpp>` for fields such as 998244353
+whose direct transform order covers 2^23, with `<atl/nt/mod_int_static.hpp>`.
+It shares the same API definitions and existing length limits, while excluding
+FFT, CRT and runtime 64-bit Montgomery implementations. Use the native or
+umbrella header for other primes; see [Power series](power-series.md).
 
 ## Conventions and concepts
 
