@@ -11,6 +11,14 @@ tiers follow the [geometry overview](geometry.md).
 #include <atl/geometry/calipers.hpp>
 ```
 
+Use `<atl/geometry/calipers.hpp>` as the normal entry point. For reduced
+integer-coordinate solutions, `<atl/geometry/calipers_core.hpp>` shares the
+same definitions while omitting adaptive floating predicates. Exact floating
+predicates require the full header before their first instantiation; missing
+extensions produce a compile-time include diagnostic. The `_core` suffix
+matches the existing shared policy layers (`segment_core.hpp` and
+`angular_sort_core.hpp`).
+
 \include calipers/quick.cpp
 
 Output:

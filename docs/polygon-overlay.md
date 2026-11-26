@@ -111,3 +111,7 @@ and rounded constructions on random small inputs, including shared boundaries.
 
 [Arrangements](arrangement.md), [Point location](point-location.md),
 [Convex polygon operations](convex-polygon-operations.md), [Polygons](polygon.md).
+
+Exact floating predicates through a reduced header require
+`<atl/geometry/predicates.hpp>` before their first instantiation; missing
+floating kernels fail at compile time with an include diagnostic.

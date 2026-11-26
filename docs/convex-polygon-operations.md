@@ -10,6 +10,21 @@ integral inputs are exact within the bounds below; output vertices are rounded
 #include <atl/geometry/convex_polygon_operations.hpp>
 ```
 
+Use `<atl/geometry/convex_polygon_operations.hpp>` as the normal entry point. For reduced
+integer-coordinate solutions, `<atl/geometry/convex_polygon_operations_core.hpp>` shares the
+same definitions while omitting adaptive floating predicates. Exact floating
+predicates require the full header before their first instantiation; missing
+extensions produce a compile-time include diagnostic. The `_core` suffix
+matches the existing shared policy layers (`segment_core.hpp` and
+`angular_sort_core.hpp`).
+
+`<atl/geometry/convex_polygon_contact.hpp>` supplies the Minkowski-based
+contact and overlap helpers, also included by the operations umbrella.
+Its reduced shared layer, `<atl/geometry/convex_polygon_contact_core.hpp>`,
+uses `<atl/geometry/minkowski_difference_core.hpp>` for the hull difference
+and supporting vertex indices. These layers do not include caliper views.
+The operations core uses them for degenerate intersections and unions too.
+
 \include convex-polygon-operations/quick.cpp
 
 Output:

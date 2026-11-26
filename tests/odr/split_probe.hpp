@@ -1,9 +1,11 @@
 #pragma once
 #include <atl/ds/flat_hash_map_core.hpp>
+#include <atl/geometry/triangulation_core.hpp>
 #include <atl/nt/mod_int_static.hpp>
 #include <atl/nt/online_convolution_ntt.hpp>
 #include <atl/nt/power_series_ntt.hpp>
 #include <atl/nt/prime_field_helpers.hpp>
+#include <array>
 #include <string>
 #include <vector>
 
@@ -29,4 +31,9 @@ inline bool split_scalar_map() {
 	atl::flat_hash_map<int, int> map;
 	map[2] = 7;
 	return map.at(2) == 7;
+}
+
+inline bool split_geometry() {
+	std::array const points{atl::geometry::point{0, 0}, atl::geometry::point{4, 0}, atl::geometry::point{0, 4}};
+	return atl::geometry::triangulation_of(points).triangles.size() == 1;
 }

@@ -1,5 +1,5 @@
-#include <atl/geometry/halfplane.hpp>
-#include <atl/geometry/halfplane_intersection.hpp>
+#include <atl/geometry/halfplane_core.hpp>
+#include <atl/geometry/halfplane_intersection_core.hpp>
 #include <array>
 #include <iostream>
 

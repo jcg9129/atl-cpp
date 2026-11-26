@@ -1,6 +1,6 @@
-#include <atl/geometry/convex_polygon_operations.hpp>
+#include <atl/geometry/convex_polygon_operations_core.hpp>
 #include <atl/geometry/point.hpp>
-#include <atl/geometry/polygon.hpp>
+#include <atl/geometry/polygon_core.hpp>
 #include <array>
 #include <iostream>
 

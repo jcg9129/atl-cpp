@@ -19,6 +19,16 @@ precision tiers are explained once in the [geometry overview](geometry.md).
 #include <atl/geometry/angular_sort.hpp> // polar_angle_less, sort_by_polar_angle, polar_angle_order
 ```
 
+Use `<atl/geometry/line.hpp>` as the normal entry point. For reduced
+integer-coordinate solutions, `<atl/geometry/line_core.hpp>` shares the
+same definitions while omitting adaptive floating predicates. Exact floating
+predicates require the full header before their first instantiation; missing
+extensions produce a compile-time include diagnostic. The `_core` suffix
+matches the existing shared policy layers (`segment_core.hpp` and
+`angular_sort_core.hpp`).
+
+The corresponding reduced line layer is `<atl/geometry/line_core.hpp>`.
+
 \include geometry-primitives/quick.cpp
 
 ## Shared interface
@@ -423,3 +433,7 @@ normal entry points for all coordinate types. Their reduced alternatives,
 `<atl/geometry/predicates_core.hpp>` and `<atl/geometry/segment_core.hpp>`,
 provide the policy interface without adaptive floating implementations, as used
 by the integral geometry examples.
+
+Exact floating predicates through a reduced header require
+`<atl/geometry/predicates.hpp>` before their first instantiation; missing
+floating kernels fail at compile time with an include diagnostic.

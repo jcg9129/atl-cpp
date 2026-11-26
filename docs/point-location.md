@@ -145,3 +145,7 @@ The integral include path also exposes `<atl/geometry/angular_sort_core.hpp>`,
 `<atl/geometry/arrangement_core.hpp>`. These policy-based layers share the
 same definitions as their general umbrellas; include the floating predicate
 extension before using exact floating predicates.
+
+Exact floating predicates through a reduced header require
+`<atl/geometry/predicates.hpp>` before their first instantiation; missing
+floating kernels fail at compile time with an include diagnostic.

@@ -1,4 +1,4 @@
-#include <atl/geometry/segment_intersections.hpp>
+#include <atl/geometry/segment_intersections_core.hpp>
 #include <array>
 #include <iostream>
 

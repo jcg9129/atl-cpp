@@ -1,6 +1,6 @@
-#include <atl/geometry/line.hpp>
+#include <atl/geometry/line_core.hpp>
 #include <atl/geometry/point.hpp>
-#include <atl/geometry/segment.hpp>
+#include <atl/geometry/segment_core.hpp>
 #include <atl/types/alias.hpp>
 #include <iostream>
 

@@ -1,4 +1,4 @@
-#include <atl/geometry/arrangement.hpp>
+#include <atl/geometry/arrangement_core.hpp>
 #include <array>
 #include <iostream>
 
