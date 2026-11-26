@@ -43,7 +43,7 @@ def main():
         ('convex_hull_core', 'convex_hull', '(void)atl::geometry::convex_hull(points);'),
         ('convex_layers_core', 'convex_layers', '(void)atl::geometry::convex_layers(points);'),
         ('calipers_core', 'calipers', '(void)atl::geometry::farthest_pair(points);'),
-        ('circle_core', 'circle', '(void)atl::geometry::minimum_enclosing_circle(points);'),
+        ('circle_core', 'circle', 'return atl::geometry::exact{}.orientation(points[0],points[1],points[2]);'),
         ('ray_core', 'ray', '(void)atl::geometry::contains(atl::geometry::ray<double>{p,{1.,0.}},p);'),
         ('triangulation_core', 'triangulation', '(void)atl::geometry::triangulation_of(points);'),
         ('convex_polygon_operations_core', 'convex_polygon_operations', '(void)atl::geometry::intersection_of_convex_polygons(points,points);'),
