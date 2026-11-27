@@ -16,6 +16,14 @@ and the precision tiers are explained in the [geometry overview](geometry.md).
 #include <atl/geometry/polygon.hpp> // polygon_area2, contains, winding_of, convexity_of, normalized_polygon, ...
 ```
 
+Use `<atl/geometry/polygon.hpp>` as the normal entry point. For reduced
+integer-coordinate solutions, `<atl/geometry/polygon_core.hpp>` shares the
+same definitions while omitting adaptive floating predicates. Exact floating
+predicates require the full header before their first instantiation; missing
+extensions produce a compile-time include diagnostic. The `_core` suffix
+matches the existing shared policy layers (`segment_core.hpp` and
+`angular_sort_core.hpp`).
+
 \include polygon/quick.cpp
 
 Output:

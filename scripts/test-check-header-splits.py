@@ -48,6 +48,11 @@ class SplitCheckerTests(unittest.TestCase):
         with self.assertRaisesRegex(checker.SplitError, 'spells top_clusters::sum'):
             checker.check('discarded.cpp', forbidden_names=('top_clusters::sum',))
 
+    def test_families_and_deduction_guides_are_checked(self):
+        for name in ('adaptive_incircle', 'dual_support_view'):
+            with self.subTest(name=name), self.assertRaisesRegex(checker.SplitError, 'spells ' + name):
+                checker.check('family.cpp', forbidden_names=(name,))
+
     def test_comments_are_ignored(self):
         checker.check('comments.cpp', forbidden_headers=('atl/forbidden.hpp',),
                       forbidden_names=('unused_path',))

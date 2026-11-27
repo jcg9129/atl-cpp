@@ -37,7 +37,9 @@ namespace atl::geometry {
 
 	namespace detail {
 		template<coordinate T>
-		struct exact_predicates;
+		struct exact_predicates {
+			static_assert(sizeof(T) == 0, "Include <atl/geometry/predicates.hpp> before using exact floating predicates");
+		};
 
 		template<coordinate T>
 			requires std::signed_integral<T>

@@ -132,3 +132,16 @@ On targets with `FLT_EVAL_METHOD != 0`, runtime error-free transforms force
 binary64 rounding through a store barrier. Constant evaluation keeps the plain
 arithmetic path; other targets need no barrier. Round-to-nearest and no unsafe
 floating reassociation remain required.
+
+## Reduced includes
+
+The family headers above are the normal entry points for every coordinate
+type. Integer-coordinate programs that need smaller sources can use the documented
+`*_core.hpp` layers (shared policy implementations) or `*_integral.hpp`
+headers (integer kernels). These remove adaptive floating implementations by
+include structure, including uninstantiated templates and discarded arms.
+Constructed results may still be `double`; their coordinate input remains
+integral. Include the full header before instantiating an exact floating
+predicate; an unavailable extension fails at compile time and names the
+required header. The mixed-coordinate primitives example keeps its full
+predicate umbrella deliberately.

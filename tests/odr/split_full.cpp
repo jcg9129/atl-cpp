@@ -1,4 +1,5 @@
 #include <atl/ds/flat_hash_map.hpp>
+#include <atl/geometry/triangulation.hpp>
 #include <atl/nt/online_convolution.hpp>
 #include <atl/nt/power_series.hpp>
 #include <concepts>
@@ -7,7 +8,7 @@
 template int split_route<std::string>();
 
 bool split_full() {
-	return split_route<std::string>() == 1 && split_scalar_map() && split_series<atl::mod_int32<998244353>>();
+	return split_route<std::string>() == 1 && split_geometry() && split_scalar_map() && split_series<atl::mod_int32<998244353>>();
 }
 
 static_assert(atl::static_prime_mod_int<atl::mod_int32<998244353>>);

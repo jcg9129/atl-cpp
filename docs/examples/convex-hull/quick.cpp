@@ -1,5 +1,5 @@
-#include <atl/geometry/convex_hull.hpp>
-#include <atl/geometry/convex_layers.hpp>
+#include <atl/geometry/convex_hull_core.hpp>
+#include <atl/geometry/convex_layers_core.hpp>
 #include <array>
 #include <iostream>
 

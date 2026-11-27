@@ -1,4 +1,4 @@
-#include <atl/geometry/angular_sort.hpp>
+#include <atl/geometry/angular_sort_core.hpp>
 #include <atl/geometry/box.hpp>
 #include <atl/geometry/point.hpp>
 #include <atl/types/alias.hpp>

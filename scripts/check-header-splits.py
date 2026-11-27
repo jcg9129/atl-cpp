@@ -164,6 +164,31 @@ def main():
               ("hash_float_value", "hash_bytes", "hash_combine", "byte_hashable",
                "nothrow_hashable", "packable_hash_pair", "tuple_hash_argument_t", "tuple_hash_key_t",
                "adaptive_orientation", "adaptive_cross_sign"))
+    # Audit every geometry example. The mixed-coordinate predicate demo is the
+    # only one that needs adaptive floating kernels; calipers has its own demo.
+    # Delaunay keeps its full header: its adaptive incircle filter is the fast
+    # path for small integer coordinates.
+    floating_headers = tuple(f"atl/geometry/{name}.hpp" for name in (
+        "predicates_floating", "halfplane_floating",
+        "halfplane_intersection_floating"))
+    floating_names = (
+        "adaptive_orientation", "adaptive_cross_sign", "adaptive_cross_tail",
+        "adaptive_incircle", "scale_expansion", "rounded_binary64",
+        "expansion_sum", "expansion_product", "expansion_sign", "two_sum",
+        "two_diff", "two_diff_tail", "two_product", "two_one_diff",
+        "two_two_diff", "fast_two_sum",
+    )
+    caliper_names = ("dual_support_view", "antipodal_view", "support_event", "antipodal_event")
+    for example in sorted((ROOT / "docs/examples").rglob("*.cpp")):
+        if "atl/geometry/" not in example.read_text(encoding="utf-8"):
+            continue
+        relative = example.relative_to(ROOT).as_posix()
+        if relative.startswith("docs/examples/delaunay/"):
+            continue
+        if relative != "docs/examples/geometry-primitives/quick.cpp":
+            check(relative, floating_headers, floating_names)
+        if relative != "docs/examples/calipers/quick.cpp":
+            check(relative, ("atl/geometry/calipers.hpp", "atl/geometry/calipers_core.hpp"), caliper_names)
     check("docs/examples/link-cut-tree/basic.cpp",
           ("atl/ds/detail/forest_edge_registry.hpp", "atl/ds/detail/hash_table.hpp",
            "atl/ds/detail/hash_table_core.hpp",

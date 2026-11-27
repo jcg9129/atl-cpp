@@ -10,6 +10,20 @@ bounding box. Corner coordinates are rounded constructions.
 #include <atl/geometry/halfplane_intersection.hpp>
 ```
 
+Use `<atl/geometry/halfplane_intersection.hpp>` as the normal entry point. For reduced
+integer-coordinate solutions, `<atl/geometry/halfplane_intersection_core.hpp>` shares the
+same definitions while omitting adaptive floating predicates. Exact floating
+predicates require the full header before their first instantiation; missing
+extensions produce a compile-time include diagnostic. The `_core` suffix
+matches the existing shared policy layers (`segment_core.hpp` and
+`angular_sort_core.hpp`).
+
+`<atl/geometry/halfplane_core.hpp>` supplies the shared coefficient types and
+integral arithmetic; `<atl/geometry/halfplane.hpp>` adds
+`<atl/geometry/halfplane_floating.hpp>`. The intersection umbrella adds
+`<atl/geometry/halfplane_intersection_floating.hpp>` for floating determinant
+and construction arithmetic.
+
 \include halfplane-intersection/quick.cpp
 
 Output:

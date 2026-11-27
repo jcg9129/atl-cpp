@@ -11,6 +11,17 @@ the [geometry overview](geometry.md).
 #include <atl/geometry/convex_layers.hpp>
 ```
 
+Use `<atl/geometry/convex_hull.hpp>` as the normal entry point. For reduced
+integer-coordinate solutions, `<atl/geometry/convex_hull_core.hpp>` shares the
+same definitions while omitting adaptive floating predicates. Exact floating
+predicates require the full header before their first instantiation; missing
+extensions produce a compile-time include diagnostic. The `_core` suffix
+matches the existing shared policy layers (`segment_core.hpp` and
+`angular_sort_core.hpp`).
+
+`<atl/geometry/convex_layers_core.hpp>` similarly provides onion peeling;
+`<atl/geometry/convex_layers.hpp>` remains its normal entry point.
+
 \include convex-hull/quick.cpp
 
 Output:

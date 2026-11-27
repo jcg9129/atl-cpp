@@ -9,6 +9,20 @@ centers, tangent lines and crossings. Rays are documented on this page.
 #include <atl/geometry/ray.hpp>
 ```
 
+Use `<atl/geometry/circle.hpp>` as the normal entry point. For reduced
+integer-coordinate solutions, `<atl/geometry/circle_core.hpp>` shares the
+same definitions while omitting adaptive floating predicates. Exact floating
+predicates require the full header before their first instantiation; missing
+extensions produce a compile-time include diagnostic. The `_core` suffix
+matches the existing shared policy layers (`segment_core.hpp` and
+`angular_sort_core.hpp`).
+
+`minimum_enclosing_circle` predicates on constructed doubles and still needs
+the full umbrella for integer inputs too.
+
+For rays, use `<atl/geometry/ray.hpp>` normally and
+`<atl/geometry/ray_core.hpp>` for the reduced shared implementation.
+
 \include circle/quick.cpp
 
 Expected stdout:

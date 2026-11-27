@@ -1,5 +1,5 @@
-#include <atl/geometry/circle.hpp>
-#include <atl/geometry/ray.hpp>
+#include <atl/geometry/circle_core.hpp>
+#include <atl/geometry/ray_core.hpp>
 #include <iostream>
 
 int main() {

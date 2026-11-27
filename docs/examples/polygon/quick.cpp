@@ -1,5 +1,5 @@
 #include <atl/geometry/point.hpp>
-#include <atl/geometry/polygon.hpp>
+#include <atl/geometry/polygon_core.hpp>
 #include <atl/types/alias.hpp>
 #include <iostream>
 #include <vector>
