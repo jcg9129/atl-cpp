@@ -1,7 +1,5 @@
-#include <atl/nt/batch_inverse_core.hpp>
-#include <atl/nt/factorial_table_core.hpp>
-#include <atl/nt/mod_int_core.hpp>
-#include <atl/nt/series_calculus_core.hpp>
+#include <atl/nt/mod_int_static.hpp>
+#include <atl/nt/prime_field_helpers.hpp>
 #include <atl/nt/square_root_mod_core.hpp>
 #include <iostream>
 #include <vector>

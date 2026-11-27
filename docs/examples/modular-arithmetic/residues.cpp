@@ -1,8 +1,8 @@
 #include <atl/nt/constants.hpp>
 #include <atl/nt/dynamic_mod_int.hpp>
-#include <atl/nt/mod_int.hpp>
+#include <atl/nt/mod_int_static.hpp>
 #include <atl/nt/modular.hpp>
-#include <atl/nt/montgomery.hpp>
+#include <atl/nt/montgomery_static.hpp>
 #include <atl/nt/static_modulus.hpp>
 #include <atl/types/alias.hpp>
 #include <iostream>

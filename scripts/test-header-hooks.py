@@ -26,6 +26,14 @@ def main():
         cases.append(('atl/nt/mod_int_core.hpp', 'atl/nt/mod_int_io.hpp',
                       'int main() { atl::mod_int32<17> m; std::ostream os(nullptr); '
                       f'std::istream is(nullptr); {operation}; }}'))
+    cases.append(('atl/nt/power_series_ntt.hpp', 'atl/nt/power_series_native.hpp',
+                  '#include <atl/nt/mod_int_static.hpp>\n'
+                  'int main() { using C = atl::mod_int32<1000000007>; '
+                  '(void)atl::series_inverse(std::vector<C>{1, -1}, 129); }'))
+    cases.append(('atl/nt/online_convolution_ntt.hpp', 'atl/nt/online_convolution_native.hpp',
+                  '#include <atl/nt/mod_int_static.hpp>\n'
+                  'int main() { using C = atl::mod_int32<1000000007>; '
+                  'atl::online_convolution<C> product; (void)product.push(C(1), C(1)); }'))
     with tempfile.TemporaryDirectory(dir=args.build_dir) as directory:
         scratch = Path(directory)
         env = dict(os.environ, TMPDIR=str(scratch), TMP=str(scratch), TEMP=str(scratch))
@@ -43,7 +51,8 @@ def main():
                 output = result.stdout + result.stderr
                 if full and result.returncode != 0:
                     parser.exit(1, f'Extension case {index} failed:\n{output}')
-                if not full and (result.returncode == 0 or f'Include <{extension}>' not in output):
+                diagnostic = 'atl/nt/power_series_native.hpp' if core == 'atl/nt/online_convolution_ntt.hpp' else extension
+                if not full and (result.returncode == 0 or f'Include <{diagnostic}>' not in output):
                     parser.exit(1, f'Core case {index} did not give its compile-time include diagnostic:\n{output}')
     print(f'Header hooks: {len(cases)} core failures and {len(cases)} extension successes verified.')
 

@@ -21,6 +21,17 @@ nonnegative integer products. The reduced alternative
 `<atl/nt/convolution_mod.hpp>` provides modular convolution with all existing
 FFT and CRT fallback paths. `<atl/nt/convolution_uint64.hpp>` adds the exact
 integer product; it is an extension, rather than a smaller modular entry point.
+For a direct-transform-only product, `<atl/nt/convolution_ntt.hpp>` provides
+`convolution_ntt`, `ntt` and `inverse_ntt`, without the FFT or CRT implementations.
+`convolution_ntt` accepts only the same odd primes below 2^30 as `ntt`. For
+nonempty operands it asserts that `detail::planned_ntt_size(n, m)` divides
+`Z::mod() - 1`, even below the schoolbook cutoff. The planned size is
+`bit_ceil(n+m-1)`, or `bit_ceil(2*min(n,m))` when overlap-add reduces it to at
+most a quarter of the padded size. For 998244353, a padded size at most 2^23
+is sufficient. Empty operands return an empty vector. The result, engine
+fallback to scalar transforms, constexpr support and complexity match the
+direct tier of `convolution`. Use the full entry when the length bound is
+unknown or the modulus needs reconstruction.
 `<atl/nt/ntt_engine_core.hpp>` provides the transform engine without the
 factorization and modular stream dependencies of `<atl/nt/ntt_engine.hpp>`.
 

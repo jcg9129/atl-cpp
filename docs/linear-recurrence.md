@@ -80,6 +80,9 @@ Asserted with `ATL_ASSERT`: initial.size() >= coefficients.size(); Q nonempty
 and Q[0] nonzero. Recurrence order and the rational working d are at most
 `SIZE_MAX/4-1`, so doubling and bit-ceil size arithmetic is representable.
 Convolution's size and coefficient bounds apply to paths that call it.
+These limits do not guarantee direct NTT order, even for 998244353: orders
+at least 2^22 can require a transform larger than 2^23. The native header
+therefore retains the full convolution driver, including reconstruction.
 
 Documented-only: the exact-field laws and valid arithmetic on every evaluated
 value. In particular, modular fields require a prime modulus and rational Q[0]

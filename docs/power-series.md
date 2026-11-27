@@ -25,20 +25,35 @@ Expected stdout:
 \include power-series/quick.out
 
 `<atl/nt/power_series.hpp>` is the normal entry point for the full generic API
-and its complexity contracts. The examples use the reduced alternative
+and its complexity contracts. The reduced alternative
 `<atl/nt/power_series_native.hpp>` for prime moduli fitting in 32 bits, with
 coefficient storage supporting double-width multiplication. Here “native” names
 the modulus/widening policy; widened storage can use portable arithmetic. This
 path retains direct NTT, FFT split and CRT products.
+The examples instead use `<atl/nt/power_series_ntt.hpp>` together with
+`<atl/nt/mod_int_static.hpp>`. This smaller include surface supplies the same
+function definitions for native coefficients whose modulus supports a direct
+transform of size `2 * maximum_series_length` (2^23), including 998244353.
+Every product's operands are already capped at 2^22, so this choice adds no
+length precondition to the series API. Primes with less transform order and
+non-NTT primes must use the native or umbrella header before instantiation;
+wide coefficients must use the umbrella. No template policy argument is added.
+The static field concepts and static square roots use static arithmetic, so
+this reduced surface excludes the runtime 64-bit Montgomery reducer. Portable
+wide arithmetic remains included by the modular arithmetic types.
 `<atl/nt/power_series_wide.hpp>` installs the wider-residue product policy:
 16-bit limbs at runtime, schoolbook products in constant evaluation. Include it
 before using wider coefficient types.
 
-The helper example similarly uses `<atl/nt/factorial_table_core.hpp>`,
-`<atl/nt/batch_inverse_core.hpp>`, `<atl/nt/series_calculus_core.hpp>` and
-`<atl/nt/square_root_mod_core.hpp>` as reduced alternatives to the general
-headers listed above. `<atl/nt/prime_mod_int_core.hpp>` provides the shared
-prime-field concepts without factorization storage.
+The helper example uses `<atl/nt/prime_field_helpers.hpp>` with
+`<atl/nt/mod_int_static.hpp>` for static primality and static square roots; it
+also includes `<atl/nt/square_root_mod_core.hpp>` for the integer
+`square_root_mod(uint64, uint64)` overload, which brings the runtime 64-bit
+Montgomery class. The existing reduced alternatives
+`<atl/nt/factorial_table_core.hpp>`, `<atl/nt/batch_inverse_core.hpp>`,
+`<atl/nt/series_calculus_core.hpp>`, `<atl/nt/square_root_mod_core.hpp>` and
+`<atl/nt/prime_mod_int_core.hpp>` retain their complete include surfaces,
+including the integer square-root overload and runtime primality.
 
 ## Conventions and concepts
 
@@ -77,6 +92,15 @@ inline constexpr std::size_t maximum_series_length = std::size_t{1} << 22;
   moduli without a transform-friendly structure the products are quadratic.
 
 ## Prime-field helpers
+
+`<atl/nt/prime_field_helpers.hpp>` provides `static_prime_mod_int`,
+`prime_mod_int_range`, `series_coefficient_t`, `batch_inverse`, `factorial_table`,
+`series_derivative`, `series_integral` and the static-field `square_root_mod`
+overload, using static primality and static Montgomery arithmetic. Pair it with
+`<atl/nt/mod_int_static.hpp>`. It excludes
+runtime Miller-Rabin and runtime Montgomery arithmetic. The integer overload
+`square_root_mod(uint64, uint64)` remains in `<atl/nt/square_root_mod_core.hpp>`
+and `<atl/nt/square_root_mod.hpp>`.
 
 ```cpp
 template<static_prime_mod_int Coefficient>

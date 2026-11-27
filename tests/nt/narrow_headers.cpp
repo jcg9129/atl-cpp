@@ -44,3 +44,7 @@ TEST_CASE("native series retains FFT split and CRT fallbacks", "[power_series]")
 	check_fallback_series<1000000007>(); // Non-NTT prime below 2^30: FFT split.
 	check_fallback_series<4294967291>(); // Prime above the FFT bound: CRT.
 }
+
+TEST_CASE("native series retains fallbacks for NTT primes with insufficient global order", "[power_series]") {
+	check_fallback_series<257>(); // Planned size 512 exceeds this prime's order 256.
+}
