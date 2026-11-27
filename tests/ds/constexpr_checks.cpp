@@ -1815,3 +1815,40 @@ namespace {
 
 	static_assert(edge_id_table_constant_evaluation());
 }
+
+namespace {
+	template<typename Value>
+	constexpr bool integer_key_table_constant_evaluation() {
+		atl::detail::integer_key_table<Value> table;
+		if (table.entry_value(0) || std::as_const(table).entry_value(0)) return false;
+		for (atl::uint32 i = 0; i < 64; ++i) table.insert_entry((atl::uint64(i) << 32) | 3, Value{});
+		for (atl::uint32 i = 0; i < 64; i += 2) table.erase_entry((atl::uint64(i) << 32) | 3);
+		for (atl::uint32 i = 0; i < 64; ++i)
+			if (bool(std::as_const(table).entry_value((atl::uint64(i) << 32) | 3)) != bool(i % 2)) return false;
+		Value value{};
+		if constexpr (std::same_as<Value, std::array<atl::uint32, 2>>)
+			value = {17, ~atl::uint32(0)};
+		else
+			value = 17;
+		table.insert_entry(3, value);
+		*table.entry_value(3) = value;
+		if (*std::as_const(table).entry_value(3) != value || table.lookup_id(3, Value{}) != value) return false;
+		// Cross the occupancy threshold with live entries under default constexpr limits.
+		table.reserve_entries(1024);
+		table.reserve_entries(1025);
+		if (*table.entry_value(3) != value || table.entry_count() != 33) return false;
+		for (atl::uint32 i = 1; i < 64; ++i)
+			if (bool(table.entry_value((atl::uint64(i) << 32) | 3)) != bool(i % 2)) return false;
+		table.erase_entry(3);
+		if (table.entry_value(3)) return false;
+		table.insert_entry(3, value);
+		if (*std::as_const(table).entry_value(3) != value) return false;
+		table.reset_entries();
+		return table.entry_count() == 0 && !table.entry_value(3);
+	}
+
+	static_assert(std::same_as<atl::detail::edge_id_table, atl::detail::integer_key_table<atl::uint32>>);
+	static_assert(integer_key_table_constant_evaluation<atl::uint32>());
+	static_assert(integer_key_table_constant_evaluation<atl::uint8>());
+	static_assert(integer_key_table_constant_evaluation<std::array<atl::uint32, 2>>());
+}

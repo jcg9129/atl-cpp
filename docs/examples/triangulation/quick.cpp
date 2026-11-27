@@ -1,4 +1,4 @@
-#include <atl/geometry/triangulation_core.hpp>
+#include <atl/geometry/triangulation_integral.hpp>
 #include <array>
 #include <iostream>
 
