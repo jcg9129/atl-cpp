@@ -1,6 +1,6 @@
 #pragma once
 #include <atl/ds/flat_hash_map_core.hpp>
-#include <atl/geometry/triangulation_core.hpp>
+#include <atl/geometry/triangulation_integral.hpp>
 #include <atl/nt/mod_int_static.hpp>
 #include <atl/nt/online_convolution_ntt.hpp>
 #include <atl/nt/power_series_ntt.hpp>

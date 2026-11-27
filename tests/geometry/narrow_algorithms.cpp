@@ -3,7 +3,7 @@
 #include <atl/geometry/convex_polygon_operations_core.hpp>
 #include <atl/geometry/halfplane_intersection_core.hpp>
 #include <atl/geometry/ray_core.hpp>
-#include <atl/geometry/triangulation_core.hpp>
+#include <atl/geometry/triangulation_integral.hpp>
 #include <array>
 #include <catch2/catch.hpp>
 #include <random>

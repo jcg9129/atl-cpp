@@ -4,6 +4,7 @@
 #include <atl/geometry/polygon.hpp>
 #include <atl/geometry/triangulation.hpp>
 #include <atl/types/alias.hpp>
+#include <atl/utils/hash_seed.hpp>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -412,4 +413,31 @@ TEST_CASE("ear clipping accepts views and policies and preserves long straight c
 	auto const result = triangulation_of_by_ear_clipping(polygon, ear_orientation_counter(calls));
 	REQUIRE(calls < 100 * polygon.size()); // Linear predicate work with no reflex vertices.
 	verify_one(polygon, result);
+}
+
+TEST_CASE("triangulation: hash seed preserves exact triangle and dual order", "[geometry]") {
+	std::vector<std::vector<point<std::int64_t>>> polygons{
+		{{0, 0}, {2, 0}, {4, 0}, {4, 4}, {2, 4}, {0, 4}, {0, 2}},
+		{{0, 0}, {10, 0}, {10, 10}, {2, 10}, {2, 4}, {6, 4}, {6, 6}, {4, 6}, {4, 8}, {8, 8}, {8, 2}, {0, 2}},
+	};
+	std::vector<point<std::int64_t>> comb;
+	for (std::int64_t i = 0; i < 160; ++i) {
+		comb.push_back({2 * i, 0});
+		comb.push_back({2 * i + 1, 2});
+	}
+	comb.push_back({320, 0});
+	comb.push_back({320, 5});
+	comb.push_back({0, 5});
+	polygons.push_back(comb);
+	auto const saved = atl::detail::hash_seed_value;
+	for (auto const &polygon : polygons) {
+		auto const expected = atl::geometry::detail::monotone_sweep_triangulation(polygon);
+		for (auto const seed : {atl::uint64(0), atl::uint64(1), ~atl::uint64(0), atl::uint64(123456789)}) {
+			atl::set_hash_seed(seed);
+			auto const actual = atl::geometry::detail::monotone_sweep_triangulation(polygon);
+			CHECK(actual.triangles == expected.triangles);
+			CHECK(actual.dual_edges == expected.dual_edges);
+		}
+	}
+	atl::detail::hash_seed_value = saved;
 }

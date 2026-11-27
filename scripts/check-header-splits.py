@@ -120,7 +120,8 @@ def main():
     check("docs/examples/linear-recurrence/quick.cpp",
           ("atl/nt/matrix.hpp", "atl/nt/gaussian_elimination.hpp"))
     hash_headers = (
-        "atl/ds/flat_hash_map_core.hpp", "atl/ds/detail/hash_table_core.hpp",
+        "atl/ds/flat_hash_map.hpp", "atl/ds/flat_hash_map_core.hpp",
+        "atl/ds/detail/hash_table.hpp", "atl/ds/detail/hash_table_core.hpp",
         "atl/utils/hash_core.hpp", "atl/utils/hash_extensions.hpp",
         "atl/ds/detail/heterogeneous_key.hpp",
     )
@@ -133,7 +134,8 @@ def main():
     )
     for folder, file in (("top-tree", "basic"), ("subtree-link-cut-tree", "basic"),
                          ("link-cut-tree", "basic"), ("point-location", "quick"),
-                         ("polygon-overlay", "quick"), ("euler-tour-tree", "basic")):
+                         ("polygon-overlay", "quick"), ("euler-tour-tree", "basic"),
+                         ("triangulation", "quick")):
         check(f"docs/examples/{folder}/{file}.cpp", hash_headers, hash_names)
     cluster_names = {
         "sum": ("sum", "sum_aggregate", "sum_path", "sum_tag", "sum_top_tree"),

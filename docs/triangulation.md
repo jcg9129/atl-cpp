@@ -9,12 +9,11 @@ walks; use Delaunay for an unconstrained point cloud.
 ```
 
 Use `<atl/geometry/triangulation.hpp>` as the normal entry point. For reduced
-integer-coordinate solutions, `<atl/geometry/triangulation_core.hpp>` shares the
-same definitions while omitting adaptive floating predicates. Exact floating
-predicates require the full header before their first instantiation; missing
-extensions produce a compile-time include diagnostic. The `_core` suffix
-matches the existing shared policy layers (`segment_core.hpp` and
-`angular_sort_core.hpp`).
+integer-coordinate solutions, `<atl/geometry/triangulation_integral.hpp>` shares
+the same definitions while omitting adaptive floating predicates and the generic
+hash map; `<atl/geometry/triangulation_core.hpp>` omits only the floating
+predicates. Exact floating predicates require the full header before their first
+instantiation; missing extensions produce a compile-time include diagnostic.
 
 \include triangulation/quick.cpp
 
